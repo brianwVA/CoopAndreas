@@ -785,5 +785,18 @@ public:
 			}
 		}
 	};
-};
+	struct PickupRemove
+	{
+		int16_t pos_x;
+		int16_t pos_y;
+		int16_t pos_z;
+
+		static void Handle(ENetPeer* peer, void* data, int size)
+		{
+			if (auto player = CPlayerManager::GetPlayer(peer))
+			{
+				CNetwork::SendPacketToAll(CPacketsID::PICKUP_REMOVE, data, sizeof(PickupRemove), ENET_PACKET_FLAG_RELIABLE, peer);
+			}
+		}
+	};};
 #endif

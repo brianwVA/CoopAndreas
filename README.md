@@ -142,16 +142,16 @@ PayPal `kirilltymoshchenko59@gmail.com`
 - [X] mission markers sync
   
 ### Current Tasks
-- [ ] pickups
-  - [ ] graffities, horseshoes, snapshots, oysters
-  - [ ] static weapons, armours
-  - [ ] static bribes
+- [X] pickups
+  - [X] graffities, horseshoes, snapshots, oysters
+  - [X] static weapons, armours
+  - [X] static bribes
   - [ ] drop
     - [ ] money
     - [ ] weapons
 - [ ] jetpack sync
   - [X] flight 
-  - [ ] pickup (related to task above) 
+  - [X] pickup (related to task above) 
 - [ ] cutscenes
   - [X] cutscenes
   - [X] vote to skip

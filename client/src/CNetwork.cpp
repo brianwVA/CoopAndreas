@@ -175,6 +175,7 @@ void CNetwork::InitListeners()
 	CNetwork::AddListener(CPacketsID::MONEY_SYNC, CPacketHandler::MoneySync__Handle);
 	CNetwork::AddListener(CPacketsID::CHEAT_CODE_SYNC, CPacketHandler::CheatCodeSync__Handle);
 	CNetwork::AddListener(CPacketsID::FIRE_SYNC, CPacketHandler::FireSync__Handle);
+	CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPacketHandler::PickupRemove__Handle);
 }
 
 void CNetwork::HandlePacketReceive(ENetEvent& event)

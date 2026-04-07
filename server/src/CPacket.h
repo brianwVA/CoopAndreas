@@ -73,6 +73,7 @@ enum CPacketsID : unsigned short
 	MONEY_SYNC,
 	CHEAT_CODE_SYNC,
 	FIRE_SYNC,
+	PICKUP_REMOVE,
 	PACKET_ID_MAX
 };
 

@@ -76,6 +76,7 @@ enum CPacketsID : unsigned short
 	MONEY_SYNC,
 	CHEAT_CODE_SYNC,
 	FIRE_SYNC,
+	PICKUP_REMOVE,
 	PACKET_ID_MAX
 };
 
@@ -154,6 +155,7 @@ public:
 			sizeof(MoneySync), // MONEY_SYNC,
 			sizeof(CheatCodeSync), // CHEAT_CODE_SYNC,
 			sizeof(FireSync), // FIRE_SYNC,
+			sizeof(PickupRemove), // PICKUP_REMOVE,
 		};
 
 		return m_nPacketSize[id];
@@ -696,5 +698,12 @@ public:
 		CVector position;
 		uint32_t timeToBurn;
 		int8_t numGenerations;
+	};
+
+	struct PickupRemove
+	{
+		int16_t pos_x;
+		int16_t pos_y;
+		int16_t pos_z;
 	};
 };

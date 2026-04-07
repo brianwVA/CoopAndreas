@@ -85,4 +85,5 @@ public:
 	static void MoneySync__Trigger();
 	static void CheatCodeSync__Handle(void* data, int size);
 	static void FireSync__Handle(void* data, int size);
+	static void PickupRemove__Handle(void* data, int size);
 };

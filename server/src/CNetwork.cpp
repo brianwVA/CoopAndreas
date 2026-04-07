@@ -138,6 +138,7 @@ void CNetwork::InitListeners()
     CNetwork::AddListener(CPacketsID::MONEY_SYNC, CPlayerPackets::MoneySync::Handle);
     CNetwork::AddListener(CPacketsID::CHEAT_CODE_SYNC, CPlayerPackets::CheatCodeSync::Handle);
     CNetwork::AddListener(CPacketsID::FIRE_SYNC, CPlayerPackets::FireSync::Handle);
+    CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPlayerPackets::PickupRemove::Handle);
 }
 
 void CNetwork::SendPacket(ENetPeer* peer, unsigned short id, void* data, size_t dataSize, ENetPacketFlag flag)

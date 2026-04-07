@@ -15,6 +15,7 @@
 #include <CProjectileInfo.h>
 #include <CAimSync.h>
 #include <game_sa/CTagManager.h>
+#include <CPickups.h>
 
 // PlayerConnected
 
@@ -2045,4 +2046,25 @@ void CPacketHandler::FireSync__Handle(void* data, int size)
 	StartFire_t startFire = (StartFire_t)0x539F00;
 	startFire((void*)0xB71F80, packet->position, 1.8f, 0, nullptr, packet->timeToBurn, packet->numGenerations, 1);
 	s_bIgnoreFireSync = false;
+}
+
+// PickupRemove
+
+void CPacketHandler::PickupRemove__Handle(void* data, int size)
+{
+	CPackets::PickupRemove* packet = (CPackets::PickupRemove*)data;
+
+	// Find pickup at matching compressed position and remove it
+	for (int i = 0; i < 620; i++)
+	{
+		if (CPickups::aPickUps[i].m_nPickupType == 0) continue;
+
+		if (CPickups::aPickUps[i].m_vecPos.x == packet->pos_x
+			&& CPickups::aPickUps[i].m_vecPos.y == packet->pos_y
+			&& CPickups::aPickUps[i].m_vecPos.z == packet->pos_z)
+		{
+			CPickups::aPickUps[i].Remove();
+			break;
+		}
+	}
 }
