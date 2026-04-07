@@ -155,7 +155,7 @@ PayPal `kirilltymoshchenko59@gmail.com`
 - [X] cutscenes
   - [X] cutscenes
   - [X] vote to skip
-- [ ] Players map sync
+- [X] Players map sync
   - [X] Areas aka GangZones
   - [X] Mission icons
   - [X] Player map pin

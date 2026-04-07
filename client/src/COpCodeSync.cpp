@@ -139,6 +139,10 @@ const SSyncedOpCode syncedOpcodes[] =
     // Vehicles
     {0x00AB, true, {eSyncedParamType::VEHICLE}}, // set_car_coordinates [Car] {x} [float] {y} [float] {z} [float]
     {0x0175, true, {eSyncedParamType::VEHICLE}}, // set_car_heading [Car] {heading} [float]
+    {0x0519, true, {eSyncedParamType::VEHICLE}}, // lock_car_doors [Car] {lockStatus} [int]
+    {0x02AC, true, {eSyncedParamType::VEHICLE}}, // set_car_proofs [Car] {BP} {FP} {EP} {CP} {MP}
+    {0x020B, true, {eSyncedParamType::VEHICLE}}, // explode_car [Car]
+    {0x0338, true, {eSyncedParamType::VEHICLE}}, // set_car_visible [Car] {state} [bool]
     
     // Explosions
     {0x070C, true, {eSyncedParamType::VEHICLE}}, // explode_car_in_cutscene [Car]
@@ -169,6 +173,39 @@ const SSyncedOpCode syncedOpcodes[] =
     {0x08AC}, // hide_gang_zones_on_map {state} [bool]
     {0x08EA}, // enable_gangs_spawn {state} [bool]
     {0x0237}, // set_gang_weapons {gangId} [int] {weapon1} [int] {weapon2} [int] {weapon3} [int]
+
+    // HUD / Radar
+    {0x0826}, // hud_display {state} [bool]
+    {0x0581}, // hud_display_radar {state} [bool]
+
+    // Time scale
+    {0x015D}, // set_time_scale {scale} [float]
+
+    // Wanted level (supplements WANTED_LEVEL_SYNC periodic packet)
+    {0x0110, true, {eSyncedParamType::PLAYER}}, // clear_wanted_level [Player]
+    {0x010D, true, {eSyncedParamType::PLAYER}}, // alter_wanted_level [Player] {level} [int]
+
+    // Player clothes / model
+    {0x070D, true, {eSyncedParamType::PLAYER}}, // build_player_model [Player]
+    {0x087B, true, {eSyncedParamType::PLAYER}}, // give_player_clothes [Player] {texture} [string] {model} [string] {bodyPart} [int]
+    {0x0784, true, {eSyncedParamType::PLAYER}}, // give_player_clothes_outside_shop [Player] {texture} [string] {model} [string] {bodyPart} [int]
+
+    // Char properties
+    {0x0223, true, {eSyncedParamType::PED}}, // set_char_health [Char] {health} [int]
+    {0x02AB, true, {eSyncedParamType::PED}}, // set_char_proofs [Char] {BP} {FP} {EP} {CP} {MP}
+    {0x0337, true, {eSyncedParamType::PED}}, // set_char_visible [Char] {state} [bool]
+
+    // Garages
+    {0x0360}, // garage_open {name} [string]
+    {0x0361}, // garage_close {name} [string]
+    {0x02FA}, // garage_change_type {name} [string] {type} [int]
+    {0x0299}, // garage_activate {name} [string]
+    {0x02B9}, // garage_deactivate {name} [string]
+
+    // Model loading
+    {0x0247}, // request_model {modelId} [int]
+    {0x038B}, // load_all_models_now
+    {0x0249}, // release_model {modelId} [int]
 };
 
 
