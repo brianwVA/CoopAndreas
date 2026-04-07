@@ -74,6 +74,8 @@ enum CPacketsID : unsigned short
 	CHEAT_CODE_SYNC,
 	FIRE_SYNC,
 	PICKUP_REMOVE,
+	DEATH_PICKUPS,
+	ITEM_DROP,
 	PACKET_ID_MAX
 };
 

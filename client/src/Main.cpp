@@ -206,6 +206,90 @@ public:
 						*(uint*)0x0 =  1212;
 					}
 				}
+
+				// Drop weapon (G key) or money (H key) — works offline too
+				if (!CChat::m_bInputActive && !FrontEndMenuManager.m_bMenuActive)
+				{
+					static DWORD lastDropTick = 0;
+					DWORD now = GetTickCount();
+
+					if (now > lastDropTick + 500) // 500ms cooldown
+					{
+						CPlayerPed* localPed = FindPlayerPed(0);
+						if (localPed)
+						{
+							// Drop position: 2m in front of player
+							float heading = localPed->m_fCurrentRotation;
+							CVector pos = localPed->GetPosition();
+							pos.x += -sinf(heading) * 2.0f;
+							pos.y += cosf(heading) * 2.0f;
+
+							if (GetAsyncKeyState('G') & 0x8000) // drop weapon
+							{
+								CWeapon& wep = localPed->m_aWeapons[localPed->m_nActiveWeaponSlot];
+								if (wep.m_eWeaponType != WEAPON_UNARMED && wep.m_nTotalAmmo > 0)
+								{
+									lastDropTick = now;
+
+									unsigned int weapType = wep.m_eWeaponType;
+									unsigned int ammo = wep.m_nTotalAmmo;
+
+									// Remove weapon from player
+									localPed->ClearWeapon(wep.m_eWeaponType);
+
+									// Create pickup locally
+									typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
+									auto GenPickup = (GenerateNewOne_WeaponType_t)0x457380;
+									GenPickup(pos, weapType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
+
+									if (CNetwork::m_bConnected)
+									{
+										CPackets::ItemDrop packet{};
+										packet.x = pos.x;
+										packet.y = pos.y;
+										packet.z = pos.z;
+										packet.dropType = 0;
+										packet.weaponType = weapType;
+										packet.ammo = ammo;
+										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+									}
+
+									CChat::AddMessage("~g~Dropped weapon");
+								}
+							}
+							else if (GetAsyncKeyState('H') & 0x8000) // drop money
+							{
+								CPlayerInfo& pInfo = CWorld::Players[0];
+								int dropAmount = 100;
+								if (pInfo.m_nMoney >= dropAmount)
+								{
+									lastDropTick = now;
+
+									pInfo.m_nMoney -= dropAmount;
+									pInfo.m_nDisplayMoney -= dropAmount;
+
+									// Single $100 money pickup (model 1212 = money, type 7 = PICKUP_MONEY)
+									typedef int(__cdecl* GenerateNewOne_t)(CVector, unsigned int, unsigned char, unsigned int, unsigned int, bool, char*);
+									auto GenerateNewOne = (GenerateNewOne_t)0x456F20;
+									GenerateNewOne(pos, 1212, 7 /*PICKUP_MONEY*/, dropAmount, 0, false, nullptr);
+
+									if (CNetwork::m_bConnected)
+									{
+										CPackets::ItemDrop packet{};
+										packet.x = pos.x;
+										packet.y = pos.y;
+										packet.z = pos.z;
+										packet.dropType = 1;
+										packet.money = dropAmount;
+										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+									}
+
+									CChat::AddMessage("~g~Dropped $100");
+								}
+							}
+						}
+					}
+				}
 			};
 		Events::drawBlipsEvent += []
 			{

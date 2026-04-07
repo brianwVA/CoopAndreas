@@ -4,6 +4,9 @@
 #include "CAimSync.h"
 #include <game_sa/CPedDamageResponseInfo.h>
 
+// Stored weapon inventory for death pickup sync (updated each frame)
+static CPackets::DeathPickups s_storedDeathPickups{};
+
 static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 {
     CPlayerPed* localPlayer = FindPlayerPed(0);
@@ -13,6 +16,31 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
         patch::SetRaw(0x6884C4, (void*)"\xD9\x96\x5C\x05\x00\x00", 6, false);
         plugin::CallMethod<0x60EA90, CPlayerPed*>(This);
         patch::Nop(0x6884C4, 6, false);
+
+        // Capture weapon inventory for death pickup sync
+        {
+            s_storedDeathPickups = {};
+            CVector pos = This->GetPosition();
+            s_storedDeathPickups.x = pos.x;
+            s_storedDeathPickups.y = pos.y;
+            s_storedDeathPickups.z = pos.z;
+
+            s_storedDeathPickups.money = CWorld::Players[0].m_nMoney;
+
+            unsigned char count = 0;
+            for (int i = 0; i < 13; i++)
+            {
+                auto& wep = This->m_aWeapons[i];
+                if (wep.m_eWeaponType != WEAPON_UNARMED && wep.m_nTotalAmmo > 0)
+                {
+                    s_storedDeathPickups.weapons[count].weaponType = wep.m_eWeaponType;
+                    s_storedDeathPickups.weapons[count].ammo = wep.m_nTotalAmmo;
+                    count++;
+                }
+            }
+            s_storedDeathPickups.weaponCount = count;
+        }
+
         return;
     }
 
@@ -201,6 +229,12 @@ void CReferences__RemoveReferencesToPlayer_Hook()
     
     if (CNetwork::m_bConnected)
     {
+        // Send death pickups to remote clients before respawning
+        if (s_storedDeathPickups.weaponCount > 0 || s_storedDeathPickups.money > 0)
+        {
+            CNetwork::SendPacket(CPacketsID::DEATH_PICKUPS, &s_storedDeathPickups, sizeof s_storedDeathPickups, ENET_PACKET_FLAG_RELIABLE);
+        }
+
         CPackets::RespawnPlayer packet{};
         CNetwork::SendPacket(CPacketsID::RESPAWN_PLAYER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
     }

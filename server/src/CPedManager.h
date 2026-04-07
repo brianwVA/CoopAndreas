@@ -261,6 +261,8 @@ class CPedPackets
 			uint8_t movementFlags;
 			int targetVehicleId;
 			CVector destinationCoors;
+			unsigned short hornCounter;
+			unsigned char sirenOrAlarm;
 
 			static void Handle(ENetPeer* peer, void* data, int size)
 			{

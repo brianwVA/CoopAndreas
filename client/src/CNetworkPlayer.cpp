@@ -38,6 +38,9 @@ void CNetworkPlayer::CreatePed(int id, CVector position)
 	// set player immunies, he now dont cares about pain
 	Command<Commands::SET_CHAR_PROOFS>(actorId, 0, 1, 1, 0, 0);
 
+	// suppress engine death pickups for remote peds (synced via DEATH_PICKUPS packet instead)
+	m_pPed->m_nPedFlags.bDoesntDropWeaponsWhenDead = true;
+
 	*m_pPed->m_pPlayerData->m_pPedClothesDesc = m_pPedClothesDesc;
 
 	CClothes::RebuildPlayer(m_pPed, false);
