@@ -18,7 +18,10 @@ std::array<eStats, CStatsSync::SYNCED_STATS_COUNT> CStatsSync::m_aeSyncedStats =
     STAT_SMG_SKILL,
     STAT_AK_47_SKILL,
     STAT_M4_SKILL,
-    STAT_RIFLE_SKILL
+    STAT_RIFLE_SKILL,
+    STAT_MAX_HEALTH,
+    STAT_LUNG_CAPACITY,
+    STAT_STAMINA
 };
 
 void CStatsSync::ApplyNetworkPlayerContext(CNetworkPlayer* player)

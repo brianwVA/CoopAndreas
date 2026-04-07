@@ -56,7 +56,41 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 
     plugin::CallMethod<0x60EA90, CPlayerPed*>(This);
 
-    //player->m_pPed->m_fAimingRotation = player->m_playerOnFoot.aimingRotation;
+    // Smooth position interpolation towards last synced position
+    {
+        CVector& currentPos = player->m_pPed->m_matrix->pos;
+        const CVector& targetPos = player->m_playerOnFoot.position;
+        float dx = targetPos.x - currentPos.x;
+        float dy = targetPos.y - currentPos.y;
+        float dz = targetPos.z - currentPos.z;
+        float distSq = dx * dx + dy * dy + dz * dz;
+
+        if (distSq > 0.0001f && distSq < 50.0f * 50.0f)
+        {
+            float alpha = 0.25f;
+            currentPos.x += dx * alpha;
+            currentPos.y += dy * alpha;
+            currentPos.z += dz * alpha;
+        }
+        else if (distSq >= 50.0f * 50.0f)
+        {
+            currentPos = targetPos;
+        }
+    }
+
+    // Smooth rotation interpolation
+    {
+        float currentRot = player->m_pPed->m_fCurrentRotation;
+        float targetRot = player->m_playerOnFoot.currentRotation;
+        float diff = targetRot - currentRot;
+        // Wrap angle to [-PI, PI]
+        while (diff > 3.14159f) diff -= 6.28318f;
+        while (diff < -3.14159f) diff += 6.28318f;
+        if (diff * diff > 0.0001f)
+        {
+            player->m_pPed->m_fCurrentRotation = currentRot + diff * 0.25f;
+        }
+    }
 
     CWorld::PlayerInFocus = 0;
 
@@ -251,10 +285,10 @@ void __fastcall CPlayerPed__ProcessWeaponSwitch_Hook(CPlayerPed* This, SKIP_EDX,
 
 void __fastcall CTaskSimplePlayerOnFoot__PlayIdleAnimations_Hook(CTaskSimplePlayerOnFoot* This, SKIP_EDX, CPlayerPed* playerPed)
 {
-    if (CWorld::PlayerInFocus == 0)
-    {
-        plugin::CallMethod<0x6872C0>(This, playerPed);
-    }
+    // Allow idle animations for all players (local + remote).
+    // Each client independently picks random idles — not synced across
+    // players, but looks much better than remote players never idling.
+    plugin::CallMethod<0x6872C0>(This, playerPed);
 }
 
 bool __fastcall CPad__JumpJustDown_Hook(CPad* This)

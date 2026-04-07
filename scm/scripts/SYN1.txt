@@ -3,6 +3,7 @@
 
 :SYN1
 script_name 'SYN1'
+Coop.EnableSyncingThisScript()
 gosub @SYN1_1424
 if 
   has_deatharrest_been_executed 
@@ -213,6 +214,7 @@ return
 :SYN1_1424
 Text.LoadMissionText('SYN1')
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 34@ = 0
@@ -2406,6 +2408,13 @@ CarGenerator.Switch($5278, 101)
 CarGenerator.Switch($5279, 101)
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

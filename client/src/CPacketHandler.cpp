@@ -15,6 +15,7 @@
 #include <CProjectileInfo.h>
 #include <CAimSync.h>
 #include <game_sa/CTagManager.h>
+#include <CPickups.h>
 
 // PlayerConnected
 
@@ -158,13 +159,22 @@ void CPacketHandler::PlayerOnFoot__Handle(void* data, int size)
 
 	/*if (CUtil::IsPositionUpdateNeeded(networkPlayer->m_pPed->m_matrix->pos, packet->position))
 	{*/
-	networkPlayer->m_pPed->m_matrix->pos = packet->position;
+	// Position is now applied via smooth interpolation in CPlayerPed__ProcessControl_Hook.
+	// Only snap on large teleports (e.g. first spawn, cutscene warp).
+	float dx = networkPlayer->m_pPed->m_matrix->pos.x - packet->position.x;
+	float dy = networkPlayer->m_pPed->m_matrix->pos.y - packet->position.y;
+	float dz = networkPlayer->m_pPed->m_matrix->pos.z - packet->position.z;
+	if (dx * dx + dy * dy + dz * dz > 50.0f * 50.0f)
+	{
+		networkPlayer->m_pPed->m_matrix->pos = packet->position;
+	}
 	//}
 
 	CUtil::GiveWeaponByPacket(networkPlayer, packet->weapon, packet->ammo);
 	networkPlayer->m_pPed->m_aWeapons[networkPlayer->m_pPed->m_nActiveWeaponSlot].m_nState = (eWeaponState)packet->weaponState;
 
-	networkPlayer->m_pPed->m_fCurrentRotation = packet->currentRotation;
+	// Rotation is now smoothed in CPlayerPed__ProcessControl_Hook.
+	// Only set aiming rotation directly (needed for weapon targeting).
 	networkPlayer->m_pPed->m_fAimingRotation = packet->aimingRotation;
 
 	CUtil::SetPlayerJetpack(networkPlayer, packet->hasJetpack);
@@ -448,6 +458,11 @@ CPackets::VehicleDriverUpdate* CPacketHandler::VehicleDriverUpdate__Collect(CNet
 
 	packet->locked = vehicle->m_pVehicle->m_eDoorLock;
 
+	// Radio station: AudioEngine.GetCurrentRadioStationID() at 0x507040, AudioEngine at 0xB6BC90
+	typedef char(__thiscall* GetCurrentRadioStation_t)(void*);
+	GetCurrentRadioStation_t getRadio = (GetCurrentRadioStation_t)0x507040;
+	packet->radioStation = getRadio((void*)0xB6BC90);
+
 	return packet;
 }
 
@@ -521,6 +536,22 @@ void CPacketHandler::VehicleDriverUpdate__Handle(void* data, int size)
 	}
 
 	vehicle->m_pVehicle->m_eDoorLock = (eDoorLock)packet->locked;
+
+	// Radio sync: when local player is passenger in this vehicle, retune to driver's station
+	CPlayerPed* localPlayer = FindPlayerPed(0);
+	if (localPlayer && localPlayer->m_pVehicle == vehicle->m_pVehicle
+		&& localPlayer->m_nPedFlags.bInVehicle && localPlayer != vehicle->m_pVehicle->m_pDriver)
+	{
+		typedef char(__thiscall* GetCurrentRadioStation_t)(void*);
+		GetCurrentRadioStation_t getRadio = (GetCurrentRadioStation_t)0x507040;
+		char currentStation = getRadio((void*)0xB6BC90);
+		if (currentStation != (char)packet->radioStation)
+		{
+			typedef void(__thiscall* RetuneRadio_t)(void*, char);
+			RetuneRadio_t retuneRadio = (RetuneRadio_t)0x507E10;
+			retuneRadio((void*)0xB6BC90, (char)packet->radioStation);
+		}
+	}
 }
 
 // VehicleEnter
@@ -1947,4 +1978,123 @@ void CPacketHandler::TeleportPlayerScripted__Handle(void* data, int size)
 	playerPed->m_fAimingRotation = packet->heading;
 	playerPed->SetHeading(packet->heading);
 	playerPed->UpdateRwMatrix();
+}
+
+// WantedLevelSync
+
+static uint8_t s_nLastSentWantedLevel = 0;
+
+void CPacketHandler::WantedLevelSync__Handle(void* data, int size)
+{
+	CPackets::WantedLevelSync* packet = (CPackets::WantedLevelSync*)data;
+
+	CPlayerPed* localPlayer = FindPlayerPed(0);
+	if (localPlayer)
+	{
+		CWanted* wanted = localPlayer->GetWanted();
+		if (wanted)
+		{
+			wanted->SetWantedLevelNoDrop(packet->wantedLevel);
+			s_nLastSentWantedLevel = packet->wantedLevel;
+		}
+	}
+}
+
+void CPacketHandler::WantedLevelSync__Trigger()
+{
+	CPlayerPed* localPlayer = FindPlayerPed(0);
+	if (!localPlayer) return;
+
+	CWanted* wanted = localPlayer->GetWanted();
+	if (!wanted) return;
+
+	uint8_t currentLevel = (uint8_t)wanted->m_nWantedLevel;
+	if (currentLevel == s_nLastSentWantedLevel) return;
+
+	s_nLastSentWantedLevel = currentLevel;
+
+	CPackets::WantedLevelSync packet{};
+	packet.wantedLevel = currentLevel;
+	CNetwork::SendPacket(CPacketsID::WANTED_LEVEL_SYNC, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+}
+
+// MoneySync
+
+static int32_t s_nLastSentMoney = 0;
+
+void CPacketHandler::MoneySync__Handle(void* data, int size)
+{
+	CPackets::MoneySync* packet = (CPackets::MoneySync*)data;
+
+	CPlayerInfo* playerInfo = &CWorld::Players[0];
+	if (playerInfo)
+	{
+		playerInfo->m_nMoney = packet->money;
+		playerInfo->m_nDisplayMoney = packet->money;
+		s_nLastSentMoney = packet->money;
+	}
+}
+
+void CPacketHandler::MoneySync__Trigger()
+{
+	CPlayerInfo* playerInfo = &CWorld::Players[0];
+	if (!playerInfo) return;
+
+	int32_t currentMoney = playerInfo->m_nMoney;
+	if (currentMoney == s_nLastSentMoney) return;
+
+	s_nLastSentMoney = currentMoney;
+
+	CPackets::MoneySync packet{};
+	packet.money = currentMoney;
+	CNetwork::SendPacket(CPacketsID::MONEY_SYNC, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+}
+
+// CheatCodeSync
+
+void CPacketHandler::CheatCodeSync__Handle(void* data, int size)
+{
+	CPackets::CheatCodeSync* packet = (CPackets::CheatCodeSync*)data;
+
+	// Apply the cheat locally (the cheat function address table at 0x438500-area)
+	// We sync time/weather after cheat, which is what the original ProcessCheat_Hook does
+	CPacketHandler::GameWeatherTime__Trigger();
+}
+
+// FireSync
+
+extern bool s_bIgnoreFireSync;
+
+void CPacketHandler::FireSync__Handle(void* data, int size)
+{
+	CPackets::FireSync* packet = (CPackets::FireSync*)data;
+
+	s_bIgnoreFireSync = true;
+	// CFireManager::StartFire(CVector, float, uchar, CEntity*, uint, schar, uchar) at 0x539F00
+	// gFireManager at 0xB71F80 - use raw function pointer to avoid linking CVector.obj from plugin.lib
+	typedef void*(__thiscall* StartFire_t)(void*, CVector, float, unsigned char, CEntity*, unsigned int, signed char, unsigned char);
+	StartFire_t startFire = (StartFire_t)0x539F00;
+	startFire((void*)0xB71F80, packet->position, 1.8f, 0, nullptr, packet->timeToBurn, packet->numGenerations, 1);
+	s_bIgnoreFireSync = false;
+}
+
+// PickupRemove
+
+void CPacketHandler::PickupRemove__Handle(void* data, int size)
+{
+	CPackets::PickupRemove* packet = (CPackets::PickupRemove*)data;
+
+	// Find pickup at matching compressed position and remove it
+	for (int i = 0; i < 620; i++)
+	{
+		if (CPickups::aPickUps[i].m_nPickupType == 0) continue;
+
+		if (CPickups::aPickUps[i].m_vecPos.x == packet->pos_x
+			&& CPickups::aPickUps[i].m_vecPos.y == packet->pos_y
+			&& CPickups::aPickUps[i].m_vecPos.z == packet->pos_z)
+		{
+			CPickups::aPickUps[i].Remove();
+			break;
+		}
+	}
 }

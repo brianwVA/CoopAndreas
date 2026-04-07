@@ -3,6 +3,7 @@
 
 :GYMLV
 script_name 'GYMLV'
+Coop.EnableSyncingThisScript()
 gosub @GYMLV_57
 Camera.SetFadingColor(0, 0, 0)
 if 
@@ -14,6 +15,7 @@ gosub @GYMLV_5200
 gosub @GYMLV_5240
 terminate_this_script 
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :GYMLV_57
 if 
@@ -870,6 +872,13 @@ Streaming.RemoveAnimation("INT_SHOP")
 Audio.ClearMissionAudio(MissionAudioSlot.Slot4)
 $gym_is_running = 0
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

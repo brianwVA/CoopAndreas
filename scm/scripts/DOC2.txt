@@ -3,6 +3,7 @@
 
 :DOC2
 script_name 'DOC2'
+Coop.EnableSyncingThisScript()
 gosub @DOC2_47
 if 
   has_deatharrest_been_executed 
@@ -23,6 +24,7 @@ $d2_rnd = 0
 99@ = DecisionMakerChar.Load(DecisionMakerType.Weak)
 Camera.SetFadingColor(0, 0, 0)
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Text.LoadMissionText('DOC2')
 Player.SetControl($player1, False)
@@ -331,6 +333,7 @@ goto_if_false @DOC2_3864
 Char.ClearTasksImmediately($scplayer)
 Char.SetCoordinates($scplayer, 2162.498, 1434.396, 9.8203)
 Char.SetHeading($scplayer, 358.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 
 :DOC2_3864
 if 
@@ -2091,6 +2094,13 @@ Streaming.UnloadSpecialCharacter(1)
 Streaming.RemoveAnimation("ON_LOOKERS")
 Weather.Release
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

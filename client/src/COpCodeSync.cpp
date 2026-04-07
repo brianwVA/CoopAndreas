@@ -38,6 +38,8 @@
 #include "CEntryExitMarkerSync.h"
 #include <CTaskSequenceSync.h>
 #include <CNetworkAnimQueue.h>
+#include <CPickups.h>
+#include <CTheZones.h>
 
 // Keep sorted!
 const SSyncedOpCode syncedOpcodes[] =
@@ -137,6 +139,10 @@ const SSyncedOpCode syncedOpcodes[] =
     // Vehicles
     {0x00AB, true, {eSyncedParamType::VEHICLE}}, // set_car_coordinates [Car] {x} [float] {y} [float] {z} [float]
     {0x0175, true, {eSyncedParamType::VEHICLE}}, // set_car_heading [Car] {heading} [float]
+    {0x0519, true, {eSyncedParamType::VEHICLE}}, // lock_car_doors [Car] {lockStatus} [int]
+    {0x02AC, true, {eSyncedParamType::VEHICLE}}, // set_car_proofs [Car] {BP} {FP} {EP} {CP} {MP}
+    {0x020B, true, {eSyncedParamType::VEHICLE}}, // explode_car [Car]
+    {0x0338, true, {eSyncedParamType::VEHICLE}}, // set_car_visible [Car] {state} [bool]
     
     // Explosions
     {0x070C, true, {eSyncedParamType::VEHICLE}}, // explode_car_in_cutscene [Car]
@@ -151,7 +157,55 @@ const SSyncedOpCode syncedOpcodes[] =
     
     // Controls
     {0x01B4, true, {eSyncedParamType::PLAYER}}, // set_player_control[Player] {state}[bool]
-    {COMMAND_ADD_SCORE, true, {eSyncedParamType::PLAYER}}
+    {COMMAND_ADD_SCORE, true, {eSyncedParamType::PLAYER}},
+
+    // Pickups (create only - removal uses position-based PICKUP_REMOVE packet)
+    {0x0213}, // create_pickup {modelId} [int] {pickupType} [int] {x} [float] {y} [float] {z} [float]
+    {0x032B}, // create_pickup_with_ammo {modelId} [int] {pickupType} [int] {ammo} [int] {x} [float] {y} [float] {z} [float]
+    {0x02E1}, // create_money_pickup {x} [float] {y} [float] {z} [float] {cashAmount} [int]
+    {0x0958}, // create_snapshot_pickup {x} [float] {y} [float] {z} [float]
+    {0x0959}, // create_horseshoe_pickup {x} [float] {y} [float] {z} [float]
+    {0x095A}, // create_oyster_pickup {x} [float] {y} [float] {z} [float]
+
+    // Gang zones
+    {0x076C}, // set_zone_gang_strength {zone} [string] {gangId} [int] {density} [int]
+    {0x0879}, // enable_gang_wars {state} [bool]
+    {0x08AC}, // hide_gang_zones_on_map {state} [bool]
+    {0x08EA}, // enable_gangs_spawn {state} [bool]
+    {0x0237}, // set_gang_weapons {gangId} [int] {weapon1} [int] {weapon2} [int] {weapon3} [int]
+
+    // HUD / Radar
+    {0x0826}, // hud_display {state} [bool]
+    {0x0581}, // hud_display_radar {state} [bool]
+
+    // Time scale
+    {0x015D}, // set_time_scale {scale} [float]
+
+    // Wanted level (supplements WANTED_LEVEL_SYNC periodic packet)
+    {0x0110, true, {eSyncedParamType::PLAYER}}, // clear_wanted_level [Player]
+    {0x010D, true, {eSyncedParamType::PLAYER}}, // alter_wanted_level [Player] {level} [int]
+
+    // Player clothes / model
+    {0x070D, true, {eSyncedParamType::PLAYER}}, // build_player_model [Player]
+    {0x087B, true, {eSyncedParamType::PLAYER}}, // give_player_clothes [Player] {texture} [string] {model} [string] {bodyPart} [int]
+    {0x0784, true, {eSyncedParamType::PLAYER}}, // give_player_clothes_outside_shop [Player] {texture} [string] {model} [string] {bodyPart} [int]
+
+    // Char properties
+    {0x0223, true, {eSyncedParamType::PED}}, // set_char_health [Char] {health} [int]
+    {0x02AB, true, {eSyncedParamType::PED}}, // set_char_proofs [Char] {BP} {FP} {EP} {CP} {MP}
+    {0x0337, true, {eSyncedParamType::PED}}, // set_char_visible [Char] {state} [bool]
+
+    // Garages
+    {0x0360}, // garage_open {name} [string]
+    {0x0361}, // garage_close {name} [string]
+    {0x02FA}, // garage_change_type {name} [string] {type} [int]
+    {0x0299}, // garage_activate {name} [string]
+    {0x02B9}, // garage_deactivate {name} [string]
+
+    // Model loading
+    {0x0247}, // request_model {modelId} [int]
+    {0x038B}, // load_all_models_now
+    {0x0249}, // release_model {modelId} [int]
 };
 
 
@@ -373,6 +427,22 @@ void BuildAndSendOpcode()
     case 0x9E6:
         CEntryExitMarkerSync::ms_bNeedToUpdateAfterProcessingScripts = true;
         break;
+    }
+
+    // Pickup removal: send position-based packet instead of handle-based opcode sync
+    if (lastOpCodeProcessed == 0x0215 // remove_pickup
+        && CLocalPlayer::m_bIsHost && COpCodeSync::ms_bSyncingEnabled
+        && std::find(COpCodeSync::ms_vSyncedScripts.begin(), COpCodeSync::ms_vSyncedScripts.end(), lastProcessedScript) != COpCodeSync::ms_vSyncedScripts.end())
+    {
+        int index = COpCodeSync::scriptParamsBuffer[0].value >> 8;
+        if (index >= 0 && index < 620)
+        {
+            CPackets::PickupRemove pkt;
+            pkt.pos_x = CPickups::aPickUps[index].m_vecPos.x;
+            pkt.pos_y = CPickups::aPickUps[index].m_vecPos.y;
+            pkt.pos_z = CPickups::aPickUps[index].m_vecPos.z;
+            CNetwork::SendPacket(CPacketsID::PICKUP_REMOVE, &pkt, sizeof pkt, ENET_PACKET_FLAG_RELIABLE);
+        }
     }
 
     int idx = 0;
@@ -647,13 +717,22 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
         }
     }
 
+    // Dummy bytecode for safe StoreParameters handling on opcodes with output params
+    // (e.g. pickup creation returns a handle). StoreParameters reads from script IP
+    // and writes to local vars of the dummy script, which is harmless.
+    static uint8_t s_abDummyOutputBytecode[] = {
+        0x03, 0x00, 0x00,  // type=local_int_var, index=0
+        0x03, 0x01, 0x00,  // type=local_int_var, index=1
+        0x03, 0x02, 0x00,  // type=local_int_var, index=2
+    };
+
     static CRunningScript script;
     memset(&script, 0, sizeof(CRunningScript));
     script.Init();
     script.m_bIsMission = true;
     script.m_bUseMissionCleanup = false;
     strcpy(script.m_szName, "coopand");
-    script.m_pBaseIP = script.m_pCurrentIP = (uint8_t*)&header.opcode;
+    script.m_pBaseIP = script.m_pCurrentIP = s_abDummyOutputBytecode;
 
     lastOpCodeProcessed = header.opcode;
     
@@ -731,6 +810,12 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     patch::SetRaw(0x464080, (void*)"\x66\x8B\x44\x24\x04", 5, false);
     patch::SetRaw(0x463D50, (void*)"\x8B\x41\x14\x83\xEC\x08", 6, false);
     bProcessingNetworkOpcode = false;
+
+    // Refresh gang zone map colors after territory density changes
+    if (header.opcode == 0x076C) // set_zone_gang_strength
+    {
+        CTheZones::FillZonesWithGangColours(false);
+    }
 }
 
 void __declspec(naked) OpcodeProcessingWellDone_Hook()

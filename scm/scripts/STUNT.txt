@@ -15,9 +15,11 @@ if
   $done_bmx_stunt_progress == 0
 goto_if_false @STUNT_63
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :STUNT_63
 script_name 'STUNT'
+Coop.EnableSyncingThisScript()
 wait 0
 Text.LoadMissionText('STUNT')
 
@@ -361,6 +363,13 @@ goto @STUNT_2057
 Blip.Remove(57@)
 Hud.ClearTimer($stunt_timer)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

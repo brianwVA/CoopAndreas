@@ -3,6 +3,7 @@
 
 :DRIV6
 script_name 'DRIV6'
+Coop.EnableSyncingThisScript()
 gosub @DRIV6_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :DRIV6_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('FARLIE5')
 $onmission = 1
 wait 0
@@ -150,6 +152,7 @@ CarGenerator.Switch($5281, 0)
 CarGenerator.Switch($5282, 0)
 Char.SetCoordinates($scplayer, -2154.2, 645.31, 51.39)
 Char.SetHeading($scplayer, 270.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 gosub @DRIV6_4442
 262@ = Blip.AddForCar(34@)
 Blip.SetAsFriendly(262@, True)
@@ -160,6 +163,13 @@ Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Player.SetControl($player1, True)
 Text.PrintNow('DRV6_8', 10000, 0)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('DRV6_8', 10000, 0, $NETWORK_PLAYER[$temp_int])
+    end
+end
 
 :DRIV6_905
 wait 0
@@ -1985,6 +1995,13 @@ CarGenerator.Switch($5282, 101)
 $timer_mobile_start = Clock.GetGameTimer()
 World.SetCarDensityMultiplier(1.0)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

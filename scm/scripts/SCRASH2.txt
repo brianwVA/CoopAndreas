@@ -3,6 +3,7 @@
 
 :SCRASH2
 script_name 'SCRASH2'
+Coop.EnableSyncingThisScript()
 $g_SCrash2_spookKM = 0
 gosub @SCRASH2_54
 if 
@@ -16,6 +17,7 @@ terminate_this_script
 
 :SCRASH2_54
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 75@ = 0
 76@ = 0
@@ -193,6 +195,13 @@ if
 goto_if_false @SCRASH2_1213
 gosub @SCRASH2_10051
 Text.PrintNow('SCR2_21', 7000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('SCR2_21', 7000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 35@ += 1
 
 :SCRASH2_1213
@@ -3382,6 +3391,7 @@ World.ClearArea(0, -2033.339, 148.6139, 27.8359, 0.5)
 Streaming.LoadScene(-2033.339, 148.6139, 27.8359)
 Char.SetCoordinates($scplayer, -2033.339, 148.6139, 27.8359)
 Char.SetHeading($scplayer, 270.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Player.SetControl($player1, True)
 Game.SwitchRandomTrains(False)
@@ -3598,6 +3608,13 @@ Path.SwitchRoadsBackToOriginal(804.9978, -1414.032, 11.3801, 908.0844, -1386.618
 Path.SwitchRoadsBackToOriginal(802.1913, -1335.066, 11.1828, 911.4662, -1313.045, 13.7469)
 World.SetRailtrackResistanceMult(-1.0)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

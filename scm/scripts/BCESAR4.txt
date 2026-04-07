@@ -3,6 +3,7 @@
 
 :BCESAR4
 script_name 'BCESAR4'
+Coop.EnableSyncingThisScript()
 gosub @BCESAR4_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :BCESAR4_47
 $onmission = 1
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :BCESAR4_54
 wait 0
@@ -349,6 +351,7 @@ goto @BCESAR4_1957
 :BCESAR4_1923
 Char.SetCoordinates($scplayer, -503.3945, -186.0599, 76.6103)
 Char.SetHeading($scplayer, 53.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 
@@ -483,6 +486,7 @@ goto @BCESAR4_2617
 :BCESAR4_2583
 Char.SetCoordinates($scplayer, 1559.768, 14.4176, 23.1641)
 Char.SetHeading($scplayer, 10.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 
@@ -519,6 +523,13 @@ return
 $flag_bcesar_mission_counter += 1
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 if 
   $flag_bcesar_mission_counter == 1

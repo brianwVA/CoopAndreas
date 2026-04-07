@@ -3,6 +3,7 @@
 
 :MANSIO1
 script_name 'MANSIO1'
+Coop.EnableSyncingThisScript()
 gosub @MANSIO1_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :MANSIO1_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Char.SetCoordinates($scplayer, 2175.412, 1681.548, 9.8203)
 Char.SetHeading($scplayer, 90.0)
@@ -164,6 +166,7 @@ goto @MANSIO1_847
 
 :MANSIO1_827
 Char.SetCoordinates($scplayer, 1598.951, -785.327, 350.1654)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 
 :MANSIO1_847
 Char.FreezePosition($scplayer, True)
@@ -6017,6 +6020,13 @@ StreamedScript.MarkAsNoLongerNeeded(1)
 Streaming.RemoveAnimation("PARACHUTE")
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

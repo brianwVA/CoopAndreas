@@ -3,6 +3,7 @@
 
 :RIOT1
 script_name 'RIOT1'
+Coop.EnableSyncingThisScript()
 gosub @RIOT1_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :RIOT1_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Text.LoadMissionText('RIOT1')
 Text.ClearPrints
@@ -142,6 +144,7 @@ Car.SetHeading($r1_sweets_car, 177.7)
 World.ClearArea(1, 1258.2, -814.4, 83.1, 60.0)
 Char.SetCoordinates($scplayer, 1258.2, -814.4, 83.1)
 Char.SetHeading($scplayer, 40.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 World.ClearArea(1, 1257.6, -816.6, 83.1, 5.0)
 $sweet = Char.Create(25, 290, 1257.6, -816.6, 83.1)
 Char.SetHeading($sweet, 39.9)
@@ -560,6 +563,13 @@ Blip.Remove(34@)
 Game.EnableAmbientCrime(True)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

@@ -3,6 +3,7 @@
 
 :LA1FIN2
 script_name 'LA1FIN2'
+Coop.EnableSyncingThisScript()
 gosub @LA1FIN2_339
 if 
   has_deatharrest_been_executed 
@@ -32,6 +33,7 @@ goto_if_false @LA1FIN2_339
 
 :LA1FIN2_339
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 84@ = 1
 494@ = 1
@@ -258,6 +260,7 @@ Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Char.SetCoordinates($scplayer, 2519.825, -1677.714, 13.7425)
 Char.SetHeading($scplayer, 67.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Streaming.RequestModel(401)
 Streaming.RequestModel(330)
 
@@ -3240,6 +3243,13 @@ DecisionMaker.Remove(231@)
 Game.SetCreateRandomGangMembers(True)
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 Game.SetScriptLimitToGangSize(99)
 return 

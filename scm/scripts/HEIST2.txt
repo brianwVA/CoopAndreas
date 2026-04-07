@@ -3,6 +3,7 @@
 
 :HEIST2
 script_name 'HEIST2'
+Coop.EnableSyncingThisScript()
 gosub @HEIST2_47
 if 
   has_deatharrest_been_executed 
@@ -16,6 +17,7 @@ terminate_this_script
 :HEIST2_47
 Text.LoadMissionText('HEIST2')
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Camera.SetFadingColor(0, 0, 0)
 $onmission = 1
 Camera.DoFade(0, 2000)
@@ -71,6 +73,7 @@ Streaming.RequestCollision(2030.103, 1020.79)
 Streaming.LoadScene(2030.103, 1020.79, 9.8203)
 Char.SetCoordinates($scplayer, 2030.103, 1020.79, 9.813)
 Char.SetHeading($scplayer, 277.5123)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Char.SetHasUsedEntryExit($scplayer, 2016.422, 1017.102, 10.0)
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
@@ -3027,6 +3030,13 @@ Streaming.RemoveAnimation("BD_FIRE")
 DecisionMaker.Remove(38@)
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

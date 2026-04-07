@@ -3,6 +3,7 @@
 
 :SWEET6
 script_name 'SWEET6'
+Coop.EnableSyncingThisScript()
 gosub @SWEET6_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :SWEET6_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 34@ = 0
 35@ = 0
@@ -345,6 +347,7 @@ goto_if_false @SWEET6_2034
 Streaming.LoadScene(2519.575, -1677.88, 13.7661)
 Char.SetCoordinates($scplayer, 2519.575, -1677.88, 13.7661)
 Char.SetHeading($scplayer, 107.8934)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Hud.SwitchWidescreen(False)
 Player.SetControl($player1, True)
 Camera.RestoreJumpcut
@@ -5562,6 +5565,13 @@ DecisionMaker.Remove(67@)
 World.SetPedDensityMultiplier(1.0)
 World.SetCarDensityMultiplier(1.0)
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 $onmission = 0
 Mission.Finish
 return 

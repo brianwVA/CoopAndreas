@@ -3,6 +3,7 @@
 
 :CRASH4
 script_name 'CRASH4'
+Coop.EnableSyncingThisScript()
 gosub @CRASH4_47
 if 
   has_deatharrest_been_executed 
@@ -14,6 +15,7 @@ gosub @CRASH4_6780
 terminate_this_script 
 
 :CRASH4_47
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 $flag_on_doberman_mission = 1
 49@ = 0
@@ -93,6 +95,7 @@ World.ClearArea(1, 1363.689, -1280.441, 12.5469, 1.0)
 Char.SetCoordinates($scplayer, 1363.689, -1280.441, 12.5469)
 Streaming.LoadScene(1363.689, -1280.441, 12.5469)
 Char.SetHeading($scplayer, 90.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Player.MakeGangDisappear
@@ -1092,6 +1095,13 @@ Char.Delete(53@)
 Char.Delete(54@)
 Char.Delete(55@)
 DecisionMaker.Remove(43@)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

@@ -40,6 +40,14 @@ static void __declspec(naked) ProcessCheat_Hook()
     // sync time and weather after processing cheat code
     CPacketHandler::GameWeatherTime__Trigger();
 
+    // broadcast cheat code to other players
+    if (CNetwork::m_bConnected)
+    {
+        CPackets::CheatCodeSync cheatPacket{};
+        cheatPacket.cheatId = 0; // generic cheat notification
+        CNetwork::SendPacket(CPacketsID::CHEAT_CODE_SYNC, &cheatPacket, sizeof cheatPacket, ENET_PACKET_FLAG_RELIABLE);
+    }
+
     __asm
     {
         popad; restore registers
@@ -96,6 +104,10 @@ static void __cdecl CTheZones__Update_Hook()
     {
         CKeySync::ProcessPlayer(player);
     }
+
+    // sync wanted level and money (checked every tick, only sends on change)
+    CPacketHandler::WantedLevelSync__Trigger();
+    CPacketHandler::MoneySync__Trigger();
 
     CPad* pad = CPad::GetPad(0);
     CControllerState newState = pad->NewState;
@@ -154,6 +166,8 @@ bool CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook()
     return result;
 }
 
+bool s_bIgnoreFireSync = false;
+
 int __purecall_Hook()
 {
     *(char**)0xDEAD  = "This hook is needed for a more detailed crash log when calling an unimplemented virtual function";
@@ -199,9 +213,13 @@ void GameHooks::InjectHooks()
 
     //patch::RedirectCall(0x48072B, CCutsceneMgr__StartCutscene_Hook);
     
-    //patch::RedirectCall(0x5B1947, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
-   // patch::RedirectCall(0x469F0E, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
-   // patch::RedirectCall(0x475459, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
+    patch::RedirectCall(0x5B1947, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
+    patch::RedirectCall(0x469F0E, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
+    patch::RedirectCall(0x475459, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
+
+    // Fire sync: receive handler is registered in CNetwork::InitListeners
+    // Fire creation send hook TODO: implement polling-based fire detection
+    // Most fires already sync through explosion sync (ADD_EXPLOSION packet)
 
     patch::RedirectJump(PURECALL, __purecall_Hook);
 

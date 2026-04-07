@@ -72,6 +72,11 @@ enum CPacketsID : unsigned short
 	TAG_UPDATE,
 	UPDATE_ALL_TAGS,
 	TELEPORT_PLAYER_SCRIPTED,
+	WANTED_LEVEL_SYNC,
+	MONEY_SYNC,
+	CHEAT_CODE_SYNC,
+	FIRE_SYNC,
+	PICKUP_REMOVE,
 	PACKET_ID_MAX
 };
 
@@ -134,6 +139,23 @@ public:
 			sizeof(RemoveCheckpoint), // REMOVE_CHECKPOINT,
 			0, // ENEX_SYNC,
 			sizeof(CreateStaticBlip), // CREATE_STATIC_BLIP,
+			sizeof(SetVehicleCreatedBy), // SET_VEHICLE_CREATED_BY,
+			sizeof(SetPlayerTask), // SET_PLAYER_TASK,
+			sizeof(PedSay), // PED_SAY,
+			sizeof(PedClaimOnRelease), // PED_CLAIM_ON_RELEASE,
+			sizeof(PedCancelClaim), // PED_CANCEL_CLAIM,
+			sizeof(PedResetAllClaims), // PED_RESET_ALL_CLAIMS,
+			sizeof(PedTakeHost), // PED_TAKE_HOST,
+			0, // PERFORM_TASK_SEQUENCE,
+			sizeof(AddProjectile), // ADD_PROJECTILE,
+			sizeof(TagUpdate), // TAG_UPDATE,
+			sizeof(UpdateAllTags), // UPDATE_ALL_TAGS,
+			sizeof(TeleportPlayerScripted), // TELEPORT_PLAYER_SCRIPTED,
+			sizeof(WantedLevelSync), // WANTED_LEVEL_SYNC,
+			sizeof(MoneySync), // MONEY_SYNC,
+			sizeof(CheatCodeSync), // CHEAT_CODE_SYNC,
+			sizeof(FireSync), // FIRE_SYNC,
+			sizeof(PickupRemove), // PICKUP_REMOVE,
 		};
 
 		return m_nPacketSize[id];
@@ -263,6 +285,7 @@ public:
 		unsigned short miscComponentAngle; // hydra thrusters
 		float planeGearState;
 		unsigned char locked;
+		unsigned char radioStation;
 	};
 
 	struct VehicleEnter
@@ -650,5 +673,38 @@ public:
 		int playerid;
 		CVector pos;
 		float heading;
+	};
+
+	struct WantedLevelSync
+	{
+		int playerid;
+		uint8_t wantedLevel;
+	};
+
+	struct MoneySync
+	{
+		int playerid;
+		int32_t money;
+	};
+
+	struct CheatCodeSync
+	{
+		int playerid;
+		uint16_t cheatId;
+	};
+
+	struct FireSync
+	{
+		int playerid;
+		CVector position;
+		uint32_t timeToBurn;
+		int8_t numGenerations;
+	};
+
+	struct PickupRemove
+	{
+		int16_t pos_x;
+		int16_t pos_y;
+		int16_t pos_z;
 	};
 };

@@ -12,7 +12,9 @@ terminate_this_script
 :VCR2_36
 $onmission = 1
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'VCR2'
+Coop.EnableSyncingThisScript()
 wait 0
 Text.LoadMissionText('VCR2')
 Player.MakeGangDisappear
@@ -191,6 +193,7 @@ World.ClearArea(0, -334.1724, 2214.62, 40.4911, 30.0)
 Streaming.LoadScene(-334.1724, 2214.62, 40.4911)
 Char.SetCoordinates($scplayer, -334.1724, 2214.62, 40.4911)
 Char.SetHeading($scplayer, 232.082)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 114@ = Car.Create(568, -342.2552, 2221.39, 41.4911)
 Car.SetHeading(114@, 168.7771)
@@ -721,6 +724,13 @@ Char.ClearRelationship($scplayer, RelationshipType.Hate, PedType.Mission1)
 :VCR2_5184
 Streaming.RemoveAnimation("SWAT")
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

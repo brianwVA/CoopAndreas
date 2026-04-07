@@ -3,6 +3,7 @@
 
 :DRUGS4
 script_name 'DRUGS4'
+Coop.EnableSyncingThisScript()
 gosub @DRUGS4_47
 if 
   has_deatharrest_been_executed 
@@ -16,6 +17,7 @@ terminate_this_script
 :DRUGS4_47
 Stat.RegisterMissionGiven
 Text.LoadMissionText('LAFIN1')
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 Streaming.SetAreaVisible(1)
@@ -209,6 +211,7 @@ World.ClearArea(1, 2514.316, -1673.395, 150.0, 150.0)
 Clock.SetTimeOfDay(19, 30)
 Char.SetCoordinates($scplayer, 2517.237, -1671.341, 12.9)
 Char.SetHeading($scplayer, 63.048)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.RestoreJumpcut
 Camera.SetBehindPlayer
 Car.CustomPlateForNextCar(492, "GROVE4L_")
@@ -253,6 +256,13 @@ Char.SetNeverTargeted($ryder, True)
 Char.SetSuffersCriticalHits($ryder, False)
 Char.SetGetOutUpsideDownCar($ryder, False)
 Text.PrintNow('LAF1_1', 10000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('LAF1_1', 10000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 Char.ShutUp($scplayer, True)
 Game.SetWantedMultiplier(0.0)
 Game.SetMaxFireGenerations(1)
@@ -9962,6 +9972,13 @@ World.SetCarDensityMultiplier(1.0)
 Game.SwitchEmergencyServices(True)
 Weather.Release
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

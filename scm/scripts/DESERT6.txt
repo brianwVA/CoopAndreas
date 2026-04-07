@@ -3,6 +3,7 @@
 
 :DESERT6
 script_name 'DESERT6'
+Coop.EnableSyncingThisScript()
 gosub @DESERT6_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :DESERT6_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 75@ = 0
 76@ = 0
@@ -1708,6 +1710,7 @@ World.ClearArea(0, 331.9908, 2533.767, 15.8044, 0.5)
 Streaming.LoadScene(331.9908, 2533.767, 15.8044)
 Char.SetCoordinates($scplayer, 331.9908, 2533.767, 15.8044)
 Char.SetHeading($scplayer, 48.4743)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Weather.ForceNow(WeatherType.ExtraSunnyDesert)
 Game.SwitchAmbientPlanes(False)
@@ -1849,6 +1852,13 @@ CarGenerator.Switch($d5_gold_generator, 101)
 
 :DESERT6_10803
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

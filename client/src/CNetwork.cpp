@@ -149,7 +149,7 @@ void CNetwork::InitListeners()
 	CNetwork::AddListener(CPacketsID::ASSIGN_PED, CPacketHandler::AssignPedSyncer__Handle);
 	CNetwork::AddListener(CPacketsID::MASS_PACKET_SEQUENCE, CPacketHandler::MassPacketSequence__Handle);
 	//CNetwork::AddListener(CPacketsID::START_CUTSCENE, CPacketHandler::StartCutscene__Handle);
-	//CNetwork::AddListener(CPacketsID::SKIP_CUTSCENE, CPacketHandler::SkipCutscene__Handle);
+	CNetwork::AddListener(CPacketsID::SKIP_CUTSCENE, CPacketHandler::SkipCutscene__Handle);
 	CNetwork::AddListener(CPacketsID::OPCODE_SYNC, CPacketHandler::OpCodeSync__Handle);
 	CNetwork::AddListener(CPacketsID::ON_MISSION_FLAG_SYNC, CPacketHandler::OnMissionFlagSync__Handle);
 	CNetwork::AddListener(CPacketsID::UPDATE_ENTITY_BLIP, CPacketHandler::UpdateEntityBlip__Handle);
@@ -171,6 +171,11 @@ void CNetwork::InitListeners()
 	CNetwork::AddListener(CPacketsID::TAG_UPDATE, CPacketHandler::TagUpdate__Handle);
 	CNetwork::AddListener(CPacketsID::UPDATE_ALL_TAGS, CPacketHandler::UpdateAllTags__Handle);
 	CNetwork::AddListener(CPacketsID::TELEPORT_PLAYER_SCRIPTED, CPacketHandler::TeleportPlayerScripted__Handle);
+	CNetwork::AddListener(CPacketsID::WANTED_LEVEL_SYNC, CPacketHandler::WantedLevelSync__Handle);
+	CNetwork::AddListener(CPacketsID::MONEY_SYNC, CPacketHandler::MoneySync__Handle);
+	CNetwork::AddListener(CPacketsID::CHEAT_CODE_SYNC, CPacketHandler::CheatCodeSync__Handle);
+	CNetwork::AddListener(CPacketsID::FIRE_SYNC, CPacketHandler::FireSync__Handle);
+	CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPacketHandler::PickupRemove__Handle);
 }
 
 void CNetwork::HandlePacketReceive(ENetEvent& event)

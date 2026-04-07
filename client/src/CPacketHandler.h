@@ -79,4 +79,11 @@ public:
 	static void UpdateAllTags__Handle(void* data, int size);
 	static void UpdateAllTags__Trigger();
 	static void TeleportPlayerScripted__Handle(void* data, int size);
+	static void WantedLevelSync__Handle(void* data, int size);
+	static void WantedLevelSync__Trigger();
+	static void MoneySync__Handle(void* data, int size);
+	static void MoneySync__Trigger();
+	static void CheatCodeSync__Handle(void* data, int size);
+	static void FireSync__Handle(void* data, int size);
+	static void PickupRemove__Handle(void* data, int size);
 };

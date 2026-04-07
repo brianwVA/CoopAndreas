@@ -3,6 +3,7 @@
 
 :MUSIC1
 script_name 'MUSIC1'
+Coop.EnableSyncingThisScript()
 gosub @MUSIC1_47
 if 
   has_deatharrest_been_executed 
@@ -16,6 +17,7 @@ terminate_this_script
 :MUSIC1_47
 Stat.RegisterMissionGiven
 Text.LoadMissionText('STRAP1')
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 34@ = 526.84
@@ -327,6 +329,7 @@ Streaming.LoadScene(809.5818, -1630.573, 12.5469)
 Weather.ForceNow(WeatherType.SunnyLa)
 Char.SetCoordinates($scplayer, 809.5818, -1630.573, 12.5469)
 Char.SetHeading($scplayer, 176.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Camera.SetFadingColor(0, 0, 0)
@@ -335,6 +338,13 @@ Camera.DoFade(1, 1500)
 Player.SetControl($player1, True)
 271@ = Blip.AddForCoord(58@, 59@, 60@)
 Text.PrintNow('MUS1_5', 10000, 0)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('MUS1_5', 10000, 0, $NETWORK_PLAYER[$temp_int])
+    end
+end
 if 
   192@ == 1
 goto_if_false @MUSIC1_2489
@@ -2537,6 +2547,13 @@ Text.ClearHelp
 Zone.SwitchAudio('BEACH', False)
 Path.SwitchPedRoadsBackToOriginal(502.15, -1913.39, -5.0, 558.86, -1838.87, 10.0)
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 $onmission = 0
 Mission.Finish
 return 

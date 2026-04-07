@@ -13,11 +13,13 @@ terminate_this_script
 :COPCAR_52
 $onmission = 1
 script_name 'COPCAR'
+Coop.EnableSyncingThisScript()
 wait 0
 if 
   $done_copcar_progress == 0
 goto_if_false @COPCAR_94
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :COPCAR_94
 Text.LoadMissionText('COPCAR')
@@ -2628,6 +2630,13 @@ Streaming.MarkModelAsNoLongerNeeded(355)
 Streaming.MarkModelAsNoLongerNeeded(349)
 Streaming.MarkModelAsNoLongerNeeded(336)
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

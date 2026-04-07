@@ -3,6 +3,7 @@
 
 :MANSIO2
 script_name 'MANSIO2'
+Coop.EnableSyncingThisScript()
 gosub @MANSIO2_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :MANSIO2_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 75@ = 0
 76@ = 0
@@ -7785,6 +7787,7 @@ World.ClearArea(1, 1248.681, -807.9187, 83.1484, 100.0)
 Streaming.LoadScene(1248.681, -807.9187, 83.1484)
 Char.SetCoordinates($scplayer, 1246.016, -803.2319, 83.1484)
 Char.SetHeading($scplayer, 180.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Clock.SetTimeOfDay(8, 0)
 wait 2000
@@ -8116,6 +8119,13 @@ Object.SetCollisionDamageEffect($g_VB_BIG_LIFT, False)
 Object.SetProofs($g_VB_BIG_LIFT, True, True, True, True, True)
 Object.DontRemove($g_VB_BIG_LIFT)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

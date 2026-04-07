@@ -3,6 +3,7 @@
 
 :HEIST1
 script_name 'HEIST1'
+Coop.EnableSyncingThisScript()
 gosub @HEIST1_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :HEIST1_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('HEIST1')
 $onmission = 1
 $disable_mod_garage = 1
@@ -467,6 +469,7 @@ World.ClearArea(0, 2419.827, 1120.785, 9.8203, 0.5)
 Streaming.LoadScene(2419.827, 1120.785, 9.8203)
 Char.SetCoordinates($scplayer, 2419.827, 1120.785, 9.8203)
 Char.SetHeading($scplayer, 0.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 
 :HEIST1_2950
@@ -3789,6 +3792,13 @@ Game.ForceDeathRestart
 :HEIST1_24188
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

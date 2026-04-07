@@ -3,6 +3,7 @@
 
 :RYDER2
 script_name 'RYDER2'
+Coop.EnableSyncingThisScript()
 gosub @RYDER2_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :RYDER2_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 34@ = 0
 35@ = 0
@@ -540,6 +542,7 @@ Char.SetCantBeDraggedOut($ryder, True)
 Char.SetAnimGroup($ryder, "MAN")
 Char.SetCoordinates($scplayer, 2474.87, -1698.465, 12.521)
 Char.SetHeading($scplayer, 4.8941)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Camera.DoFade(1, Fade.Out)
@@ -6482,6 +6485,13 @@ Audio.ClearMissionAudio(MissionAudioSlot.Slot1)
 Audio.ClearMissionAudio(MissionAudioSlot.Slot2)
 Audio.ClearMissionAudio(MissionAudioSlot.Slot3)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

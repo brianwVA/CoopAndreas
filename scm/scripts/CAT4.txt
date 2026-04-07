@@ -3,6 +3,7 @@
 
 :CAT4
 script_name 'CAT4'
+Coop.EnableSyncingThisScript()
 gosub @CAT4_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :CAT4_47
 $onmission = 1
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 World.SwitchEntryExit('GENOTB', False)
 if 
   Player.IsPlaying($player1)
@@ -344,6 +346,13 @@ goto @CAT4_2366
 
 :CAT4_2392
 Text.PrintNow('CATX_UA', 10000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('CATX_UA', 10000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 Audio.PlayMissionAudio(MissionAudioSlot.Slot1)
 
 :CAT4_2412
@@ -1062,6 +1071,13 @@ Car.SetCanBurstTires(41@, False)
 
 :CAT4_6373
 Char.GiveWeapon($scplayer, WeaponType.Satchel, 10)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Satchel, 10)
+    end
+end
 if 
   not Char.IsDead($catalina)
 goto_if_false @CAT4_6432
@@ -3436,6 +3452,13 @@ World.SetPedDensityMultiplier(1.0)
 DecisionMaker.Remove(54@)
 DecisionMaker.Remove(55@)
 World.RemoveAllScriptFires
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 Game.SetEveryoneIgnorePlayer($player1, False)
 Group.SetSeparationRange($Players_Group, 30.0)

@@ -3,6 +3,7 @@
 
 :SWEET3
 script_name 'SWEET3'
+Coop.EnableSyncingThisScript()
 gosub @SWEET3_1825
 if 
   has_deatharrest_been_executed 
@@ -182,6 +183,7 @@ return
 
 :SWEET3_1825
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 96@ = 0
 97@ = 0
@@ -339,6 +341,7 @@ Camera.SetFadingColor(0, 0, 0)
 World.ClearArea(1, 2516.54, -1671.2, 12.87, 2.0)
 Char.SetCoordinates($scplayer, 2516.54, -1671.2, 12.87)
 Char.SetHeading($scplayer, 81.2)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Streaming.LoadSceneInDirection(2516.54, -1671.2, 12.87, 81.2)
 Camera.SetBehindPlayer
 Hud.SwitchWidescreen(False)
@@ -400,6 +403,14 @@ goto @SWEET3_12890
 
 :SWEET3_3207
 Text.PrintNow('TWAR2_A', 6000, 1)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('TWAR2_A', 6000, 1, $NETWORK_PLAYER[$temp_int])
+        Coop.UpdateCheckpointForNetworkPlayer(2404.1, -1891.5, 12.3, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
+    end
+end
 TIMERB = 0
 $blob_flag = 0
 59@ = 0
@@ -1477,10 +1488,28 @@ if
   Char.IsInCar($scplayer, $sweet_car)
 goto_if_false @SWEET3_9653
 Text.PrintNow('TW2_W', 6000, 1)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+        Coop.UpdateCheckpointForNetworkPlayer(2513.33, -1672.12, 12.52, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
+        Coop.PrintNowForNetworkPlayer('TW2_W', 6000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 goto @SWEET3_9669
 
 :SWEET3_9653
 Text.PrintNow('TW2_X', 6000, 1)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+        Coop.UpdateCheckpointForNetworkPlayer(2513.33, -1672.12, 12.52, 4.0, 4.0, 4.0, $NETWORK_PLAYER[$temp_int])
+        Coop.PrintNowForNetworkPlayer('TW2_X', 6000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 
 :SWEET3_9669
 if or
@@ -1826,10 +1855,28 @@ if
   Char.IsInCar($scplayer, $sweet_car)
 goto_if_false @SWEET3_11578
 Text.PrintNow('TW2_Z', 6000, 1)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+        Coop.UpdateCheckpointForNetworkPlayer(2066.465, -1695.444, 12.5547, 4.0, 3.5, 4.0, $NETWORK_PLAYER[$temp_int])
+        Coop.PrintNowForNetworkPlayer('TW2_Z', 6000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 goto @SWEET3_11594
 
 :SWEET3_11578
 Text.PrintNow('TW2_X', 6000, 1)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+        Coop.UpdateCheckpointForNetworkPlayer(2066.465, -1695.444, 12.5547, 4.0, 3.5, 4.0, $NETWORK_PLAYER[$temp_int])
+        Coop.PrintNowForNetworkPlayer('TW2_X', 6000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 
 :SWEET3_11594
 if or
@@ -2124,6 +2171,14 @@ World.SetCarDensityMultiplier(1.0)
 World.SetPedDensityMultiplier(1.0)
 Audio.ClearMissionAudio(MissionAudioSlot.Slot1)
 Audio.ClearMissionAudio(MissionAudioSlot.Slot2)
+for $temp_int = 0 to 2
+    if
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.RemoveCheckpointForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 CarGenerator.Switch($gen_car7, 101)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0

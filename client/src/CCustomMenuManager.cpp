@@ -38,8 +38,8 @@ void DrawCustomScreen_NicknamePortIp(CMenuManager* This)
 
 	CFont::SetBackground(0, 0);
 	CFont::SetProportional(1);
-	CFont::SetWrapx(RsGlobal.maximumWidth - 10);
-	CFont::SetRightJustifyWrap(10.0f);
+	CFont::SetWrapx(RsGlobal.maximumWidth - This->StretchX(10.0f));
+	CFont::SetRightJustifyWrap(This->StretchX(10.0f));
 	CFont::SetCentreSize(RsGlobal.maximumWidth);
 	CFont::SetOrientation(eFontAlignment::ALIGN_LEFT);
 	CFont::SetFontStyle(FONT_GOTHIC);

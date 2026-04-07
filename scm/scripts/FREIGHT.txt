@@ -3,6 +3,7 @@
 
 :FREIGHT
 script_name 'FREIGHT'
+Coop.EnableSyncingThisScript()
 gosub @FREIGHT_80
 if 
   has_deatharrest_been_executed 
@@ -92,6 +93,7 @@ if
   $flag_freight_passed_1stime == 0
 goto_if_false @FREIGHT_576
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :FREIGHT_576
 Text.LoadMissionText('FTRAIN')
@@ -602,6 +604,13 @@ Hud.ClearCounter($ft_speed)
 Hud.ClearTimer($freight_remaining)
 Player.ClearWantedLevel($player1)
 Game.SetWantedMultiplier(1.0)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 Hud.SwitchWidescreen(True)

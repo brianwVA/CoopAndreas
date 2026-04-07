@@ -135,41 +135,41 @@ PayPal `kirilltymoshchenko59@gmail.com`
 - [X] mission markers sync
   
 ### Current Tasks
-- [ ] pickups
-  - [ ] graffities, horseshoes, snapshots, oysters
-  - [ ] static weapons, armours
-  - [ ] static bribes
+- [X] pickups
+  - [X] graffities, horseshoes, snapshots, oysters
+  - [X] static weapons, armours
+  - [X] static bribes
   - [ ] drop
     - [ ] money
     - [ ] weapons
-- [ ] jetpack sync
+- [X] jetpack sync
   - [X] flight 
-  - [ ] pickup (related to task above) 
-- [ ] cutscenes
+  - [X] pickup (related to task above) 
+- [X] cutscenes
   - [X] cutscenes
-  - [ ] vote to skip
-- [ ] Players map sync
-  - [ ] Areas aka GangZones
+  - [X] vote to skip
+- [X] Players map sync
+  - [X] Areas aka GangZones
   - [X] Mission icons
   - [X] Player map pin
     - [ ] fix proportion
   - [X] Player mark (waypoint)
-- [ ] wanted level
-- [ ] stats sync
+- [X] wanted level
+- [X] stats sync
   - [X] fat
   - [X] muscle
   - [X] weapon skills
   - [X] fight styles
-  - [ ] sync money
-  - [ ] breath level bar
+  - [X] sync money
+  - [X] breath level bar
   - [X] stamina sync
-  - [ ] max hp sync
-- [ ] fire sync
-- [ ] cheat code sync
+  - [X] max hp sync
+- [X] fire sync
+- [X] cheat code sync
 - [ ] anim sync
   - [X] sprunk drinking
   - [X] fast food eating
-  - [ ] idle anims
+  - [X] idle anims
   - [ ] funny TAB+NUM4 (or NUM6) anim sync (did you know about this?)
 - [ ] gang groups sync
 - [ ] stream in/out players, peds, vehicles, etc.
@@ -179,16 +179,16 @@ PayPal `kirilltymoshchenko59@gmail.com`
 - [ ] passenger sync
   - [ ] gamepad support
   - [X] proper seat sync
-  - [ ] radio sync
+  - [X] radio sync
   - [X] drive by shooting
 - [ ] fixes
   - [X] mouse
-  - [ ] widescreen
+  - [X] widescreen
   - [X] fast load
 - [ ] Fix models loading (green polygon)  --- related to stream it/out
-- [ ] smooth interpolation
-  - [ ] move
-  - [ ] rotation
+- [X] smooth interpolation
+  - [X] move
+  - [X] rotation
   - [X] weapon aim interpolation
 - [ ] npc sync
   - [X] pos, rot, speed
@@ -340,17 +340,25 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [X] Paramedic
   - [X] Pimp
   - [X] Freight Train Missions
-- [X] The Chiliad Challenge
+- [X] Hiden races
+  - [X] BMX
+  - [X] NRG-500
+  - [X] The Chiliad Challenge
 - [X] Stadions
+  - [X] 8-Track
   - [X] Blood Bowl
+  - [X] Dirt Track
   - [X] Kick Start
 - [X] Ammu-nation challenge
 - [X] Schools
+  - [X] Driving school
+  - [X] Flight school
   - [X] Bike school
   - [X] Boat school
 - [X] Asset Missions
   - [X] Trucker (8 missions)
   - [X] Valet (5 missions)
+  - [X] Career (7 missions)
 - [X] Courier
   - [X] Los Santos - Roboi's Food Mart
   - [X] San Fierro - Hippy Shopper
@@ -379,15 +387,4 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [X] Whirly Bird Waypoint
   - [X] Heli Hell
 ### Current Tasks
-- [ ] Hiden races
-  - [ ] BMX
-  - [ ] NRG-500
-- [ ] Stadions
-  - [ ] 8-Track
-  - [ ] Dirt Track
-- [ ] Schools
-  - [ ] Driving school
-  - [ ] Flight school
-- [ ] Asset Missions
-  - [ ] Career (7 missions)
-- [ ] Import / Export
+*All side scripts converted. Import/Export requires C++ sync for shared car board state.*

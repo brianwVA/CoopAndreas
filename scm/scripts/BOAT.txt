@@ -3,6 +3,7 @@
 
 :BOAT
 script_name 'BOAT'
+Coop.EnableSyncingThisScript()
 gosub @BOAT_416
 if 
   has_deatharrest_been_executed 
@@ -45,6 +46,7 @@ if
   $boat_passed_once == 0
 goto_if_false @BOAT_443
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :BOAT_443
 Text.LoadMissionText('BOAT')
@@ -5442,6 +5444,13 @@ $boat_bronze_rewardgiven = 2
 
 :BOAT_38532
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 
