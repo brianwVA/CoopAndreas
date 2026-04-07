@@ -3,6 +3,7 @@
 
 :TWAR7
 script_name 'TWAR7'
+Coop.EnableSyncingThisScript()
 gosub @TWAR7_47
 if 
   has_deatharrest_been_executed 
@@ -14,6 +15,7 @@ gosub @TWAR7_23270
 terminate_this_script 
 
 :TWAR7_47
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Stat.RegisterMissionGiven
 Text.LoadMissionText('SMOKE1')
@@ -158,6 +160,7 @@ Char.ClearTasksImmediately($scplayer)
 World.ClearArea(1, 2072.9, -1690.6, 12.5, 1.0)
 Char.SetCoordinates($scplayer, 2072.9, -1690.6, 12.5)
 Char.SetHeading($scplayer, 33.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Char.SetNextDesiredMoveState(MoveState.Walk)
 Task.EnterCarAsDriver($scplayer, 37@, -2)
 Game.SwitchRandomTrains(False)
@@ -221,6 +224,13 @@ Char.SetSenseRange($mc_strap, 80.0)
 Blip.Remove(66@)
 66@ = Blip.AddForCoord(2454.4, -1284.5, 22.7)
 Text.PrintNow('SMK1_10', 7000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('SMK1_10', 7000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 Player.SetControl($player1, True)
 Camera.DoFade(1, 1000)
 85@ = 2
@@ -3424,6 +3434,13 @@ Streaming.UnloadSpecialCharacter(3)
 Game.EnableAmbientCrime(True)
 Sequence.Clear(147@)
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 $onmission = 0
 Mission.Finish
 return 

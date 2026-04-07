@@ -3,6 +3,7 @@
 
 :DESERT5
 script_name 'DESERT5'
+Coop.EnableSyncingThisScript()
 gosub @DESERT5_47
 if 
   has_deatharrest_been_executed 
@@ -16,6 +17,7 @@ terminate_this_script
 :DESERT5_47
 Text.ClearThisPrint('M_FAIL')
 $onmission = 1
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 if 
   $pilot_test_passed <> 1
 goto_if_false @DESERT5_85
@@ -5242,6 +5244,13 @@ Char.Delete(70@)
 Camera.SetBehindPlayer
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

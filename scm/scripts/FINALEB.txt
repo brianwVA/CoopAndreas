@@ -11,7 +11,9 @@ terminate_this_script
 
 :FINALEB_36
 $onmission = 1
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'FINALEB'
+Coop.EnableSyncingThisScript()
 wait 0
 Text.LoadMissionText('RIOT4')
 97@ = DecisionMakerChar.Load(DecisionMakerType.Empty)
@@ -200,6 +202,7 @@ Task.Die($big_smoke)
 131@ = Pickup.CreateWithAmmo(355, 3, 60, 2552.36, -1283.15, 1061.02)
 Char.SetCoordinates($scplayer, 2553.734, -1285.256, 1060.024)
 Char.SetHeading($scplayer, 79.954)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Char.SetAreaVisible($scplayer, 2)
 Player.SetControl($player1, False)
 Hud.SwitchWidescreen(True)
@@ -2373,6 +2376,13 @@ goto @FINALEB_18839
 
 :FINALEB_18880
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 if 
   156@ == 1

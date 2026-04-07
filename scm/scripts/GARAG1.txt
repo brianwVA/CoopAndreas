@@ -3,6 +3,7 @@
 
 :GARAG1
 script_name 'GARAG1'
+Coop.EnableSyncingThisScript()
 gosub @GARAG1_47
 if 
   has_deatharrest_been_executed 
@@ -17,6 +18,7 @@ terminate_this_script
 $onmission = 1
 Weather.ForceNow(WeatherType.SunnySf)
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('GARAGE1')
 Player.SetControl($player1, False)
 Camera.DoFade(0, 1000)
@@ -377,6 +379,7 @@ goto @GARAG1_3297
 34@ = Car.Create(585, -2030.628, 170.7956, 27.8359)
 Car.SetHealth(34@, 3000)
 Char.SetCoordinates($scplayer, -2031.0, 162.0, 27.83)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Car.SetHeading(34@, 270.0)
 Streaming.LoadSpecialCharacter('TRUTH', 2)
 
@@ -623,6 +626,13 @@ goto_if_false @GARAG1_5345
 127@ = Blip.AddForCar(34@)
 Blip.SetAsFriendly(127@, True)
 Text.PrintNow('GAR1_22', 5000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('GAR1_22', 5000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 
 :GARAG1_4928
 if 
@@ -3839,6 +3849,13 @@ $flag_is_zero_on_bike = 0
 118@ = 0
 Particle.Stop(350@)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

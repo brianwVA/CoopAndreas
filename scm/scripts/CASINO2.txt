@@ -3,6 +3,7 @@
 
 :CASINO2
 script_name 'CASINO2'
+Coop.EnableSyncingThisScript()
 gosub @CASINO2_47
 if 
   has_deatharrest_been_executed 
@@ -56,6 +57,7 @@ Camera.SetFadingColor(0, 0, 0)
 167@ = 779.3841
 173@ = 8.0929
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 53@ = DecisionMakerChar.Load(DecisionMakerType.Weak)
 127@ = DecisionMakerChar.Load(DecisionMakerType.Empty)
@@ -123,6 +125,7 @@ Streaming.LoadScene(2028.932, 1023.292, 9.8127)
 World.ClearArea(1, 2028.932, 1023.292, 9.8127, 20.0)
 Char.SetCoordinates($scplayer, 2028.932, 1023.292, 9.8127)
 Char.SetHeading($scplayer, 278.4092)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 wait 500
 
@@ -2522,6 +2525,13 @@ $timer_mobile_start = Clock.GetGameTimer()
 Player.ClearWantedLevel($player1)
 CarGenerator.DontSuppressCarModel(406)
 Weather.Release
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 $onmission = 0
 return 

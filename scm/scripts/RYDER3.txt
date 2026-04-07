@@ -3,6 +3,7 @@
 
 :RYDER3
 script_name 'RYDER3'
+Coop.EnableSyncingThisScript()
 gosub @RYDER3_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :RYDER3_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Game.MakeRoomInPlayerGangForMissionPeds(1)
 89@ = 0
@@ -198,6 +200,7 @@ if
 goto_if_false @RYDER3_1446
 Char.SetCoordinates($scplayer, 2472.783, -1685.696, 12.5153)
 Char.SetHeading($scplayer, 336.6331)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 
 :RYDER3_1446
@@ -281,6 +284,13 @@ Camera.SetFixedPosition(2473.642, -1674.005, 13.6679, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2473.833, -1674.969, 13.4843, SwitchType.JumpCut)
 gosub @RYDER3_19023
 Text.PrintNow('RYD3_Z', 6000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('RYD3_Z', 6000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 TIMERB = 0
 
 :RYDER3_2200
@@ -2916,6 +2926,13 @@ $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
 Player.ClearWantedLevel($player1)
 Game.SetWantedMultiplier(1.0)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

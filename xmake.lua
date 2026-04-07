@@ -60,6 +60,7 @@ target("client")
     add_files("client/version.rc")
 
     add_defines("_CRT_SECURE_NO_WARNINGS", "_CRT_NON_CONFORMING_SWPRINTFS", "_USE_MATH_DEFINES", "_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING", "GTASA", "PLUGIN_SGV_10US", "RW")
+    add_shflags("/LTCG", {force = true})
 
     if is_mode("debug") then
         add_defines("DEBUG")

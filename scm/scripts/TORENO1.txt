@@ -3,6 +3,7 @@
 
 :TORENO1
 script_name 'TORENO1'
+Coop.EnableSyncingThisScript()
 gosub @TORENO1_47
 if 
   has_deatharrest_been_executed 
@@ -16,6 +17,7 @@ terminate_this_script
 :TORENO1_47
 $onmission = 1
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Camera.SetFadingColor(0, 0, 0)
 Weather.Force(WeatherType.SunnyCountryside)
 Text.LoadMissionText('TORENO1')
@@ -308,6 +310,7 @@ Char.SetHeading(81@, 211.0638)
 39@ = Car.GetHealth(80@)
 Char.SetCoordinates($scplayer, -697.7833, 961.7714, 11.2955)
 Char.SetHeading($scplayer, 15.8778)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetFixedPosition(-699.15, 961.41, 12.76, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(-685.7, 971.97, 13.1, SwitchType.JumpCut)
 Hud.DisplayCarNames(False)
@@ -1956,6 +1959,13 @@ Streaming.RemoveAnimation("ON_LOOKERS")
 Streaming.RemoveAnimation("GANGS")
 World.SetCarDensityMultiplier(1.0)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

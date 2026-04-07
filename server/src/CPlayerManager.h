@@ -719,5 +719,71 @@ public:
 			}
 		}
 	};
+
+	struct WantedLevelSync
+	{
+		int playerid;
+		uint8_t wantedLevel;
+
+		static void Handle(ENetPeer* peer, void* data, int size)
+		{
+			if (auto player = CPlayerManager::GetPlayer(peer))
+			{
+				WantedLevelSync* packet = (WantedLevelSync*)data;
+				packet->playerid = player->m_iPlayerId;
+				CNetwork::SendPacketToAll(CPacketsID::WANTED_LEVEL_SYNC, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE, peer);
+			}
+		}
+	};
+
+	struct MoneySync
+	{
+		int playerid;
+		int32_t money;
+
+		static void Handle(ENetPeer* peer, void* data, int size)
+		{
+			if (auto player = CPlayerManager::GetPlayer(peer))
+			{
+				MoneySync* packet = (MoneySync*)data;
+				packet->playerid = player->m_iPlayerId;
+				CNetwork::SendPacketToAll(CPacketsID::MONEY_SYNC, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE, peer);
+			}
+		}
+	};
+
+	struct CheatCodeSync
+	{
+		int playerid;
+		uint16_t cheatId;
+
+		static void Handle(ENetPeer* peer, void* data, int size)
+		{
+			if (auto player = CPlayerManager::GetPlayer(peer))
+			{
+				CheatCodeSync* packet = (CheatCodeSync*)data;
+				packet->playerid = player->m_iPlayerId;
+				CNetwork::SendPacketToAll(CPacketsID::CHEAT_CODE_SYNC, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE, peer);
+			}
+		}
+	};
+
+	struct FireSync
+	{
+		int playerid;
+		CVector position;
+		uint32_t timeToBurn;
+		int8_t numGenerations;
+
+		static void Handle(ENetPeer* peer, void* data, int size)
+		{
+			if (auto player = CPlayerManager::GetPlayer(peer))
+			{
+				FireSync* packet = (FireSync*)data;
+				packet->playerid = player->m_iPlayerId;
+				CNetwork::SendPacketToAll(CPacketsID::FIRE_SYNC, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE, peer);
+			}
+		}
+	};
 };
 #endif

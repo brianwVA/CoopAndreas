@@ -2,6 +2,7 @@
 
 :VALET
 script_name 'VALET'
+Coop.EnableSyncingThisScript()
 8@ = 0
 5@ = 1
 $can_script_be_cleaned = 1
@@ -525,6 +526,7 @@ goto_if_false @VALET_3813
 Text.PrintNow('VAL_A7', 5000, 1)
 $player_on_valet_mission = 1
 $onmission = 1
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 goto @VALET_3829
 
 :VALET_3813
@@ -2604,6 +2606,13 @@ $force_valet_cleanup = 0
 $valet_scene_running = 0
 Blip.Remove(20@)
 Blip.Remove(19@)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 terminate_this_script 
 return 
 terminate_this_script 

@@ -3,6 +3,7 @@
 
 :DRUGS3
 script_name 'DRUGS3'
+Coop.EnableSyncingThisScript()
 gosub @DRUGS3_47
 if 
   has_deatharrest_been_executed 
@@ -14,6 +15,7 @@ gosub @DRUGS3_19417
 terminate_this_script 
 
 :DRUGS3_47
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Stat.RegisterMissionGiven
 Text.LoadMissionText('CRASH3')
@@ -95,6 +97,7 @@ DecisionMakerChar.AddEventResponse(52@, 7, 1000, 50.0, 50.0, 50.0, 50.0, True, T
 53@ = DecisionMakerChar.Load(DecisionMakerType.Weak)
 Char.SetCoordinates($scplayer, 1038.0, -1339.0, 12.8)
 Char.SetHeading($scplayer, 1.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Streaming.LoadSceneInDirection(1038.0, -1340.99, 13.94, 1.0)
 Camera.DoFade(1, 1500)
@@ -163,6 +166,13 @@ if
 goto_if_false @DRUGS3_937
 137@ = Blip.AddForCoord(2247.639, -2202.144, 12.59)
 Text.PrintNow('CSH3_1', 7000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('CSH3_1', 7000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 141@ = 1
 
 :DRUGS3_937
@@ -2947,6 +2957,13 @@ Car.SetProofs($car, False, False, True, False, False)
 :DRUGS3_19940
 $timer_mobile_start = Clock.GetGameTimer()
 Game.SwitchEmergencyServices(True)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 $onmission = 0
 Mission.Finish
 return 

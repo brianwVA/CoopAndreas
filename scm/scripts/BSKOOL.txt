@@ -3,6 +3,7 @@
 
 :BSKOOL
 script_name 'BSKOOL'
+Coop.EnableSyncingThisScript()
 gosub @BSKOOL_47
 if 
   has_deatharrest_been_executed 
@@ -19,6 +20,7 @@ if
   $flag_bikeschool_passed_1stime == 0
 goto_if_false @BSKOOL_78
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :BSKOOL_78
 $onmission = 1
@@ -2331,6 +2333,13 @@ $bs_bronze_rewardgiven = 2
 
 :BSKOOL_12663
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

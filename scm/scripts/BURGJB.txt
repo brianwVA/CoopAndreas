@@ -3,6 +3,7 @@
 
 :BURGJB
 script_name 'BURGJB'
+Coop.EnableSyncingThisScript()
 gosub @BURGJB_65
 if 
   has_deatharrest_been_executed 
@@ -19,6 +20,7 @@ goto_if_false @BURGJB_65
 :BURGJB_65
 $onmission = 1
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 wait 0
 Camera.SetFadingColor(0, 0, 0)
 Text.LoadMissionText('BURGLAR')
@@ -1599,6 +1601,13 @@ Hud.ClearCounter($burglary_time_to_get_out)
 $flag_player_on_burglary_mission = 0
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

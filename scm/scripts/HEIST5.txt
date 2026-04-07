@@ -3,6 +3,7 @@
 
 :HEIST5
 script_name 'HEIST5'
+Coop.EnableSyncingThisScript()
 gosub @HEIST5_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :HEIST5_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 39@ = 406.989
 40@ = 2516.901
@@ -902,6 +904,7 @@ Char.DetachFromCar($scplayer)
 World.ClearArea(0, 2596.129, 2757.112, 22.862, 1.0)
 Char.SetCoordinates($scplayer, 2596.129, 2757.112, 22.862)
 Char.SetHeading($scplayer, 217.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Object.SetVisible(109@, True)
 Text.ClearThisPrint('HM5_21')
 Text.ClearHelp
@@ -2154,6 +2157,13 @@ Sequence.Clear(96@)
 Audio.ClearMissionAudio(MissionAudioSlot.Slot1)
 Audio.ClearMissionAudio(MissionAudioSlot.Slot2)
 Audio.ClearMissionAudio(MissionAudioSlot.Slot3)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

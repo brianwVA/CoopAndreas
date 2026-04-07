@@ -1948,3 +1948,101 @@ void CPacketHandler::TeleportPlayerScripted__Handle(void* data, int size)
 	playerPed->SetHeading(packet->heading);
 	playerPed->UpdateRwMatrix();
 }
+
+// WantedLevelSync
+
+static uint8_t s_nLastSentWantedLevel = 0;
+
+void CPacketHandler::WantedLevelSync__Handle(void* data, int size)
+{
+	CPackets::WantedLevelSync* packet = (CPackets::WantedLevelSync*)data;
+
+	CPlayerPed* localPlayer = FindPlayerPed(0);
+	if (localPlayer)
+	{
+		CWanted* wanted = localPlayer->GetWanted();
+		if (wanted)
+		{
+			wanted->SetWantedLevelNoDrop(packet->wantedLevel);
+			s_nLastSentWantedLevel = packet->wantedLevel;
+		}
+	}
+}
+
+void CPacketHandler::WantedLevelSync__Trigger()
+{
+	CPlayerPed* localPlayer = FindPlayerPed(0);
+	if (!localPlayer) return;
+
+	CWanted* wanted = localPlayer->GetWanted();
+	if (!wanted) return;
+
+	uint8_t currentLevel = (uint8_t)wanted->m_nWantedLevel;
+	if (currentLevel == s_nLastSentWantedLevel) return;
+
+	s_nLastSentWantedLevel = currentLevel;
+
+	CPackets::WantedLevelSync packet{};
+	packet.wantedLevel = currentLevel;
+	CNetwork::SendPacket(CPacketsID::WANTED_LEVEL_SYNC, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+}
+
+// MoneySync
+
+static int32_t s_nLastSentMoney = 0;
+
+void CPacketHandler::MoneySync__Handle(void* data, int size)
+{
+	CPackets::MoneySync* packet = (CPackets::MoneySync*)data;
+
+	CPlayerInfo* playerInfo = &CWorld::Players[0];
+	if (playerInfo)
+	{
+		playerInfo->m_nMoney = packet->money;
+		playerInfo->m_nDisplayMoney = packet->money;
+		s_nLastSentMoney = packet->money;
+	}
+}
+
+void CPacketHandler::MoneySync__Trigger()
+{
+	CPlayerInfo* playerInfo = &CWorld::Players[0];
+	if (!playerInfo) return;
+
+	int32_t currentMoney = playerInfo->m_nMoney;
+	if (currentMoney == s_nLastSentMoney) return;
+
+	s_nLastSentMoney = currentMoney;
+
+	CPackets::MoneySync packet{};
+	packet.money = currentMoney;
+	CNetwork::SendPacket(CPacketsID::MONEY_SYNC, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+}
+
+// CheatCodeSync
+
+void CPacketHandler::CheatCodeSync__Handle(void* data, int size)
+{
+	CPackets::CheatCodeSync* packet = (CPackets::CheatCodeSync*)data;
+
+	// Apply the cheat locally (the cheat function address table at 0x438500-area)
+	// We sync time/weather after cheat, which is what the original ProcessCheat_Hook does
+	CPacketHandler::GameWeatherTime__Trigger();
+}
+
+// FireSync
+
+extern bool s_bIgnoreFireSync;
+
+void CPacketHandler::FireSync__Handle(void* data, int size)
+{
+	CPackets::FireSync* packet = (CPackets::FireSync*)data;
+
+	s_bIgnoreFireSync = true;
+	// CFireManager::StartFire(CVector, float, uchar, CEntity*, uint, schar, uchar) at 0x539F00
+	// gFireManager at 0xB71F80 - use raw function pointer to avoid linking CVector.obj from plugin.lib
+	typedef void*(__thiscall* StartFire_t)(void*, CVector, float, unsigned char, CEntity*, unsigned int, signed char, unsigned char);
+	StartFire_t startFire = (StartFire_t)0x539F00;
+	startFire((void*)0xB71F80, packet->position, 1.8f, 0, nullptr, packet->timeToBurn, packet->numGenerations, 1);
+	s_bIgnoreFireSync = false;
+}

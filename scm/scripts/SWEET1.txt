@@ -3091,6 +3091,13 @@ Zone.SetGangStrength('ELS3A', GangType.Ballas, 30)
 Zone.SetGangStrength('ELS3B', GangType.Ballas, 30)
 Zone.SetGangStrength('ELS4', GangType.Ballas, 30)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

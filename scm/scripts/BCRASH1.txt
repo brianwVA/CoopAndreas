@@ -3,6 +3,7 @@
 
 :BCRASH1
 script_name 'BCRASH1'
+Coop.EnableSyncingThisScript()
 gosub @BCRASH1_922
 if 
   has_deatharrest_been_executed 
@@ -146,6 +147,7 @@ return
 
 :BCRASH1_922
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 Text.LoadMissionText('BCRASH1')
@@ -409,6 +411,13 @@ Hud.SwitchWidescreen(False)
 Camera.RestoreJumpcut
 Camera.SetBehindPlayer
 Text.PrintNow('BCR1_03', 5000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('BCR1_03', 5000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 65@ = Blip.AddForCoord(98@, 101@, 104@)
 
 :BCRASH1_3584
@@ -2097,6 +2106,13 @@ Blip.Remove(271@)
 Pickup.Remove(270@)
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

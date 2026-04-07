@@ -3,6 +3,7 @@
 
 :SWEET4
 script_name 'SWEET4'
+Coop.EnableSyncingThisScript()
 gosub @SWEET4_4512
 if 
   has_deatharrest_been_executed 
@@ -659,6 +660,7 @@ return
 
 :SWEET4_4512
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 $sw4_stage = 0
@@ -1006,8 +1008,16 @@ Char.SetCoordinates($scplayer, 2516.92, -1679.45, 13.42)
 Char.SetHeading($scplayer, 27.25)
 
 :SWEET4_7540
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 gosub @SWEET4_597
 Text.PrintNow('SWE4_00', 5000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('SWE4_00', 5000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 61@ = Clock.GetGameTimer()
 set_lvar_int_to_lvar_int 73@ = 67@
 sub_int_lvar_from_int_lvar 73@ -= 61@
@@ -1057,6 +1067,13 @@ Char.ShutUpForScriptedSpeech(326@, True)
 :SWEET4_7794
 Audio.PlayMissionAudio(391@)
 Text.PrintNow(202@(389@,62s), 10000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer(202@(389@,62s), 10000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 390@ = 3
 
 :SWEET4_7820
@@ -2917,6 +2934,13 @@ goto_if_false @SWEET4_18294
 $sw4_text_timer_flag = 18
 $sw4_text_timer_start = Clock.GetGameTimer()
 Text.PrintNow('SWE4_14', 8000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('SWE4_14', 8000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 49@ = 1
 
 :SWEET4_18294
@@ -3137,6 +3161,7 @@ Char.SetCoordinates($scplayer, 2511.0, -1671.0, 12.5)
 :SWEET4_19760
 Task.PlayAnim($scplayer, "GDB_CAR2_PLY", "GHETTO_DB", 4.0, False, False, False, False, 1)
 Char.SetHeading($scplayer, 223.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Char.RemoveElegantly(408@)
 Char.RemoveElegantly(394@)
 59@ = Clock.GetGameTimer()
@@ -3984,6 +4009,13 @@ Streaming.RemoveAnimation("GHETTO_DB")
 Hud.ClearCounter($sw4_health_display)
 Audio.SetMusicDoesFade(True)
 Game.SetCreateRandomGangMembers(True)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
 Mission.Finish

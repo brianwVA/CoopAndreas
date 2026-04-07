@@ -3,6 +3,7 @@
 
 :DESERT4
 script_name 'DESERT4'
+Coop.EnableSyncingThisScript()
 gosub @DESERT4_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :DESERT4_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 Text.LoadMissionText('DSERT4')
@@ -55,6 +57,7 @@ Weather.Release
 Cutscene.Clear
 Char.SetCoordinates($scplayer, -696.0359, 948.1198, 11.276)
 Char.SetHeading($scplayer, 33.1992)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.RestoreJumpcut
 Player.SetControl($player1, True)
 Streaming.LoadScene(-696.0359, 948.1198, 11.276)
@@ -88,6 +91,13 @@ return
 :DESERT4_429
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

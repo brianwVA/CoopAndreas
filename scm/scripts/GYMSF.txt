@@ -3,6 +3,7 @@
 
 :GYMSF
 script_name 'GYMSF'
+Coop.EnableSyncingThisScript()
 Camera.DoFade(0, Fade.Out)
 gosub @GYMSF_63
 Camera.SetFadingColor(0, 0, 0)
@@ -15,6 +16,7 @@ gosub @GYMSF_5328
 gosub @GYMSF_5368
 terminate_this_script 
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :GYMSF_63
 if 
@@ -887,6 +889,13 @@ Streaming.RemoveAnimation("FIGHT_C")
 Audio.ClearMissionAudio(MissionAudioSlot.Slot4)
 $gym_is_running = 0
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

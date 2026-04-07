@@ -23,6 +23,7 @@ DecisionMakerGroup.AddEventResponse(37@, 36, 1516, 0.0, 100.0, 0.0, 0.0, True, F
 DecisionMakerChar.AddEventResponse(38@, 36, 1000, 0.0, 100.0, 0.0, 0.0, True, True)
 36@ = 32
 $onmission = 1
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Player.AlterWantedLevel($player1, 0)
 if 
   $onmission == 69
@@ -32,6 +33,7 @@ add_continuous_sound 82@ 65535 2320.043 -8.5501 27.2047
 
 :CAT2_256
 script_name 'CAT2'
+Coop.EnableSyncingThisScript()
 Camera.DoFade(0, 800)
 
 :CAT2_274
@@ -4704,6 +4706,13 @@ Sound.Remove(82@)
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
 Game.SetWantedMultiplier(1.0)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

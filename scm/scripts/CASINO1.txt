@@ -3,6 +3,7 @@
 
 :CASINO1
 script_name 'CASINO1'
+Coop.EnableSyncingThisScript()
 gosub @CASINO1_484
 if 
   has_deatharrest_been_executed 
@@ -84,6 +85,7 @@ return
 
 :CASINO1_484
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 34@ = -1
@@ -303,6 +305,7 @@ Camera.PointAtPoint(1907.488, 976.5921, 10.4377, SwitchType.JumpCut)
 World.ClearArea(1, 1903.27, 955.95, 9.8203, 30.0)
 Char.SetCoordinates($scplayer, 1909.826, 977.4828, 9.8127)
 Char.SetHeading($scplayer, 136.9741)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Streaming.RequestModel(#TRDCSGRGDOOR_LVS)
 Streaming.LoadAllModelsNow
 
@@ -3211,6 +3214,13 @@ $flag_cas1_passed_1stime = 1
 :CASINO1_19759
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

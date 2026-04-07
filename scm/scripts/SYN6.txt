@@ -3,6 +3,7 @@
 
 :SYN6
 script_name 'SYN6'
+Coop.EnableSyncingThisScript()
 gosub @SYN6_47
 if 
   has_deatharrest_been_executed 
@@ -17,6 +18,7 @@ terminate_this_script
 $onmission = 1
 $tlf_underway = 1
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Player.SetControl($player1, False)
 Streaming.LoadScene(-2034.255, 176.5, 27.8359)
 Camera.DoFade(0, 2000)
@@ -1562,6 +1564,13 @@ Streaming.MarkModelAsNoLongerNeeded(330)
 Streaming.MarkModelAsNoLongerNeeded(348)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

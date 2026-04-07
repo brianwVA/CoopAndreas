@@ -3,6 +3,7 @@
 
 :SMOKE2
 script_name 'SMOKE2'
+Coop.EnableSyncingThisScript()
 gosub @SMOKE2_47
 if 
   has_deatharrest_been_executed 
@@ -16,6 +17,7 @@ terminate_this_script
 :SMOKE2_47
 Stat.RegisterMissionGiven
 Text.LoadMissionText('SMOKE2')
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 36@ = 2068.42
@@ -201,6 +203,7 @@ Path.SwitchRoadsOff(2252.89, -1286.37, 22.25, 2258.89, -1280.37, 28.25)
 Audio.SetRadioChannel(RadioChannel.BounceFM)
 Char.SetCoordinates($scplayer, 2070.87, -1703.01, 12.55)
 Char.SetHeading($scplayer, 0.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetFadingColor(0, 0, 0)
 wait 500
 Camera.DoFade(1, 1500)
@@ -268,6 +271,13 @@ Char.PerformSequence(-1, 117@)
 Char.PerformSequence(-1, 118@)
 Sequence.Close(114@)
 Text.PrintNow('SMK2_1', 10000, 0)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('SMK2_1', 10000, 0, $NETWORK_PLAYER[$temp_int])
+    end
+end
 
 :SMOKE2_2258
 wait 0
@@ -972,6 +982,7 @@ Char.PerformSequence(41@, 114@)
 :SMOKE2_6484
 Char.SetCoordinates($scplayer, 2473.99, -1402.32, 27.82)
 Char.SetHeading($scplayer, 90.0)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 if 
   not Char.IsDead(35@)
 goto_if_false @SMOKE2_6560
@@ -1762,6 +1773,13 @@ Path.SwitchPedRoadsBackToOriginal(2441.38, -1405.59, 15.0, 2460.42, -1368.34, 40
 World.SetCarDensityMultiplier(1.0)
 Path.FlushRoute
 $timer_mobile_start = Clock.GetGameTimer()
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 $onmission = 0
 Mission.Finish
 return 

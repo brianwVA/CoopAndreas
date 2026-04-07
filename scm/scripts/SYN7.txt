@@ -3,6 +3,7 @@
 
 :SYN7
 script_name 'SYN7'
+Coop.EnableSyncingThisScript()
 gosub @SYN7_47
 if 
   has_deatharrest_been_executed 
@@ -75,6 +76,7 @@ if
 goto_if_false @SYN7_420
 Char.SetCoordinates($scplayer, -2031.197, 161.1839, 27.8516)
 Char.SetHeading($scplayer, 268.0468)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Player.SetControl($player1, False)
 
@@ -85,6 +87,7 @@ $onmission = 1
 $s7_timer = 40000
 117@ = 2
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 35@ = DecisionMakerChar.Load(DecisionMakerType.Empty)
 34@ = DecisionMakerChar.Load(DecisionMakerType.Weak)
 36@ = DecisionMakerChar.Load(DecisionMakerType.Tough)
@@ -2321,6 +2324,13 @@ Streaming.MarkModelAsNoLongerNeeded(146)
 Streaming.MarkModelAsNoLongerNeeded(344)
 Streaming.MarkModelAsNoLongerNeeded(#HEALTH)
 Streaming.MarkModelAsNoLongerNeeded(346)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

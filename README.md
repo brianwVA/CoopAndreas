@@ -154,25 +154,25 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [ ] pickup (related to task above) 
 - [ ] cutscenes
   - [X] cutscenes
-  - [ ] vote to skip
+  - [X] vote to skip
 - [ ] Players map sync
   - [ ] Areas aka GangZones
   - [X] Mission icons
   - [X] Player map pin
     - [ ] fix proportion
   - [X] Player mark (waypoint)
-- [ ] wanted level
+- [X] wanted level
 - [ ] stats sync
   - [X] fat
   - [X] muscle
   - [X] weapon skills
   - [X] fight styles
-  - [ ] sync money
-  - [ ] breath level bar
+  - [X] sync money
+  - [X] breath level bar
   - [X] stamina sync
-  - [ ] max hp sync
-- [ ] fire sync
-- [ ] cheat code sync
+  - [X] max hp sync
+- [X] fire sync
+- [X] cheat code sync
 - [ ] anim sync
   - [X] sprunk drinking
   - [X] fast food eating
@@ -347,17 +347,25 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [X] Paramedic
   - [X] Pimp
   - [X] Freight Train Missions
-- [X] The Chiliad Challenge
+- [X] Hiden races
+  - [X] BMX
+  - [X] NRG-500
+  - [X] The Chiliad Challenge
 - [X] Stadions
+  - [X] 8-Track
   - [X] Blood Bowl
+  - [X] Dirt Track
   - [X] Kick Start
 - [X] Ammu-nation challenge
 - [X] Schools
+  - [X] Driving school
+  - [X] Flight school
   - [X] Bike school
   - [X] Boat school
 - [X] Asset Missions
   - [X] Trucker (8 missions)
   - [X] Valet (5 missions)
+  - [X] Career (7 missions)
 - [X] Courier
   - [X] Los Santos - Roboi's Food Mart
   - [X] San Fierro - Hippy Shopper
@@ -386,15 +394,4 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [X] Whirly Bird Waypoint
   - [X] Heli Hell
 ### Current Tasks
-- [ ] Hiden races
-  - [ ] BMX
-  - [ ] NRG-500
-- [ ] Stadions
-  - [ ] 8-Track
-  - [ ] Dirt Track
-- [ ] Schools
-  - [ ] Driving school
-  - [ ] Flight school
-- [ ] Asset Missions
-  - [ ] Career (7 missions)
-- [ ] Import / Export
+*All side scripts converted. Import/Export requires C++ sync for shared car board state.*

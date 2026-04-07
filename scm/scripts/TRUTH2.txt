@@ -3,6 +3,7 @@
 
 :TRUTH2
 script_name 'TRUTH2'
+Coop.EnableSyncingThisScript()
 gosub @TRUTH2_47
 if 
   has_deatharrest_been_executed 
@@ -16,6 +17,7 @@ terminate_this_script
 :TRUTH2_47
 $onmission = 1
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('TRU2')
 if 
   $onmission == 0
@@ -164,6 +166,14 @@ World.ClearArea(1, -913.3, -1720.5, 76.6, 1.0)
 Char.ClearTasksImmediately($scplayer)
 Char.SetCoordinates($scplayer, -913.3, -1720.5, 76.6)
 Char.GiveWeapon($scplayer, WeaponType.Flamethrower, 3000)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Flamethrower, 3000)
+    end
+end
 World.ClearArea(1, -1079.404, -1640.694, 75.375, 20.0)
 $truth = Char.Create(24, 290, -1079.404, -1640.694, 75.375)
 Char.SetDropsWeaponsWhenDead($truth, False)
@@ -1791,6 +1801,13 @@ Blip.Remove(85@)
 Blip.Remove(86@)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

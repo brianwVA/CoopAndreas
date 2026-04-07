@@ -3,6 +3,7 @@
 
 :SCRASH3
 script_name 'SCRASH3'
+Coop.EnableSyncingThisScript()
 gosub @SCRASH3_47
 if 
   has_deatharrest_been_executed 
@@ -18,6 +19,7 @@ Text.ClearThisPrint('M_FAIL')
 $onmission = 1
 $playing_scrash1 = 1
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 80@ = 1
 81@ = 0
 82@ = 0
@@ -428,6 +430,13 @@ if
   not Camera.GetFadingStatus
 goto_if_false @SCRASH3_2587
 Text.PrintNow('VAL_6', 6000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('VAL_6', 6000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 set_lvar_int_to_lvar_int 71@ = TIMERA
 71@ += 6000
 70@ = 6
@@ -2890,6 +2899,13 @@ $freeze_creating_drop_off_cars = 0
 $sc3_missioncar_alive = 0
 $dont_clear_valets = 0
 $tell_player_to_kill_valet = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 

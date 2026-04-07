@@ -3,6 +3,7 @@
 
 :MANSON5
 script_name 'MANSON5'
+Coop.EnableSyncingThisScript()
 gosub @MANSON5_47
 if 
   has_deatharrest_been_executed 
@@ -15,6 +16,7 @@ terminate_this_script
 
 :MANSON5_47
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Text.LoadMissionText('MAN_5')
 Player.SetGroupRecruitment($player1, False)
@@ -75,6 +77,7 @@ Streaming.LoadScene(1252.471, -805.5187, 83.1484)
 Streaming.RequestCollision(1252.471, -805.5187)
 Char.SetCoordinates($scplayer, 1252.471, -805.5187, 83.1484)
 Char.SetHeading($scplayer, 144.1434)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 51@ = Player.GetGroup($player1)
 Group.SetDefaultTaskAllocator(51@, DefaultTaskAllocator.FollowAnyMeans)
 34@ = Char.Create(23, 290, 1254.311, -810.8859, 83.1484)
@@ -2209,6 +2212,13 @@ Streaming.MarkModelAsNoLongerNeeded(588)
 Streaming.MarkModelAsNoLongerNeeded(482)
 Streaming.MarkModelAsNoLongerNeeded(#WATERJUMPX2)
 $onmission = 0
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 Mission.Finish
 return 
 
