@@ -128,6 +128,15 @@ CNetworkVehicle* CNetworkVehicle::CreateHosted(CVehicle* vehicle)
     networkVehicle->m_nTempId = CNetworkVehicleManager::AddToTempList(networkVehicle);
     networkVehicle->m_nCreatedBy = vehicle->m_nCreatedBy;
 
+    // Protect from RemoveDistantCars deleting synced traffic cars.
+    // Store original createdBy in m_nCreatedBy for later restoration.
+    vehicle->SetVehicleCreatedBy(eVehicleCreatedBy::MISSION_VEHICLE);
+
+    // Add to m_pVehicles immediately so GetVehicle(CVehicle*) finds it.
+    // Without this, entering a vehicle before VEHICLE_CONFIRM arrives causes
+    // VehicleEnter / VehicleDriverUpdate to silently fail (lookup returns null).
+    CNetworkVehicleManager::Add(networkVehicle);
+
     CPackets::VehicleSpawn vehicleSpawnPacket{};
     vehicleSpawnPacket.vehicleid = -1;
     vehicleSpawnPacket.tempid = networkVehicle->m_nTempId;
@@ -136,7 +145,7 @@ CNetworkVehicle* CNetworkVehicle::CreateHosted(CVehicle* vehicle)
     vehicleSpawnPacket.rot = vehicle->GetHeading();
     vehicleSpawnPacket.color1 = vehicle->m_nPrimaryColor;
     vehicleSpawnPacket.color2 = vehicle->m_nSecondaryColor;
-    vehicleSpawnPacket.createdBy = vehicle->m_nCreatedBy;
+    vehicleSpawnPacket.createdBy = networkVehicle->m_nCreatedBy;
     CNetwork::SendPacket(CPacketsID::VEHICLE_SPAWN, &vehicleSpawnPacket, sizeof vehicleSpawnPacket, ENET_PACKET_FLAG_RELIABLE);
 
     return networkVehicle;
