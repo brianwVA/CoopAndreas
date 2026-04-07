@@ -2207,14 +2207,13 @@ void CPacketHandler::ItemDrop__Handle(void* data, int size)
 	{
 		typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
 		auto GenerateNewOne_WeaponType = (GenerateNewOne_WeaponType_t)0x457380;
-		int idx = GenerateNewOne_WeaponType(pos, packet->weaponType, 3 /*PICKUP_ONCE*/, packet->ammo, false, nullptr);
-		if (idx >= 0 && idx < 620)
-		{
-			TrackDroppedPickup(
-				CPickups::aPickUps[idx].m_vecPos.x,
-				CPickups::aPickUps[idx].m_vecPos.y,
-				CPickups::aPickUps[idx].m_vecPos.z);
-		}
+		GenerateNewOne_WeaponType(pos, packet->weaponType, 3 /*PICKUP_ONCE*/, packet->ammo, false, nullptr);
+
+		// Track by compressed position (don't rely on return value)
+		TrackDroppedPickup(
+			(int16_t)(pos.x * 8.0f),
+			(int16_t)(pos.y * 8.0f),
+			(int16_t)(pos.z * 8.0f));
 	}
 	else if (packet->dropType == 1) // money
 	{

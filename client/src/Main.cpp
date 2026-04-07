@@ -241,14 +241,13 @@ public:
 									// Create pickup locally and track for removal sync
 									typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
 									auto GenPickup = (GenerateNewOne_WeaponType_t)0x457380;
-									int idx = GenPickup(pos, weapType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
-									if (idx >= 0 && idx < 620)
-									{
-										CPacketHandler::TrackDroppedPickup(
-											CPickups::aPickUps[idx].m_vecPos.x,
-											CPickups::aPickUps[idx].m_vecPos.y,
-											CPickups::aPickUps[idx].m_vecPos.z);
-									}
+									GenPickup(pos, weapType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
+
+									// Track by compressed position (don't rely on return value)
+									CPacketHandler::TrackDroppedPickup(
+										(int16_t)(pos.x * 8.0f),
+										(int16_t)(pos.y * 8.0f),
+										(int16_t)(pos.z * 8.0f));
 
 									if (CNetwork::m_bConnected)
 									{
