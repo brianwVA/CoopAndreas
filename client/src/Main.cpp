@@ -218,7 +218,11 @@ public:
 						CPlayerPed* localPed = FindPlayerPed(0);
 						if (localPed)
 						{
+							// Drop position: 2m in front of player
+							float heading = localPed->m_fCurrentRotation;
 							CVector pos = localPed->GetPosition();
+							pos.x += -sinf(heading) * 2.0f;
+							pos.y += cosf(heading) * 2.0f;
 
 							if (GetAsyncKeyState('G') & 0x8000) // drop weapon
 							{
@@ -264,10 +268,10 @@ public:
 									pInfo.m_nMoney -= dropAmount;
 									pInfo.m_nDisplayMoney -= dropAmount;
 
-									// Create money pickup locally
-									typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
-									auto CreateMoney = (CreateSomeMoney_t)0x458970;
-									CreateMoney(pos, dropAmount);
+									// Single $100 money pickup (model 1212 = money, type 7 = PICKUP_MONEY)
+									typedef int(__cdecl* GenerateNewOne_t)(CVector, unsigned int, unsigned char, unsigned int, unsigned int, bool, char*);
+									auto GenerateNewOne = (GenerateNewOne_t)0x456F20;
+									GenerateNewOne(pos, 1212, 7 /*PICKUP_MONEY*/, dropAmount, 0, false, nullptr);
 
 									if (CNetwork::m_bConnected)
 									{

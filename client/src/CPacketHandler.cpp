@@ -2211,8 +2211,8 @@ void CPacketHandler::ItemDrop__Handle(void* data, int size)
 	}
 	else if (packet->dropType == 1) // money
 	{
-		typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
-		auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
-		CreateSomeMoney(pos, packet->money);
+		typedef int(__cdecl* GenerateNewOne_t)(CVector, unsigned int, unsigned char, unsigned int, unsigned int, bool, char*);
+		auto GenerateNewOne = (GenerateNewOne_t)0x456F20;
+		GenerateNewOne(pos, 1212, 7 /*PICKUP_MONEY*/, packet->money, 0, false, nullptr);
 	}
 }
