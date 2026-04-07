@@ -314,6 +314,7 @@ void CPacketHandler::VehicleSpawn__Handle(void* data, int size)
 	CChat::AddMessage("VEHICLE SPAWN %d %d %.1f %.1f %.1f %.1f", packet->vehicleid, packet->modelid, packet->pos.x, packet->pos.y, packet->pos.z, packet->rot);
 #endif
 
+	CNetworkVehicleManager::m_bCreatingFromNetwork = true;
 	CNetworkVehicle* vehicle = new CNetworkVehicle
 	(
 		packet->vehicleid,
@@ -324,6 +325,7 @@ void CPacketHandler::VehicleSpawn__Handle(void* data, int size)
 		packet->color2,
 		packet->createdBy
 	);
+	CNetworkVehicleManager::m_bCreatingFromNetwork = false;
 	CNetworkVehicleManager::Add(vehicle);
 }
 
@@ -855,7 +857,9 @@ void CPacketHandler::PedSpawn__Handle(void* data, int size)
 	CChat::AddMessage("PED SPAWN %d %d %.1f %.1f %.1f %d %d", packet->pedid, packet->modelId, packet->pos.x, packet->pos.y, packet->pos.z, packet->pedType, packet->createdBy);
 #endif
 
+	CNetworkPedManager::m_bCreatingFromNetwork = true;
 	CNetworkPed* ped = new CNetworkPed(packet->pedid, (int)packet->modelId, (ePedType)packet->pedType, packet->pos, packet->createdBy, packet->specialModelName);
+	CNetworkPedManager::m_bCreatingFromNetwork = false;
 
 	CNetworkPedManager::Add(ped);
 }

@@ -4,6 +4,7 @@ class CNetworkPedManager
 public:
 	static std::vector<CNetworkPed*> m_pPeds;
 	static CNetworkPed* m_apTempPeds[255];
+	static bool m_bCreatingFromNetwork;
 
 	static CNetworkPed* GetPed(int pedid);
 	static CNetworkPed* GetPed(CPed* ped);

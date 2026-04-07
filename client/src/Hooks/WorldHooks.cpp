@@ -68,8 +68,13 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
         if (entity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE)
         {
             CVehicle* vehicle = (CVehicle*)entity;
-            if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr) // fixes a strange bug
+            if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr
+                || CNetworkVehicleManager::m_bCreatingFromNetwork)
             {
+                // Already known, or being created from a network packet — don't
+                // call CreateHosted (which would send a duplicate VEHICLE_SPAWN
+                // back to the server, causing an infinite cascade).
+                CWorld::Add(entity);
                 return;
             }
             CNetworkVehicle* networkVehicle = CNetworkVehicle::CreateHosted(vehicle);
@@ -80,7 +85,10 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
 
             if (ped->m_nPedType > 1)
             {
-                CNetworkPed* networkPed = CNetworkPed::CreateHosted(ped);
+                if (!CNetworkPedManager::m_bCreatingFromNetwork)
+                {
+                    CNetworkPed* networkPed = CNetworkPed::CreateHosted(ped);
+                }
             }
         }
     }

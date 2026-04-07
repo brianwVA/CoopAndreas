@@ -3,6 +3,7 @@
 
 std::vector<CNetworkVehicle*> CNetworkVehicleManager::m_pVehicles;
 CNetworkVehicle* CNetworkVehicleManager::m_apTempVehicles[255];
+bool CNetworkVehicleManager::m_bCreatingFromNetwork = false;
 
 CNetworkVehicle* CNetworkVehicleManager::GetVehicle(int vehicleid)
 {
