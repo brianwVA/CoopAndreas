@@ -265,36 +265,6 @@ public:
 									CChat::AddMessage("~g~Dropped weapon");
 								}
 							}
-							else if (GetAsyncKeyState('H') & 0x8000) // drop money
-							{
-								CPlayerInfo& pInfo = CWorld::Players[0];
-								int dropAmount = 100;
-								if (pInfo.m_nMoney >= dropAmount)
-								{
-									lastDropTick = now;
-
-									pInfo.m_nMoney -= dropAmount;
-									pInfo.m_nDisplayMoney -= dropAmount;
-
-									// Use engine's CreateSomeMoney — handles pickup type correctly
-									typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
-									auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
-									CreateSomeMoney(pos, dropAmount);
-
-									if (CNetwork::m_bConnected)
-									{
-										CPackets::ItemDrop packet{};
-										packet.x = pos.x;
-										packet.y = pos.y;
-										packet.z = pos.z;
-										packet.dropType = 1;
-										packet.money = dropAmount;
-										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-									}
-
-									CChat::AddMessage("~g~Dropped $100");
-								}
-							}
 						}
 					}
 				}
