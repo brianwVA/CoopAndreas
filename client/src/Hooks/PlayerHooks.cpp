@@ -285,10 +285,10 @@ void __fastcall CPlayerPed__ProcessWeaponSwitch_Hook(CPlayerPed* This, SKIP_EDX,
 
 void __fastcall CTaskSimplePlayerOnFoot__PlayIdleAnimations_Hook(CTaskSimplePlayerOnFoot* This, SKIP_EDX, CPlayerPed* playerPed)
 {
-    if (CWorld::PlayerInFocus == 0)
-    {
-        plugin::CallMethod<0x6872C0>(This, playerPed);
-    }
+    // Allow idle animations for all players (local + remote).
+    // Each client independently picks random idles — not synced across
+    // players, but looks much better than remote players never idling.
+    plugin::CallMethod<0x6872C0>(This, playerPed);
 }
 
 bool __fastcall CPad__JumpJustDown_Hook(CPad* This)

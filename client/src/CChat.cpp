@@ -318,7 +318,7 @@ void CChat::Draw()
             }
         }
 
-        int x = 10;
+        int x = (int)CUtil::SCREEN_SCALE_X(10.0f);
         int y = RsGlobal.maximumHeight / 5 + (MAX_MESSAGES - drawnMessages) * CDXFont::m_fFontSize;
 
         for (auto& seg : message.segments)
@@ -377,7 +377,7 @@ void CChat::DrawInput()
         displayText.insert(m_nCaretPos, 1, caretSymbol);
     }
     
-    CDXFont::Draw(10, RsGlobal.maximumHeight / 5 + 16 * CDXFont::m_fFontSize, L": " + displayText, D3DCOLOR_RGBA(255, 255, 255, 255));
+    CDXFont::Draw((int)CUtil::SCREEN_SCALE_X(10.0f), RsGlobal.maximumHeight / 5 + 16 * CDXFont::m_fFontSize, L": " + displayText, D3DCOLOR_RGBA(255, 255, 255, 255));
 }
 
 void CChat::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

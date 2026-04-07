@@ -176,7 +176,7 @@ PayPal `kirilltymoshchenko59@gmail.com`
 - [ ] anim sync
   - [X] sprunk drinking
   - [X] fast food eating
-  - [ ] idle anims
+  - [X] idle anims
   - [ ] funny TAB+NUM4 (or NUM6) anim sync (did you know about this?)
 - [ ] gang groups sync
 - [ ] stream in/out players, peds, vehicles, etc.
@@ -186,11 +186,11 @@ PayPal `kirilltymoshchenko59@gmail.com`
 - [ ] passenger sync
   - [ ] gamepad support
   - [X] proper seat sync
-  - [ ] radio sync
+  - [X] radio sync
   - [X] drive by shooting
 - [ ] fixes
   - [X] mouse
-  - [ ] widescreen
+  - [X] widescreen
   - [X] fast load
 - [ ] Fix models loading (green polygon)  --- related to stream it/out
 - [X] smooth interpolation

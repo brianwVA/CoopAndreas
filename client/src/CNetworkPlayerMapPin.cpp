@@ -58,8 +58,8 @@ void CNetworkPlayerMapPin::Process()
 			pos.x,
 			pos.y,
 			angle,
-			5 * RsGlobal.maximumWidth / 640,
-			5 * RsGlobal.maximumHeight / 360,
+			(int)CUtil::SCREEN_SCALE_X(5.0f),
+			(int)CUtil::SCREEN_SCALE_Y(5.0f),
 			player->m_pPed->IsHidden() ? CRGBA{ 50, 50, 50, 255 } : CRGBA{ 255, 255, 255, 255 }
 		);
 	}

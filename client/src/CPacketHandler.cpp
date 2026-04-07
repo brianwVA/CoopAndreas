@@ -458,6 +458,11 @@ CPackets::VehicleDriverUpdate* CPacketHandler::VehicleDriverUpdate__Collect(CNet
 
 	packet->locked = vehicle->m_pVehicle->m_eDoorLock;
 
+	// Radio station: AudioEngine.GetCurrentRadioStationID() at 0x507040, AudioEngine at 0xB6BC90
+	typedef char(__thiscall* GetCurrentRadioStation_t)(void*);
+	GetCurrentRadioStation_t getRadio = (GetCurrentRadioStation_t)0x507040;
+	packet->radioStation = getRadio((void*)0xB6BC90);
+
 	return packet;
 }
 
@@ -531,6 +536,22 @@ void CPacketHandler::VehicleDriverUpdate__Handle(void* data, int size)
 	}
 
 	vehicle->m_pVehicle->m_eDoorLock = (eDoorLock)packet->locked;
+
+	// Radio sync: when local player is passenger in this vehicle, retune to driver's station
+	CPlayerPed* localPlayer = FindPlayerPed(0);
+	if (localPlayer && localPlayer->m_pVehicle == vehicle->m_pVehicle
+		&& localPlayer->m_nPedFlags.bInVehicle && localPlayer != vehicle->m_pVehicle->m_pDriver)
+	{
+		typedef char(__thiscall* GetCurrentRadioStation_t)(void*);
+		GetCurrentRadioStation_t getRadio = (GetCurrentRadioStation_t)0x507040;
+		char currentStation = getRadio((void*)0xB6BC90);
+		if (currentStation != (char)packet->radioStation)
+		{
+			typedef void(__thiscall* RetuneRadio_t)(void*, char);
+			RetuneRadio_t retuneRadio = (RetuneRadio_t)0x507E10;
+			retuneRadio((void*)0xB6BC90, (char)packet->radioStation);
+		}
+	}
 }
 
 // VehicleEnter

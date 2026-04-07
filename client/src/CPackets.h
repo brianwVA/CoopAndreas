@@ -285,6 +285,7 @@ public:
 		unsigned short miscComponentAngle; // hydra thrusters
 		float planeGearState;
 		unsigned char locked;
+		unsigned char radioStation;
 	};
 
 	struct VehicleEnter
