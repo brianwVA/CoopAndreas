@@ -236,159 +236,165 @@ PayPal `kirilltymoshchenko59@gmail.com`
 - [ ] start/control server directly from launcher
 
 ## TODO Missions
+> **Note:** All story missions have been co-op enabled (EnableSync, CollectPlayers, cleanup). Requires in-game verification.
 ### Already Done ✓
-### Current Tasks
 - [X] Big Smoke
 - [X] Ryder
 - [X] Tagging Up Turf
-- [ ] Cleaning The Hood
-- [ ] Drive-Thru
-- [ ] Nines And AK's
-- [ ] Drive-By
-- [ ] Sweet's Girl
-- [ ] Cesar Vialpando
-- [ ] OG Loc
-- [ ] Running Dog
-- [ ] Wrong Side Of The Tracks
-- [ ] Just Business
-- [ ] Home Invasion
-- [ ] Catalyst
-- [ ] Robbing Uncle Sam
-- [ ] Life's A Beach
-- [ ] Madd Dogg's Rhymes
-- [ ] Management Issues
-- [ ] House Party
-- [ ] High Stakes, Low Rider
-- [ ] Burning Desire
-- [ ] Gray Imports
-- [ ] Doberman
-- [ ] Los Sepulcros
-- [ ] Reuniting The Families
-- [ ] The Green Sabre
-- [ ] Badlands
-- [ ] Tanker Commander
-- [ ] Body Harvest
-- [ ] Local Liquor Store
-- [ ] Against All Odds
-- [ ] Small Town Bank
-- [ ] Wu Zi Mu
-- [ ] Farewell, My Love...
-- [ ] Are You Going To San Fierro?
-- [ ] Wear Flowers In Your Hair
-- [ ] 555 WE TIP
-- [ ] Deconstruction
-- [ ] Air Raid
-- [ ] Supply Lines...
-- [ ] New Model Army
-- [ ] Photo Opportunity
-- [ ] Jizzy
-- [ ] T-Bone Mendez
-- [ ] Mike Toreno
-- [ ] Outrider
-- [ ] Snail Trail
-- [ ] Ice Cold Killa
-- [ ] Pier 69
-- [ ] Toreno's Last Flight
-- [ ] Mountain Cloud Boys
-- [ ] Ran Fa Li
-- [ ] Lure
-- [ ] Amphibious Assault
-- [ ] The Da Nang Thang
-- [ ] Yay Ka-Boom-Boom
-- [ ] Zeroing In
-- [ ] Test Drive
-- [ ] Customs Fast Track
-- [ ] Puncture Wounds
-- [ ] Monster
-- [ ] Highjack
-- [ ] Interdiction
-- [ ] Verdant Meadows
-- [ ] N.O.E.
-- [ ] Stowaway
-- [ ] Black Project
-- [ ] Green Goo
-- [ ] Fender Ketchup
-- [ ] Explosive Situation
-- [ ] You've Had Your Chips
-- [ ] Don Peyote
-- [ ] Architectural Espionage
-- [ ] Key To Her Heart
-- [ ] Dam And Blast
-- [ ] Cop Wheels
-- [ ] Up, Up And Away!
-- [ ] Intensive Care
-- [ ] The Meat Business
-- [ ] Fish In A Barrel
-- [ ] Misappropriation
-- [ ] Madd Dogg
-- [ ] Freefall
-- [ ] High Noon
-- [ ] Saint Mark's Bistro
-- [ ] A Home In The Hills
-- [ ] Vertical Bird
-- [ ] Home Coming
-- [ ] Beat Down On B Dup
-- [ ] Grove 4 Life
-- [ ] Cut Throat Business
-- [ ] Riot
-- [ ] Los Desperados
-- [ ] End Of The Line
+- [X] Cleaning The Hood
+- [X] Drive-Thru
+- [X] Nines And AK's
+- [X] Drive-By
+- [X] Sweet's Girl
+- [X] Cesar Vialpando
+- [X] OG Loc
+- [X] Running Dog
+- [X] Wrong Side Of The Tracks
+- [X] Just Business
+- [X] Home Invasion
+- [X] Catalyst
+- [X] Robbing Uncle Sam
+- [X] Life's A Beach
+- [X] Madd Dogg's Rhymes
+- [X] Management Issues
+- [X] House Party
+- [X] High Stakes, Low Rider
+- [X] Burning Desire
+- [X] Gray Imports
+- [X] Doberman
+- [X] Los Sepulcros
+- [X] Reuniting The Families
+- [X] The Green Sabre
+- [X] Badlands
+- [X] Tanker Commander
+- [X] Body Harvest
+- [X] Local Liquor Store
+- [X] Against All Odds
+- [X] Small Town Bank
+- [X] Wu Zi Mu
+- [X] Farewell, My Love...
+- [X] Are You Going To San Fierro?
+- [X] Wear Flowers In Your Hair
+- [X] 555 WE TIP
+- [X] Deconstruction
+- [X] Air Raid
+- [X] Supply Lines...
+- [X] New Model Army
+- [X] Photo Opportunity
+- [X] Jizzy
+- [X] T-Bone Mendez
+- [X] Mike Toreno
+- [X] Outrider
+- [X] Snail Trail
+- [X] Ice Cold Killa
+- [X] Pier 69
+- [X] Toreno's Last Flight
+- [X] Mountain Cloud Boys
+- [X] Ran Fa Li
+- [X] Lure
+- [X] Amphibious Assault
+- [X] The Da Nang Thang
+- [X] Yay Ka-Boom-Boom
+- [X] Zeroing In
+- [X] Test Drive
+- [X] Customs Fast Track
+- [X] Puncture Wounds
+- [X] Monster
+- [X] Highjack
+- [X] Interdiction
+- [X] Verdant Meadows
+- [X] N.O.E.
+- [X] Stowaway
+- [X] Black Project
+- [X] Green Goo
+- [X] Fender Ketchup
+- [X] Explosive Situation
+- [X] You've Had Your Chips
+- [X] Don Peyote
+- [X] Architectural Espionage
+- [X] Key To Her Heart
+- [X] Dam And Blast
+- [X] Cop Wheels
+- [X] Up, Up And Away!
+- [X] Intensive Care
+- [X] The Meat Business
+- [X] Fish In A Barrel
+- [X] Misappropriation
+- [X] Madd Dogg
+- [X] Freefall
+- [X] High Noon
+- [X] Saint Mark's Bistro
+- [X] A Home In The Hills
+- [X] Vertical Bird
+- [X] Home Coming
+- [X] Beat Down On B Dup
+- [X] Grove 4 Life
+- [X] Cut Throat Business
+- [X] Riot
+- [X] Los Desperados
+- [X] End Of The Line
+### Current Tasks
+*All story missions converted.*
 
 ## TODO Other Scripts
+> **Note:** Checked items have been co-op enabled (EnableSync, CollectPlayers, cleanup). Requires in-game verification.
 ### Already done ✓
+- [X] Property purchase sync
+- [X] Submissions
+  - [X] Taxi driver
+  - [X] Firefighter
+  - [X] Vigilante
+  - [X] Paramedic
+  - [X] Pimp
+  - [X] Freight Train Missions
+- [X] The Chiliad Challenge
+- [X] Stadions
+  - [X] Blood Bowl
+  - [X] Kick Start
+- [X] Ammu-nation challenge
+- [X] Schools
+  - [X] Bike school
+  - [X] Boat school
+- [X] Asset Missions
+  - [X] Trucker (8 missions)
+  - [X] Valet (5 missions)
+- [X] Courier
+  - [X] Los Santos - Roboi's Food Mart
+  - [X] San Fierro - Hippy Shopper
+  - [X] Las Venturas - Burger Shot
+- [X] Street Racing (22)
+  - [X] Little Loop
+  - [X] Backroad Wanderer
+  - [X] City Circuit
+  - [X] Vinewood
+  - [X] Freeway
+  - [X] Into The Country
+  - [X] Dirtbike Danger
+  - [X] Bandito Country
+  - [X] Go-Go Karting
+  - [X] San Fierro Fastlane
+  - [X] San Fierro Hills
+  - [X] Country Endurance
+  - [X] SF To LV
+  - [X] Dam Rider
+  - [X] Desert Tricks
+  - [X] LV Ringroad
+  - [X] World War Ace
+  - [X] Barnstorming
+  - [X] Win Military Service
+  - [X] Chopper Checkpoint
+  - [X] Whirly Bird Waypoint
+  - [X] Heli Hell
 ### Current Tasks
-- [ ] Property purchase sync
-- [ ] Submissions
-  - [ ] Taxi driver
-  - [ ] Firefighter
-  - [ ] Vigilante
-  - [ ] Paramedic
-  - [ ] Pimp
-  - [ ] Freight Train Missions
 - [ ] Hiden races
   - [ ] BMX
   - [ ] NRG-500
-  - [ ] The Chiliad Challenge 
 - [ ] Stadions
   - [ ] 8-Track
-  - [ ] Blood Bowl
   - [ ] Dirt Track
-  - [ ] Kick Start
-- [ ] Ammu-nation challenge
 - [ ] Schools
   - [ ] Driving school
   - [ ] Flight school
-  - [ ] Bike school
-  - [ ] Boat school
 - [ ] Asset Missions
-  - [ ] Trucker (8 missions)
-  - [ ] Valet (5 missions)
   - [ ] Career (7 missions)
-- [ ] Courier
-  - [ ] Los Santos - Roboi's Food Mart
-  - [ ] San Fierro - Hippy Shopper
-  - [ ] Las Venturas - Burger Shot
-- [ ] Street Racing (22)
-  - [ ] Little Loop
-  - [ ] Backroad Wanderer
-  - [ ] City Circuit
-  - [ ] Vinewood
-  - [ ] Freeway
-  - [ ] Into The Country
-  - [ ] Dirtbike Danger
-  - [ ] Bandito Country
-  - [ ] Go-Go Karting
-  - [ ] San Fierro Fastlane
-  - [ ] San Fierro Hills
-  - [ ] Country Endurance
-  - [ ] SF To LV
-  - [ ] Dam Rider
-  - [ ] Desert Tricks
-  - [ ] LV Ringroad
-  - [ ] World War Ace
-  - [ ] Barnstorming
-  - [ ] Win Military Service
-  - [ ] Chopper Checkpoint
-  - [ ] Whirly Bird Waypoint
-  - [ ] Heli Hell
 - [ ] Import / Export
