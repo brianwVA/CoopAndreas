@@ -2207,12 +2207,76 @@ void CPacketHandler::ItemDrop__Handle(void* data, int size)
 	{
 		typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
 		auto GenerateNewOne_WeaponType = (GenerateNewOne_WeaponType_t)0x457380;
-		GenerateNewOne_WeaponType(pos, packet->weaponType, 3 /*PICKUP_ONCE*/, packet->ammo, false, nullptr);
+		int idx = GenerateNewOne_WeaponType(pos, packet->weaponType, 3 /*PICKUP_ONCE*/, packet->ammo, false, nullptr);
+		if (idx >= 0 && idx < 620)
+		{
+			TrackDroppedPickup(
+				CPickups::aPickUps[idx].m_vecPos.x,
+				CPickups::aPickUps[idx].m_vecPos.y,
+				CPickups::aPickUps[idx].m_vecPos.z);
+		}
 	}
 	else if (packet->dropType == 1) // money
 	{
-		typedef int(__cdecl* GenerateNewOne_t)(CVector, unsigned int, unsigned char, unsigned int, unsigned int, bool, char*);
-		auto GenerateNewOne = (GenerateNewOne_t)0x456F20;
-		GenerateNewOne(pos, 1212, 7 /*PICKUP_MONEY*/, packet->money, 0, false, nullptr);
+		typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
+		auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
+		CreateSomeMoney(pos, packet->money);
+	}
+}
+
+// Dropped pickup tracking — detect when a dropped pickup is collected and broadcast removal
+
+struct TrackedPickup {
+	int16_t cx, cy, cz;
+};
+static TrackedPickup s_trackedPickups[32] = {};
+static int s_trackedPickupCount = 0;
+
+void CPacketHandler::TrackDroppedPickup(int16_t cx, int16_t cy, int16_t cz)
+{
+	if (s_trackedPickupCount >= 32)
+	{
+		// Drop oldest
+		for (int i = 0; i < 31; i++)
+			s_trackedPickups[i] = s_trackedPickups[i + 1];
+		s_trackedPickupCount = 31;
+	}
+	s_trackedPickups[s_trackedPickupCount++] = { cx, cy, cz };
+}
+
+void CPacketHandler::CheckDroppedPickups()
+{
+	for (int t = s_trackedPickupCount - 1; t >= 0; t--)
+	{
+		bool found = false;
+		for (int i = 0; i < 620; i++)
+		{
+			if (CPickups::aPickUps[i].m_nPickupType == 0) continue;
+			if (CPickups::aPickUps[i].m_vecPos.x == s_trackedPickups[t].cx
+				&& CPickups::aPickUps[i].m_vecPos.y == s_trackedPickups[t].cy
+				&& CPickups::aPickUps[i].m_vecPos.z == s_trackedPickups[t].cz)
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			// Pickup was collected — sync removal to other players
+			if (CNetwork::m_bConnected)
+			{
+				CPackets::PickupRemove pkt;
+				pkt.pos_x = s_trackedPickups[t].cx;
+				pkt.pos_y = s_trackedPickups[t].cy;
+				pkt.pos_z = s_trackedPickups[t].cz;
+				CNetwork::SendPacket(CPacketsID::PICKUP_REMOVE, &pkt, sizeof pkt, ENET_PACKET_FLAG_RELIABLE);
+			}
+
+			// Remove from tracking by shifting
+			for (int i = t; i < s_trackedPickupCount - 1; i++)
+				s_trackedPickups[i] = s_trackedPickups[i + 1];
+			s_trackedPickupCount--;
+		}
 	}
 }
