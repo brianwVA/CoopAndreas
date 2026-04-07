@@ -4,6 +4,7 @@
 
 std::vector<CNetworkPed*> CNetworkPedManager::m_pPeds;
 CNetworkPed* CNetworkPedManager::m_apTempPeds[255];
+bool CNetworkPedManager::m_bCreatingFromNetwork = false;
 
 CNetworkPed* CNetworkPedManager::GetPed(int pedid)
 {
