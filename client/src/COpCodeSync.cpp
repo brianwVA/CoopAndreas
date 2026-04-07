@@ -39,6 +39,7 @@
 #include <CTaskSequenceSync.h>
 #include <CNetworkAnimQueue.h>
 #include <CPickups.h>
+#include <CTheZones.h>
 
 // Keep sorted!
 const SSyncedOpCode syncedOpcodes[] =
@@ -161,6 +162,13 @@ const SSyncedOpCode syncedOpcodes[] =
     {0x0958}, // create_snapshot_pickup {x} [float] {y} [float] {z} [float]
     {0x0959}, // create_horseshoe_pickup {x} [float] {y} [float] {z} [float]
     {0x095A}, // create_oyster_pickup {x} [float] {y} [float] {z} [float]
+
+    // Gang zones
+    {0x076C}, // set_zone_gang_strength {zone} [string] {gangId} [int] {density} [int]
+    {0x0879}, // enable_gang_wars {state} [bool]
+    {0x08AC}, // hide_gang_zones_on_map {state} [bool]
+    {0x08EA}, // enable_gangs_spawn {state} [bool]
+    {0x0237}, // set_gang_weapons {gangId} [int] {weapon1} [int] {weapon2} [int] {weapon3} [int]
 };
 
 
@@ -765,6 +773,12 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     patch::SetRaw(0x464080, (void*)"\x66\x8B\x44\x24\x04", 5, false);
     patch::SetRaw(0x463D50, (void*)"\x8B\x41\x14\x83\xEC\x08", 6, false);
     bProcessingNetworkOpcode = false;
+
+    // Refresh gang zone map colors after territory density changes
+    if (header.opcode == 0x076C) // set_zone_gang_strength
+    {
+        CTheZones::FillZonesWithGangColours(false);
+    }
 }
 
 void __declspec(naked) OpcodeProcessingWellDone_Hook()

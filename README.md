@@ -149,20 +149,20 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [ ] drop
     - [ ] money
     - [ ] weapons
-- [ ] jetpack sync
+- [X] jetpack sync
   - [X] flight 
   - [X] pickup (related to task above) 
-- [ ] cutscenes
+- [X] cutscenes
   - [X] cutscenes
   - [X] vote to skip
 - [ ] Players map sync
-  - [ ] Areas aka GangZones
+  - [X] Areas aka GangZones
   - [X] Mission icons
   - [X] Player map pin
     - [ ] fix proportion
   - [X] Player mark (waypoint)
 - [X] wanted level
-- [ ] stats sync
+- [X] stats sync
   - [X] fat
   - [X] muscle
   - [X] weapon skills
@@ -193,9 +193,9 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [ ] widescreen
   - [X] fast load
 - [ ] Fix models loading (green polygon)  --- related to stream it/out
-- [ ] smooth interpolation
-  - [ ] move
-  - [ ] rotation
+- [X] smooth interpolation
+  - [X] move
+  - [X] rotation
   - [X] weapon aim interpolation
 - [ ] npc sync
   - [X] pos, rot, speed

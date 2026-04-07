@@ -159,13 +159,22 @@ void CPacketHandler::PlayerOnFoot__Handle(void* data, int size)
 
 	/*if (CUtil::IsPositionUpdateNeeded(networkPlayer->m_pPed->m_matrix->pos, packet->position))
 	{*/
-	networkPlayer->m_pPed->m_matrix->pos = packet->position;
+	// Position is now applied via smooth interpolation in CPlayerPed__ProcessControl_Hook.
+	// Only snap on large teleports (e.g. first spawn, cutscene warp).
+	float dx = networkPlayer->m_pPed->m_matrix->pos.x - packet->position.x;
+	float dy = networkPlayer->m_pPed->m_matrix->pos.y - packet->position.y;
+	float dz = networkPlayer->m_pPed->m_matrix->pos.z - packet->position.z;
+	if (dx * dx + dy * dy + dz * dz > 50.0f * 50.0f)
+	{
+		networkPlayer->m_pPed->m_matrix->pos = packet->position;
+	}
 	//}
 
 	CUtil::GiveWeaponByPacket(networkPlayer, packet->weapon, packet->ammo);
 	networkPlayer->m_pPed->m_aWeapons[networkPlayer->m_pPed->m_nActiveWeaponSlot].m_nState = (eWeaponState)packet->weaponState;
 
-	networkPlayer->m_pPed->m_fCurrentRotation = packet->currentRotation;
+	// Rotation is now smoothed in CPlayerPed__ProcessControl_Hook.
+	// Only set aiming rotation directly (needed for weapon targeting).
 	networkPlayer->m_pPed->m_fAimingRotation = packet->aimingRotation;
 
 	CUtil::SetPlayerJetpack(networkPlayer, packet->hasJetpack);
