@@ -1504,10 +1504,10 @@ void CPacketHandler::AssignVehicleSyncer__Handle(void* data, int size)
 #endif
 		networkVehicle->m_bSyncing = true;
 
-		// Keep MISSION_VEHICLE so the game's cleanup system doesn't delete it.
-		// Without this, restoring the original createdBy (e.g. RANDOM_VEHICLE)
-		// lets RemoveDistantCars delete the vehicle, which sends VEHICLE_REMOVE
-		// and makes it disappear for everyone.
+		if (auto vehicle = networkVehicle->m_pVehicle)
+		{
+			vehicle->SetVehicleCreatedBy(networkVehicle->m_nCreatedBy);
+		}
 	}
 }
 

@@ -104,10 +104,8 @@ static void __cdecl CWorld__Remove_Hook(CEntity* entity)
         CNetworkVehicle* networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle);
         if (networkVehicle && networkVehicle->m_bSyncing)
         {
-            // Don't delete the CNetworkVehicle here. RemoveHostedUnused will
-            // detect the invalid pointer after the game frees the object and
-            // send VEHICLE_REMOVE then. This prevents premature removal when
-            // the game briefly removes a vehicle from the world.
+            CNetworkVehicleManager::Remove(networkVehicle);
+            delete networkVehicle;
         }
     }
     else if (entity->m_nType == eEntityType::ENTITY_TYPE_PED)
