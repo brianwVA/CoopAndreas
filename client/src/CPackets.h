@@ -78,6 +78,7 @@ enum CPacketsID : unsigned short
 	FIRE_SYNC,
 	PICKUP_REMOVE,
 	DEATH_PICKUPS,
+	ITEM_DROP,
 	PACKET_ID_MAX
 };
 
@@ -158,6 +159,7 @@ public:
 			sizeof(FireSync), // FIRE_SYNC,
 			sizeof(PickupRemove), // PICKUP_REMOVE,
 			sizeof(DeathPickups), // DEATH_PICKUPS,
+			sizeof(ItemDrop), // ITEM_DROP,
 		};
 
 		return m_nPacketSize[id];
@@ -441,6 +443,8 @@ public:
 		uint8_t movementFlags;
 		int targetVehicleId;
 		CVector destinationCoors;
+		unsigned short hornCounter;
+		unsigned char sirenOrAlarm;
 	};
 
 	struct PedShotSync
@@ -728,5 +732,15 @@ public:
 			unsigned int weaponType;
 			unsigned int ammo;
 		} weapons[13];
+	};
+
+	struct ItemDrop
+	{
+		int playerid;
+		float x, y, z;
+		unsigned char dropType; // 0 = weapon, 1 = money
+		unsigned int weaponType;
+		unsigned int ammo;
+		int money;
 	};
 };

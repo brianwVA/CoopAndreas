@@ -205,8 +205,8 @@ PayPal `kirilltymoshchenko59@gmail.com`
       - [X] position velocity rotation  
       - [X] gas/break lights
       - [X] wheel movement
-      - [ ] horn
-      - [ ] siren
+      - [X] horn
+      - [X] siren
       - [X] current path, target entity, mission
     - [X] passenger
   - [ ] aim

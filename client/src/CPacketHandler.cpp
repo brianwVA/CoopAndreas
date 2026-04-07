@@ -1102,6 +1102,9 @@ CPackets::PedDriverUpdate* CPacketHandler::PedDriverUpdate__Collect(CNetworkVehi
 
 	packet->destinationCoors = vehicle->m_pVehicle->m_autoPilot.m_vecDestinationCoors;
 
+	packet->hornCounter = (unsigned short)vehicle->m_pVehicle->m_nHornCounter;
+	packet->sirenOrAlarm = vehicle->m_pVehicle->m_nVehicleFlags.bSirenOrAlarm ? 1 : 0;
+
 	return packet;
 }
 
@@ -1205,6 +1208,9 @@ void CPacketHandler::PedDriverUpdate__Handle(void* data, int size)
 	vehicle->m_pVehicle->m_autoPilot.field_4C = packet->movementFlags;
 
 	vehicle->m_pVehicle->m_autoPilot.m_vecDestinationCoors = packet->destinationCoors;
+
+	vehicle->m_pVehicle->m_nHornCounter = packet->hornCounter;
+	vehicle->m_pVehicle->m_nVehicleFlags.bSirenOrAlarm = packet->sirenOrAlarm;
 
 }
 
@@ -2182,6 +2188,29 @@ void CPacketHandler::DeathPickups__Handle(void* data, int size)
 	if (packet->money > 0)
 	{
 		// CreateSomeMoney(CVector coors, int amount) @ 0x458970
+		typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
+		auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
+		CreateSomeMoney(pos, packet->money);
+	}
+}
+
+void CPacketHandler::ItemDrop__Handle(void* data, int size)
+{
+	CPackets::ItemDrop* packet = (CPackets::ItemDrop*)data;
+
+	CVector pos;
+	pos.x = packet->x;
+	pos.y = packet->y;
+	pos.z = packet->z;
+
+	if (packet->dropType == 0) // weapon
+	{
+		typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
+		auto GenerateNewOne_WeaponType = (GenerateNewOne_WeaponType_t)0x457380;
+		GenerateNewOne_WeaponType(pos, packet->weaponType, 3 /*PICKUP_ONCE*/, packet->ammo, false, nullptr);
+	}
+	else if (packet->dropType == 1) // money
+	{
 		typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
 		auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
 		CreateSomeMoney(pos, packet->money);

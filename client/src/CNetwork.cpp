@@ -177,6 +177,7 @@ void CNetwork::InitListeners()
 	CNetwork::AddListener(CPacketsID::FIRE_SYNC, CPacketHandler::FireSync__Handle);
 	CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPacketHandler::PickupRemove__Handle);
 	CNetwork::AddListener(CPacketsID::DEATH_PICKUPS, CPacketHandler::DeathPickups__Handle);
+	CNetwork::AddListener(CPacketsID::ITEM_DROP, CPacketHandler::ItemDrop__Handle);
 }
 
 void CNetwork::HandlePacketReceive(ENetEvent& event)

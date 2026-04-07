@@ -824,5 +824,25 @@ public:
 			}
 		}
 	};
+
+	struct ItemDrop
+	{
+		int playerid;
+		float x, y, z;
+		unsigned char dropType;
+		unsigned int weaponType;
+		unsigned int ammo;
+		int money;
+
+		static void Handle(ENetPeer* peer, void* data, int size)
+		{
+			if (auto player = CPlayerManager::GetPlayer(peer))
+			{
+				ItemDrop* packet = (ItemDrop*)data;
+				packet->playerid = player->m_iPlayerId;
+				CNetwork::SendPacketToAll(CPacketsID::ITEM_DROP, packet, sizeof(ItemDrop), ENET_PACKET_FLAG_RELIABLE, peer);
+			}
+		}
+	};
 };
 #endif
