@@ -12,6 +12,7 @@
 #include <COpCodeSync.h>
 #include <CNetworkCheckpoint.h>
 #include <CEntryExitManager.h>
+#include <CPickups.h>
 #include <CEntryExitMarkerSync.h>
 #include <CNetworkStaticBlip.h>
 #include <CNetworkAnimQueue.h>
@@ -237,10 +238,17 @@ public:
 									// Remove weapon from player
 									localPed->ClearWeapon(wep.m_eWeaponType);
 
-									// Create pickup locally
+									// Create pickup locally and track for removal sync
 									typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
 									auto GenPickup = (GenerateNewOne_WeaponType_t)0x457380;
-									GenPickup(pos, weapType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
+									int idx = GenPickup(pos, weapType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
+									if (idx >= 0 && idx < 620)
+									{
+										CPacketHandler::TrackDroppedPickup(
+											CPickups::aPickUps[idx].m_vecPos.x,
+											CPickups::aPickUps[idx].m_vecPos.y,
+											CPickups::aPickUps[idx].m_vecPos.z);
+									}
 
 									if (CNetwork::m_bConnected)
 									{
@@ -257,39 +265,12 @@ public:
 									CChat::AddMessage("~g~Dropped weapon");
 								}
 							}
-							else if (GetAsyncKeyState('H') & 0x8000) // drop money
-							{
-								CPlayerInfo& pInfo = CWorld::Players[0];
-								int dropAmount = 100;
-								if (pInfo.m_nMoney >= dropAmount)
-								{
-									lastDropTick = now;
-
-									pInfo.m_nMoney -= dropAmount;
-									pInfo.m_nDisplayMoney -= dropAmount;
-
-									// Single $100 money pickup (model 1212 = money, type 7 = PICKUP_MONEY)
-									typedef int(__cdecl* GenerateNewOne_t)(CVector, unsigned int, unsigned char, unsigned int, unsigned int, bool, char*);
-									auto GenerateNewOne = (GenerateNewOne_t)0x456F20;
-									GenerateNewOne(pos, 1212, 7 /*PICKUP_MONEY*/, dropAmount, 0, false, nullptr);
-
-									if (CNetwork::m_bConnected)
-									{
-										CPackets::ItemDrop packet{};
-										packet.x = pos.x;
-										packet.y = pos.y;
-										packet.z = pos.z;
-										packet.dropType = 1;
-										packet.money = dropAmount;
-										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-									}
-
-									CChat::AddMessage("~g~Dropped $100");
-								}
-							}
 						}
 					}
 				}
+
+				// Check if any tracked dropped pickups were collected — sync removal
+				CPacketHandler::CheckDroppedPickups();
 			};
 		Events::drawBlipsEvent += []
 			{
