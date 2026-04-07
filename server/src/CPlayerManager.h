@@ -244,6 +244,8 @@ public:
 		CVector	up;
 		float lookPitch;
 		float orientation;
+		CVector sniperDotPos;
+		unsigned char sniperDotActive;
 
 		static void Handle(ENetPeer* peer, void* data, int size)
 		{
@@ -798,5 +800,29 @@ public:
 				CNetwork::SendPacketToAll(CPacketsID::PICKUP_REMOVE, data, sizeof(PickupRemove), ENET_PACKET_FLAG_RELIABLE, peer);
 			}
 		}
-	};};
+	};
+
+	struct DeathPickups
+	{
+		int playerid;
+		float x, y, z;
+		int money;
+		unsigned char weaponCount;
+		struct WeaponEntry
+		{
+			unsigned int weaponType;
+			unsigned int ammo;
+		} weapons[13];
+
+		static void Handle(ENetPeer* peer, void* data, int size)
+		{
+			if (auto player = CPlayerManager::GetPlayer(peer))
+			{
+				DeathPickups* packet = (DeathPickups*)data;
+				packet->playerid = player->m_iPlayerId;
+				CNetwork::SendPacketToAll(CPacketsID::DEATH_PICKUPS, packet, sizeof(DeathPickups), ENET_PACKET_FLAG_RELIABLE, peer);
+			}
+		}
+	};
+};
 #endif

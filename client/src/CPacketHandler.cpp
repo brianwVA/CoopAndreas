@@ -367,6 +367,16 @@ CPackets::VehicleIdleUpdate* CPacketHandler::VehicleIdleUpdate__Collect(CNetwork
 
 	packet->locked = vehicle->m_pVehicle->m_eDoorLock;
 
+	// Hydraulics
+	packet->hydraulicSuspension = 0;
+	memset(packet->wheelOffsetZ, 0, sizeof(packet->wheelOffsetZ));
+	if (vehicle->m_pVehicle->m_nVehicleSubClass == VEHICLE_AUTOMOBILE)
+	{
+		CAutomobile* automobile = (CAutomobile*)vehicle->m_pVehicle;
+		packet->hydraulicSuspension = automobile->m_wVoodooSuspension;
+		memcpy(packet->wheelOffsetZ, automobile->wheelOffsetZ, sizeof(packet->wheelOffsetZ));
+	}
+
 	return packet;
 }
 
@@ -407,6 +417,14 @@ void CPacketHandler::VehicleIdleUpdate__Handle(void* data, int size)
 	}
 
 	vehicle->m_pVehicle->m_eDoorLock = (eDoorLock)packet->locked;
+
+	// Hydraulics sync
+	if (vehicle->m_pVehicle->m_nVehicleSubClass == VEHICLE_AUTOMOBILE)
+	{
+		CAutomobile* automobile = (CAutomobile*)vehicle->m_pVehicle;
+		automobile->m_wVoodooSuspension = packet->hydraulicSuspension;
+		memcpy(automobile->wheelOffsetZ, packet->wheelOffsetZ, sizeof(automobile->wheelOffsetZ));
+	}
 }
 
 // VehicleDriverUpdate
@@ -462,6 +480,16 @@ CPackets::VehicleDriverUpdate* CPacketHandler::VehicleDriverUpdate__Collect(CNet
 	typedef char(__thiscall* GetCurrentRadioStation_t)(void*);
 	GetCurrentRadioStation_t getRadio = (GetCurrentRadioStation_t)0x507040;
 	packet->radioStation = getRadio((void*)0xB6BC90);
+
+	// Hydraulics
+	packet->hydraulicSuspension = 0;
+	memset(packet->wheelOffsetZ, 0, sizeof(packet->wheelOffsetZ));
+	if (vehicle->m_pVehicle->m_nVehicleSubClass == VEHICLE_AUTOMOBILE)
+	{
+		CAutomobile* automobile = (CAutomobile*)vehicle->m_pVehicle;
+		packet->hydraulicSuspension = automobile->m_wVoodooSuspension;
+		memcpy(packet->wheelOffsetZ, automobile->wheelOffsetZ, sizeof(packet->wheelOffsetZ));
+	}
 
 	return packet;
 }
@@ -551,6 +579,14 @@ void CPacketHandler::VehicleDriverUpdate__Handle(void* data, int size)
 			RetuneRadio_t retuneRadio = (RetuneRadio_t)0x507E10;
 			retuneRadio((void*)0xB6BC90, (char)packet->radioStation);
 		}
+	}
+
+	// Hydraulics sync
+	if (vehicle->m_pVehicle->m_nVehicleSubClass == VEHICLE_AUTOMOBILE)
+	{
+		CAutomobile* automobile = (CAutomobile*)vehicle->m_pVehicle;
+		automobile->m_wVoodooSuspension = packet->hydraulicSuspension;
+		memcpy(automobile->wheelOffsetZ, packet->wheelOffsetZ, sizeof(automobile->wheelOffsetZ));
 	}
 }
 
@@ -953,6 +989,7 @@ CPackets::GameWeatherTime* CPacketHandler::GameWeatherTime__Collect()
 	packet->currentHour = CClock::ms_nGameClockHours;
 	packet->currentMinute = CClock::ms_nGameClockMinutes;
 	packet->gameTickCount = CClock::ms_nMillisecondsPerGameMinute;
+	packet->moonSize = *(unsigned char*)0x8D4B60; // CCoronas::MoonSize
 	return packet;
 }
 
@@ -968,6 +1005,7 @@ void CPacketHandler::GameWeatherTime__Handle(void* data, int size)
 	CClock::ms_nGameClockHours = packet->currentHour;
 	CClock::ms_nGameClockMinutes = packet->currentMinute;
 	CClock::ms_nMillisecondsPerGameMinute = packet->gameTickCount;
+	*(unsigned char*)0x8D4B60 = packet->moonSize; // CCoronas::MoonSize
 }
 
 void CPacketHandler::GameWeatherTime__Trigger()
@@ -1263,6 +1301,14 @@ CPackets::PlayerAimSync CPacketHandler::PlayerAimSync__Collect()
 	packet.lookPitch = FindPlayerPed(0)->m_pPlayerData->m_fLookPitch;
 	packet.orientation = TheCamera.m_fOrientation;
 
+	// Sniper laser dot
+	bool crossHairActive = *(bool*)0xC8A838; // gCrossHair[0].m_bActive
+	packet.sniperDotActive = crossHairActive ? 1 : 0;
+	if (crossHairActive)
+	{
+		packet.sniperDotPos = *(CVector*)(0xC8A838 + 8); // gCrossHair[0].m_vecPosn
+	}
+
 	return packet;
 }
 
@@ -1282,6 +1328,20 @@ void CPacketHandler::PlayerAimSync__Handle(void* data, int size)
 			{
 				ped->m_pPlayerData->m_fLookPitch = packet->lookPitch;
 			}
+		}
+
+		// Sniper laser dot for remote player (render on crosshair slot 1)
+		if (packet->sniperDotActive)
+		{
+			typedef void(__cdecl* MarkTarget_t)(int, CVector, unsigned char, unsigned char, unsigned char, unsigned char, float, unsigned char);
+			auto MarkTarget = (MarkTarget_t)0x742BF0;
+			MarkTarget(1, packet->sniperDotPos, 255, 0, 0, 200, 0.3f, 0);
+		}
+		else
+		{
+			typedef void(__cdecl* ClearCrossHair_t)(int);
+			auto ClearCrossHair = (ClearCrossHair_t)0x742C60;
+			ClearCrossHair(1);
 		}
 	}
 }
@@ -2096,5 +2156,34 @@ void CPacketHandler::PickupRemove__Handle(void* data, int size)
 			CPickups::aPickUps[i].Remove();
 			break;
 		}
+	}
+}
+
+void CPacketHandler::DeathPickups__Handle(void* data, int size)
+{
+	CPackets::DeathPickups* packet = (CPackets::DeathPickups*)data;
+
+	CVector pos;
+	pos.x = packet->x;
+	pos.y = packet->y;
+	pos.z = packet->z;
+
+	// Create weapon pickups
+	// GenerateNewOne_WeaponType(CVector coors, eWeaponType, uchar pickupType, uint ammo, bool isEmpty, char* message) @ 0x457380
+	typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
+	auto GenerateNewOne_WeaponType = (GenerateNewOne_WeaponType_t)0x457380;
+
+	for (int i = 0; i < packet->weaponCount && i < 13; i++)
+	{
+		GenerateNewOne_WeaponType(pos, packet->weapons[i].weaponType, 3 /*PICKUP_ONCE*/, packet->weapons[i].ammo, false, nullptr);
+	}
+
+	// Create money pickup
+	if (packet->money > 0)
+	{
+		// CreateSomeMoney(CVector coors, int amount) @ 0x458970
+		typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
+		auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
+		CreateSomeMoney(pos, packet->money);
 	}
 }

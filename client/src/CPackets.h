@@ -77,6 +77,7 @@ enum CPacketsID : unsigned short
 	CHEAT_CODE_SYNC,
 	FIRE_SYNC,
 	PICKUP_REMOVE,
+	DEATH_PICKUPS,
 	PACKET_ID_MAX
 };
 
@@ -156,6 +157,7 @@ public:
 			sizeof(CheatCodeSync), // CHEAT_CODE_SYNC,
 			sizeof(FireSync), // FIRE_SYNC,
 			sizeof(PickupRemove), // PICKUP_REMOVE,
+			sizeof(DeathPickups), // DEATH_PICKUPS,
 		};
 
 		return m_nPacketSize[id];
@@ -263,6 +265,8 @@ public:
 		char paintjob;
 		float planeGearState;
 		unsigned char locked;
+		short hydraulicSuspension;
+		float wheelOffsetZ[4];
 	};
 
 	struct VehicleDriverUpdate
@@ -286,6 +290,8 @@ public:
 		float planeGearState;
 		unsigned char locked;
 		unsigned char radioStation;
+		short hydraulicSuspension;
+		float wheelOffsetZ[4];
 	};
 
 	struct VehicleEnter
@@ -387,6 +393,7 @@ public:
 		unsigned char currentHour;
 		unsigned char currentMinute;
 		unsigned int gameTickCount;
+		unsigned char moonSize;
 	};
 
 	struct PedRemoveTask
@@ -466,6 +473,8 @@ public:
 		CVector	up;
 		float lookPitch;
 		float orientation;
+		CVector sniperDotPos;
+		unsigned char sniperDotActive;
 	};
 
 	struct VehicleConfirm
@@ -706,5 +715,18 @@ public:
 		int16_t pos_x;
 		int16_t pos_y;
 		int16_t pos_z;
+	};
+
+	struct DeathPickups
+	{
+		int playerid;
+		float x, y, z;
+		int money;
+		unsigned char weaponCount;
+		struct WeaponEntry
+		{
+			unsigned int weaponType;
+			unsigned int ammo;
+		} weapons[13];
 	};
 };

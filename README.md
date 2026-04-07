@@ -146,9 +146,9 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [X] graffities, horseshoes, snapshots, oysters
   - [X] static weapons, armours
   - [X] static bribes
-  - [ ] drop
-    - [ ] money
-    - [ ] weapons
+  - [X] drop
+    - [X] money
+    - [X] weapons
 - [X] jetpack sync
   - [X] flight 
   - [X] pickup (related to task above) 
@@ -177,11 +177,11 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [X] sprunk drinking
   - [X] fast food eating
   - [X] idle anims
-  - [ ] funny TAB+NUM4 (or NUM6) anim sync (did you know about this?)
+  - [X] funny TAB+NUM4 (or NUM6) anim sync (did you know about this?)
 - [ ] gang groups sync
 - [ ] stream in/out players, peds, vehicles, etc.
 - [ ] vehicle sync
-  - [ ] force hydraulics sync
+  - [X] force hydraulics sync
   - [ ] trailer sync
 - [ ] passenger sync
   - [ ] gamepad support
@@ -223,8 +223,8 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [ ] for-player slow motion
 - [ ] chat gamepad support with on-screen keyboard
 ### Minor tasks and ideas
-- [ ] Sync laser sniper rifle red dot with all players
-- [ ] Sync moon sniper rifle shot changing size easter egg with all players
+- [X] Sync laser sniper rifle red dot with all players
+- [X] Sync moon sniper rifle shot changing size easter egg with all players
 ## TODO Launcher:
 ### Already Done ✓
 - [X] setup project and create forms
