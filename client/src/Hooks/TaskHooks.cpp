@@ -17,12 +17,18 @@ static void __fastcall CTaskComplexEnterCarAsDriver__Ctor_Hook(CTaskComplexEnter
         return;
     }
 
-    CPackets::VehicleEnter packet{};
+    // If vehicleid is still -1 (waiting for VEHICLE_CONFIRM), skip sending
+    // VehicleEnter here. VehicleConfirm__Handle will send it once the id
+    // is assigned, if the player is already inside by then.
+    if (networkVehicle->m_nVehicleId != -1)
+    {
+        CPackets::VehicleEnter packet{};
 
-    packet.seatid = 0;
-    packet.vehicleid = networkVehicle->m_nVehicleId;
+        packet.seatid = 0;
+        packet.vehicleid = networkVehicle->m_nVehicleId;
 
-    CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+        CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+    }
 
     plugin::CallMethod<0x6402F0, CTaskComplexEnterCarAsDriver*, CVehicle*>(This, vehicle);
 }

@@ -70,7 +70,8 @@ void CPassengerEnter::Process()
                 packet.force = false;
                 packet.passenger = true;
 
-                CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+                if (packet.vehicleid != -1)
+                    CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
             }
         }
     }

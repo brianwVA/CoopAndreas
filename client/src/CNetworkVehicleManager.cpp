@@ -61,6 +61,9 @@ void CNetworkVehicleManager::UpdateDriver(CVehicle* vehicle)
 {
 	if (auto networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle))
 	{
+		if (networkVehicle->m_nVehicleId == -1)
+			return; // awaiting VEHICLE_CONFIRM — can't send yet
+
 		CPackets::VehicleDriverUpdate* packet = CPacketHandler::VehicleDriverUpdate__Collect(networkVehicle);
 		CNetwork::SendPacket(CPacketsID::VEHICLE_DRIVER_UPDATE, packet, sizeof *packet);
 		delete packet;
@@ -80,6 +83,9 @@ void CNetworkVehicleManager::UpdateIdle()
 
 		if (m_pVehicles[i]->m_bSyncing && !m_pVehicles[i]->HasDriver())
 		{
+			if (m_pVehicles[i]->m_nVehicleId == -1)
+				continue; // awaiting VEHICLE_CONFIRM
+
 			CPackets::VehicleIdleUpdate* packet = CPacketHandler::VehicleIdleUpdate__Collect(m_pVehicles[i]);
 			builder.AddPacket(CPacketsID::VEHICLE_IDLE_UPDATE, packet, sizeof *packet);
 			delete packet;
@@ -92,6 +98,9 @@ void CNetworkVehicleManager::UpdateIdle()
 void CNetworkVehicleManager::UpdatePassenger(CVehicle* vehicle, CPlayerPed* localPlayer)
 {
 	CNetworkVehicle* networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle);
+	if (!networkVehicle || networkVehicle->m_nVehicleId == -1)
+		return; // awaiting VEHICLE_CONFIRM
+
 	CPackets::VehiclePassengerUpdate* packet = CPacketHandler::VehiclePassengerUpdate__Collect(networkVehicle, localPlayer);
 	CNetwork::SendPacket(CPacketsID::VEHICLE_PASSENGER_UPDATE, packet, sizeof * packet);
 	delete packet;
