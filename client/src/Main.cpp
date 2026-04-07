@@ -205,39 +205,41 @@ public:
 					{
 						*(uint*)0x0 =  1212;
 					}
+				}
 
-					// Drop weapon (G key) or money (H key) — respects chat input
-					if (!CChat::m_bInputActive)
+				// Drop weapon (G key) or money (H key) — works offline too
+				if (!CChat::m_bInputActive && !FrontEndMenuManager.m_bMenuActive)
+				{
+					static DWORD lastDropTick = 0;
+					DWORD now = GetTickCount();
+
+					if (now > lastDropTick + 500) // 500ms cooldown
 					{
-						static DWORD lastDropTick = 0;
-						DWORD now = GetTickCount();
-
-						if (now > lastDropTick + 500) // 500ms cooldown
+						CPlayerPed* localPed = FindPlayerPed(0);
+						if (localPed)
 						{
-							CPlayerPed* localPed = FindPlayerPed(0);
-							if (localPed)
+							CVector pos = localPed->GetPosition();
+
+							if (GetAsyncKeyState('G') & 0x8000) // drop weapon
 							{
-								CVector pos = localPed->GetPosition();
-
-								if (GetAsyncKeyState('G') & 0x8000) // drop weapon
+								CWeapon& wep = localPed->m_aWeapons[localPed->m_nActiveWeaponSlot];
+								if (wep.m_eWeaponType != WEAPON_UNARMED && wep.m_nTotalAmmo > 0)
 								{
-									CWeapon& wep = localPed->m_aWeapons[localPed->m_nActiveWeaponSlot];
-									if (wep.m_eWeaponType != WEAPON_UNARMED && wep.m_nTotalAmmo > 0)
+									lastDropTick = now;
+
+									unsigned int weapType = wep.m_eWeaponType;
+									unsigned int ammo = wep.m_nTotalAmmo;
+
+									// Remove weapon from player
+									localPed->ClearWeapon(wep.m_eWeaponType);
+
+									// Create pickup locally
+									typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
+									auto GenPickup = (GenerateNewOne_WeaponType_t)0x457380;
+									GenPickup(pos, weapType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
+
+									if (CNetwork::m_bConnected)
 									{
-										lastDropTick = now;
-
-										unsigned int weapType = wep.m_eWeaponType;
-										unsigned int ammo = wep.m_nTotalAmmo;
-
-										// Remove weapon from player
-										localPed->ClearWeapon(wep.m_eWeaponType);
-
-										// Create pickup locally
-										typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
-										auto GenPickup = (GenerateNewOne_WeaponType_t)0x457380;
-										GenPickup(pos, weapType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
-
-										// Send to remote players
 										CPackets::ItemDrop packet{};
 										packet.x = pos.x;
 										packet.y = pos.y;
@@ -246,27 +248,29 @@ public:
 										packet.weaponType = weapType;
 										packet.ammo = ammo;
 										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-
-										CChat::AddMessage("~g~Dropped weapon");
 									}
+
+									CChat::AddMessage("~g~Dropped weapon");
 								}
-								else if (GetAsyncKeyState('H') & 0x8000) // drop money
+							}
+							else if (GetAsyncKeyState('H') & 0x8000) // drop money
+							{
+								CPlayerInfo& pInfo = CWorld::Players[0];
+								int dropAmount = 100;
+								if (pInfo.m_nMoney >= dropAmount)
 								{
-									CPlayerInfo& pInfo = CWorld::Players[0];
-									int dropAmount = 100;
-									if (pInfo.m_nMoney >= dropAmount)
+									lastDropTick = now;
+
+									pInfo.m_nMoney -= dropAmount;
+									pInfo.m_nDisplayMoney -= dropAmount;
+
+									// Create money pickup locally
+									typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
+									auto CreateMoney = (CreateSomeMoney_t)0x458970;
+									CreateMoney(pos, dropAmount);
+
+									if (CNetwork::m_bConnected)
 									{
-										lastDropTick = now;
-
-										pInfo.m_nMoney -= dropAmount;
-										pInfo.m_nDisplayMoney -= dropAmount;
-
-										// Create money pickup locally
-										typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
-										auto CreateMoney = (CreateSomeMoney_t)0x458970;
-										CreateMoney(pos, dropAmount);
-
-										// Send to remote players
 										CPackets::ItemDrop packet{};
 										packet.x = pos.x;
 										packet.y = pos.y;
@@ -274,9 +278,9 @@ public:
 										packet.dropType = 1;
 										packet.money = dropAmount;
 										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-
-										CChat::AddMessage("~g~Dropped $100");
 									}
+
+									CChat::AddMessage("~g~Dropped $100");
 								}
 							}
 						}
