@@ -68,310 +68,46 @@ xmake --build proxy
 
 TODO
 
-## TODO list:
-### Already Done ✓
-- [X] setup C/C++ project
-- [X] client - server connection
-- [X] On foot sync
-  - [x] Walk/Run
-  - [x] Jump
-  - [x] Climb
-  - [x] Crouch - (Fix Crouch Desync)
-  - [x] Hit/Fight
-- [X] Weapon sync
-  - [X] Hold weapon
-  - [X] Aim sync
-  - [X] Lag shot sync - using keys, bad accuracy
-  - [X] Shot sync - every bullet will be synced
-- [X] Players info
-  - [X] Health bar
-  - [X] Armour bar
-  - [X] Nickname
-  - [X] weapon icon
-- [X] explosion sync
-- [X] vehicle sync
-  - [X] spawn/delete
-  - [X] enter/exit
-  - [X] color(1/2) sync
-  - [X] paintjob sync
-  - [X] tuning sync
-  - [X] hydra thrusters
-  - [X] plane wheels
-  - [X] turret aim/shot
-  - [X] horn
-  - [X] keys (provides steer angles, brake, etc.)
-  - [X] pos, speed, quat
-  - [X] health
-  - [X] damage status
-  - [X] doors 
-	- [X] locked state
-  - [X] engine state
-- [X] chat
-- [X] time
-- [X] weather
-- [X] proper key sync
-- [X] rendering
-  - [X] text rendering (dx)
-  - [X] sprite/txd rendering
-- [X] style
-  - [X] tatoo
-  - [X] clothes
-  - [X] haircut
-- [X] separate ped sync
-- [X] EnEx markers sync
-- [X] mission markers sync
-  
-### Current Tasks
-- [X] pickups
-  - [X] graffities, horseshoes, snapshots, oysters
-  - [X] static weapons, armours
-  - [X] static bribes
-  - [X] drop
-    - [X] money
-    - [X] weapons
-- [X] jetpack sync
-  - [X] flight 
-  - [X] pickup (related to task above) 
-- [X] cutscenes
-  - [X] cutscenes
-  - [X] vote to skip
-- [X] Players map sync
-  - [X] Areas aka GangZones
-  - [X] Mission icons
-  - [X] Player map pin
-    - [ ] fix proportion
-  - [X] Player mark (waypoint)
-- [X] wanted level
-- [X] stats sync
-  - [X] fat
-  - [X] muscle
-  - [X] weapon skills
-  - [X] fight styles
-  - [X] sync money
-  - [X] breath level bar
-  - [X] stamina sync
-  - [X] max hp sync
-- [X] fire sync
-- [X] cheat code sync
-- [ ] anim sync
-  - [X] sprunk drinking
-  - [X] fast food eating
-  - [X] idle anims
-  - [X] funny TAB+NUM4 (or NUM6) anim sync (did you know about this?)
-- [ ] gang groups sync
-- [ ] stream in/out players, peds, vehicles, etc.
-- [ ] vehicle sync
-  - [X] force hydraulics sync
-  - [ ] trailer sync
-- [ ] passenger sync
-  - [ ] gamepad support
-  - [X] proper seat sync
-  - [X] radio sync
-  - [X] drive by shooting
-- [ ] fixes
-  - [X] mouse
-  - [X] widescreen
-  - [X] fast load
-- [ ] Fix models loading (green polygon)  --- related to stream it/out
-- [X] smooth interpolation
-  - [X] move
-  - [X] rotation
-  - [X] weapon aim interpolation
-- [ ] npc sync
-  - [X] pos, rot, speed
-  - [X] weapons
-  - [ ] in vehicle sync
-    - [ ] driver
-      - [X] position velocity rotation  
-      - [X] gas/break lights
-      - [X] wheel movement
-      - [X] horn
-      - [X] siren
-      - [X] current path, target entity, mission
-    - [X] passenger
-  - [ ] aim
-  - [ ] shots
-  - [ ] task sync (good luck, warrior!)
-  - [X] radar icon?
-  - [X] speech sync
-- [ ] player voice commands
-- [ ] chat reactions (see LD_CHAT.txd)
-- [ ] gang wars sync
-- [ ] parachute jump sync
-- [ ] stunt
-  - [ ] collecting
-  - [ ] for-player slow motion
-- [ ] chat gamepad support with on-screen keyboard
-### Minor tasks and ideas
-- [X] Sync laser sniper rifle red dot with all players
-- [X] Sync moon sniper rifle shot changing size easter egg with all players
-## TODO Launcher:
-### Already Done ✓
-- [X] setup project and create forms
-- [X] inject all dll in the game (don't need ASI Loader anymore)
-- [X] send params (nickname, ip/port) to client dll
-- [X] implement translation
-- [X] save configs
-### Current Tasks
-- [ ] start/control server directly from launcher
+## TODO And Verification Matrix (Source Of Truth)
 
-## TODO Missions
-> **Note:** All story missions have been co-op enabled (EnableSync, CollectPlayers, cleanup). Requires in-game verification.
-### Already Done ✓
-- [X] Big Smoke
-- [X] Ryder
-- [X] Tagging Up Turf
-- [X] Cleaning The Hood
-- [X] Drive-Thru
-- [X] Nines And AK's
-- [X] Drive-By
-- [X] Sweet's Girl
-- [X] Cesar Vialpando
-- [X] OG Loc
-- [X] Running Dog
-- [X] Wrong Side Of The Tracks
-- [X] Just Business
-- [X] Home Invasion
-- [X] Catalyst
-- [X] Robbing Uncle Sam
-- [X] Life's A Beach
-- [X] Madd Dogg's Rhymes
-- [X] Management Issues
-- [X] House Party
-- [X] High Stakes, Low Rider
-- [X] Burning Desire
-- [X] Gray Imports
-- [X] Doberman
-- [X] Los Sepulcros
-- [X] Reuniting The Families
-- [X] The Green Sabre
-- [X] Badlands
-- [X] Tanker Commander
-- [X] Body Harvest
-- [X] Local Liquor Store
-- [X] Against All Odds
-- [X] Small Town Bank
-- [X] Wu Zi Mu
-- [X] Farewell, My Love...
-- [X] Are You Going To San Fierro?
-- [X] Wear Flowers In Your Hair
-- [X] 555 WE TIP
-- [X] Deconstruction
-- [X] Air Raid
-- [X] Supply Lines...
-- [X] New Model Army
-- [X] Photo Opportunity
-- [X] Jizzy
-- [X] T-Bone Mendez
-- [X] Mike Toreno
-- [X] Outrider
-- [X] Snail Trail
-- [X] Ice Cold Killa
-- [X] Pier 69
-- [X] Toreno's Last Flight
-- [X] Mountain Cloud Boys
-- [X] Ran Fa Li
-- [X] Lure
-- [X] Amphibious Assault
-- [X] The Da Nang Thang
-- [X] Yay Ka-Boom-Boom
-- [X] Zeroing In
-- [X] Test Drive
-- [X] Customs Fast Track
-- [X] Puncture Wounds
-- [X] Monster
-- [X] Highjack
-- [X] Interdiction
-- [X] Verdant Meadows
-- [X] N.O.E.
-- [X] Stowaway
-- [X] Black Project
-- [X] Green Goo
-- [X] Fender Ketchup
-- [X] Explosive Situation
-- [X] You've Had Your Chips
-- [X] Don Peyote
-- [X] Architectural Espionage
-- [X] Key To Her Heart
-- [X] Dam And Blast
-- [X] Cop Wheels
-- [X] Up, Up And Away!
-- [X] Intensive Care
-- [X] The Meat Business
-- [X] Fish In A Barrel
-- [X] Misappropriation
-- [X] Madd Dogg
-- [X] Freefall
-- [X] High Noon
-- [X] Saint Mark's Bistro
-- [X] A Home In The Hills
-- [X] Vertical Bird
-- [X] Home Coming
-- [X] Beat Down On B Dup
-- [X] Grove 4 Life
-- [X] Cut Throat Business
-- [X] Riot
-- [X] Los Desperados
-- [X] End Of The Line
-### Current Tasks
-*All story missions converted.*
+Audit date: `2026-04-08`
+Status model:
+- `CODE_OK`: implemented and verified in code.
+- `RUNTIME_OK`: validated in a 2-player GTA runtime flow (or explicit Sanny compile check where noted).
+- `OPEN`: missing implementation, regression, or runtime validation still pending.
 
-## TODO Other Scripts
-> **Note:** Checked items have been co-op enabled (EnableSync, CollectPlayers, cleanup). Requires in-game verification.
-### Already done ✓
-- [X] Property purchase sync
-- [X] Submissions
-  - [X] Taxi driver
-  - [X] Firefighter
-  - [X] Vigilante
-  - [X] Paramedic
-  - [X] Pimp
-  - [X] Freight Train Missions
-- [X] Hiden races
-  - [X] BMX
-  - [X] NRG-500
-  - [X] The Chiliad Challenge
-- [X] Stadions
-  - [X] 8-Track
-  - [X] Blood Bowl
-  - [X] Dirt Track
-  - [X] Kick Start
-- [X] Ammu-nation challenge
-- [X] Schools
-  - [X] Driving school
-  - [X] Flight school
-  - [X] Bike school
-  - [X] Boat school
-- [X] Asset Missions
-  - [X] Trucker (8 missions)
-  - [X] Valet (5 missions)
-  - [X] Career (7 missions)
-- [X] Courier
-  - [X] Los Santos - Roboi's Food Mart
-  - [X] San Fierro - Hippy Shopper
-  - [X] Las Venturas - Burger Shot
-- [X] Street Racing (22)
-  - [X] Little Loop
-  - [X] Backroad Wanderer
-  - [X] City Circuit
-  - [X] Vinewood
-  - [X] Freeway
-  - [X] Into The Country
-  - [X] Dirtbike Danger
-  - [X] Bandito Country
-  - [X] Go-Go Karting
-  - [X] San Fierro Fastlane
-  - [X] San Fierro Hills
-  - [X] Country Endurance
-  - [X] SF To LV
-  - [X] Dam Rider
-  - [X] Desert Tricks
-  - [X] LV Ringroad
-  - [X] World War Ace
-  - [X] Barnstorming
-  - [X] Win Military Service
-  - [X] Chopper Checkpoint
-  - [X] Whirly Bird Waypoint
-  - [X] Heli Hell
-### Current Tasks
-*All side scripts converted. Import/Export requires C++ sync for shared car board state.*
+### Core Matrix
+
+| Subsystem | CODE_OK | RUNTIME_OK | Status | Evidence |
+|---|---|---|---|---|
+| Drop weapon (`G`) | Yes | Yes | `RUNTIME_OK` | `client/src/Main.cpp` (G key drop packet), `client/src/CPacketHandler.cpp` (`ItemDrop__Handle`, pickup tracking/removal); runtime verified in 2-session test |
+| Drop money (`H`) | Yes | Yes | `RUNTIME_OK` | `client/src/Main.cpp` (H key, money decrement + packet), `client/src/CPacketHandler.cpp` (`dropType == 1`); runtime verified in 2-session test |
+| Per-player stats/skills | Yes | Yes | `RUNTIME_OK` | `shared/player_progress.h`, `client/src/CStatsSync.cpp`, `server/src/CPlayerManager.h` (`PlayerStats`); runtime verified (skills/stat changes isolated per player) |
+| Per-player property ownership | Yes | Yes | `RUNTIME_OK` | `client/src/CStatsSync.cpp` + custom opcodes `0x1D1D/0x1D1E`; runtime verified (independent house purchase state) |
+| Per-player school progress/medals | Yes | Partial | `OPEN` | Code path present (`0x1D1F..0x1D22`, `CStatsSync` arrays), but full runtime school medal/progress suite still pending |
+| Vehicle enter/occupancy (general) | Yes | Partial | `OPEN` | `VehicleEnter`, `VehicleConfirm`, `VehicleOccupants` and `WorldHooks` audited and patched; ambient/NPC vehicle visibility still requires clean pass in runtime retest |
+| Late-join vehicle seat restore | Yes | Partial | `OPEN` | server snapshot send in `server/src/CNetwork.cpp` + apply in `client/src/CPacketHandler.cpp::VehicleOccupants__Handle`; needs fresh runtime confirmation after latest fixes |
+| Version single source and auto-bump | Yes | Yes | `RUNTIME_OK` | `version.json`, `tools/sync_version.py`, CI workflows; observed auto bump sequence on `main` |
+| Sanny SCM compile path | Yes | Yes* | `RUNTIME_OK` | `tools/build-scm.ps1` executed with `C:\Tools\SannyBuilder4\sanny.exe`; `scm/main.compiled.scm` regenerated (`*compiler/tooling check, not gameplay runtime`) |
+
+### Focused Re-Audit (Claim Vs Reality)
+
+| Area | Status | Notes |
+|---|---|---|
+| Item drops (`Main.cpp`, `CPacketHandler.cpp`, `CPackets.h`) | `RUNTIME_OK` | Weapon and money drop paths exist and were runtime tested in 2 sessions |
+| Progress sync (`player_progress.h`, `CStatsSync`, client/server `PlayerStats`) | `RUNTIME_OK` (stats/properties), `OPEN` (schools full suite) | Data model and packet flow are widened and active |
+| Vehicle flow (`VehicleEnter`, `VehicleConfirm`, `VehicleOccupants`, `WorldHooks`) | `OPEN` | Code fixes are in; ambient/NPC vehicle disappearance needs a final green runtime pass |
+| Property/school custom opcodes and caches | `CODE_OK` / `RUNTIME_OK` partial | Property runtime confirmed; school runtime coverage not fully closed |
+
+### Current Priority TODO (Maintained)
+
+- [ ] Close runtime validation for ambient/NPC vehicle visibility after enter (driver and passenger both directions).
+- [ ] Close runtime validation for late join into already occupied ambient vehicle.
+- [ ] Execute full school progression and medal runtime matrix (driving/bike/boat/flight school independent state).
+- [ ] Re-verify host migration edge cases for money/wanted/stats snapshots.
+- [ ] Confirm launcher-side server control remains in backlog (`OPEN`).
+
+### Notes
+
+- Legacy checklist blocks were intentionally replaced because they mixed historical claims with current status and were no longer reliable as a source of truth.
+- Mission conversion details remain available in `COOP_PROGRESS.md` and `COOP_AUDIT_REPORT.md`.
