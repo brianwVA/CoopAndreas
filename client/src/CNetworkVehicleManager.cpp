@@ -59,15 +59,18 @@ void CNetworkVehicleManager::Remove(CNetworkVehicle* vehicle)
 
 void CNetworkVehicleManager::UpdateDriver(CVehicle* vehicle)
 {
-	if (auto networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle))
+	CNetworkVehicle* networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle);
+	if (!networkVehicle && CNetwork::m_bConnected)
 	{
-		if (networkVehicle->m_nVehicleId == -1)
-			return; // awaiting VEHICLE_CONFIRM — can't send yet
-
-		CPackets::VehicleDriverUpdate* packet = CPacketHandler::VehicleDriverUpdate__Collect(networkVehicle);
-		CNetwork::SendPacket(CPacketsID::VEHICLE_DRIVER_UPDATE, packet, sizeof *packet);
-		delete packet;
+		networkVehicle = CNetworkVehicle::CreateHosted(vehicle);
 	}
+
+	if (!networkVehicle || networkVehicle->m_nVehicleId == -1)
+		return; // awaiting VEHICLE_CONFIRM - can't send yet
+
+	CPackets::VehicleDriverUpdate* packet = CPacketHandler::VehicleDriverUpdate__Collect(networkVehicle);
+	CNetwork::SendPacket(CPacketsID::VEHICLE_DRIVER_UPDATE, packet, sizeof *packet);
+	delete packet;
 }
 
 void CNetworkVehicleManager::UpdateIdle()
@@ -98,6 +101,11 @@ void CNetworkVehicleManager::UpdateIdle()
 void CNetworkVehicleManager::UpdatePassenger(CVehicle* vehicle, CPlayerPed* localPlayer)
 {
 	CNetworkVehicle* networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle);
+	if (!networkVehicle && CNetwork::m_bConnected)
+	{
+		networkVehicle = CNetworkVehicle::CreateHosted(vehicle);
+	}
+
 	if (!networkVehicle || networkVehicle->m_nVehicleId == -1)
 		return; // awaiting VEHICLE_CONFIRM
 
