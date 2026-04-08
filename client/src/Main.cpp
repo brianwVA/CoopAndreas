@@ -399,6 +399,8 @@ public:
 
 				if (g_reviveInProgress)
 				{
+					uint32_t reviveNow = GetTickCount();
+
 					if (!CNetwork::m_bConnected || CChat::m_bInputActive || FrontEndMenuManager.m_bMenuActive)
 					{
 						g_reviveInProgress = false;
@@ -447,7 +449,7 @@ public:
 								g_reviveTargetId = -1;
 								CChat::AddMessage("~r~Revive canceled (movement detected)");
 							}
-							else if (now >= g_reviveStartTick + kReviveDurationMs)
+							else if (reviveNow >= g_reviveStartTick + kReviveDurationMs)
 							{
 								CPackets::ReviveRequest revive{};
 								revive.targetPlayerId = g_reviveTargetId;
