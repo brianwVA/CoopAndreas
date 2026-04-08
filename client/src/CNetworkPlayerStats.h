@@ -1,9 +1,11 @@
 #pragma once
+#include <array>
+#include "../../shared/player_progress.h"
 class CNetworkPlayerStats
 {
 public:
-	std::array<float, 83> m_aStatsFloat{};
-	std::array<int, 224> m_aStatsInt{};
+	std::array<float, COOPANDREAS_FLOAT_STATS_COUNT> m_aStatsFloat{};
+	std::array<int, COOPANDREAS_INT_STATS_COUNT> m_aStatsInt{};
 
 	CNetworkPlayerStats();
 

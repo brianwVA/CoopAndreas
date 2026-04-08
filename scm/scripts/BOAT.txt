@@ -5308,6 +5308,27 @@ Player.ClearWantedLevel($player1)
 Stat.PlayerMadeProgress(1)
 Stat.RegisterOddjobMissionPassed
 $boat_passed_once = 1
+set_player_school_progress 1 1
+if 
+  $boat_which_medal_displayed == 4
+goto_if_false @BOAT_37731_PERPLAYER_SILVER
+set_player_school_medal 1 3
+goto @BOAT_37731_PERPLAYER_DONE
+
+:BOAT_37731_PERPLAYER_SILVER
+if 
+  $boat_which_medal_displayed == 3
+goto_if_false @BOAT_37731_PERPLAYER_BRONZE
+set_player_school_medal 1 2
+goto @BOAT_37731_PERPLAYER_DONE
+
+:BOAT_37731_PERPLAYER_BRONZE
+if 
+  $boat_which_medal_displayed == 2
+goto_if_false @BOAT_37731_PERPLAYER_DONE
+set_player_school_medal 1 1
+
+:BOAT_37731_PERPLAYER_DONE
 
 :BOAT_37807
 return 

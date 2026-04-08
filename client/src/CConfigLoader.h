@@ -4,6 +4,7 @@ class CConfigLoader
 {
 private:
 	static void BuildPath();
+	static std::string ResolveConfigFileName();
 	static void BuildDefaultConfig();
 	static void SetDirMyDocuments_Hook();
 	static void EnsureCreated();
@@ -21,6 +22,7 @@ private:
 public:
 	static inline const std::string CONFIG_SECTION = "config";
 	static inline const std::string CONFIG_FILE_NAME = "coopandreas.ini";
+	static inline const std::string CONFIG_FILE_NAME_SECOND_INSTANCE = "coopandreas_2.ini";
 
 	static void Init();
 	static void Save();

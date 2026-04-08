@@ -211,6 +211,7 @@ public:
 				// Drop weapon (G key) or money (H key) — works offline too
 				if (!CChat::m_bInputActive && !FrontEndMenuManager.m_bMenuActive)
 				{
+					static constexpr int kDroppedMoneyAmount = 100;
 					static DWORD lastDropTick = 0;
 					DWORD now = GetTickCount();
 
@@ -262,6 +263,39 @@ public:
 									}
 
 									CChat::AddMessage("~g~Dropped weapon");
+								}
+							}
+							else if (GetAsyncKeyState('H') & 0x8000) // drop money
+							{
+								CPlayerInfo* playerInfo = &CWorld::Players[0];
+								if (playerInfo && playerInfo->m_nMoney > 0)
+								{
+									lastDropTick = now;
+
+									int droppedMoney = (std::min)(playerInfo->m_nMoney, kDroppedMoneyAmount);
+
+									plugin::Command<0x02E1>(pos.x, pos.y, pos.z, droppedMoney);
+
+									playerInfo->m_nMoney -= droppedMoney;
+									playerInfo->m_nDisplayMoney = playerInfo->m_nMoney;
+
+									CPacketHandler::TrackDroppedPickup(
+										(int16_t)(pos.x * 8.0f),
+										(int16_t)(pos.y * 8.0f),
+										(int16_t)(pos.z * 8.0f));
+
+									if (CNetwork::m_bConnected)
+									{
+										CPackets::ItemDrop packet{};
+										packet.x = pos.x;
+										packet.y = pos.y;
+										packet.z = pos.z;
+										packet.dropType = 1;
+										packet.money = droppedMoney;
+										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+									}
+
+									CChat::AddMessage("~g~Dropped $%d", droppedMoney);
 								}
 							}
 						}

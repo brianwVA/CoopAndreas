@@ -26,6 +26,7 @@ public:
 	static void VehicleComponentRemove__Handle(void* data, int size);
 	static CPackets::VehiclePassengerUpdate* VehiclePassengerUpdate__Collect(CNetworkVehicle* vehicle, CPlayerPed* localPlayer);
 	static void VehiclePassengerUpdate__Handle(void* data, int size);
+	static void VehicleOccupants__Handle(void* data, int size);
 	static void PlayerChatMessage__Handle(void* data, int size);
 	static void PedSpawn__Handle(void* data, int size);
 	static void PedRemove__Handle(void* data, int size);

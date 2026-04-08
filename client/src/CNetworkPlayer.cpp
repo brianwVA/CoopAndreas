@@ -113,7 +113,6 @@ char CNetworkPlayer::GetWeaponSkill(eWeaponType weaponType)
 		return 1;
 
 	eStats weaponStatId = plugin::CallAndReturn<eStats, 0x743CD0>(weaponType); // CWeaponInfo::GetSkillStatIndex
-	int statSyncId = CStatsSync::GetSyncIdByInternal(weaponStatId);
 	float weaponStat = m_stats[weaponStatId];
 
 	if (CWeaponInfo::GetWeaponInfo(weaponType, 2)->m_nReqStatLevel <= weaponStat)

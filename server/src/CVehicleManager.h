@@ -222,6 +222,12 @@ class CVehiclePackets
 			}
 		};
 
+		struct VehicleOccupants
+		{
+			int vehicleid;
+			int playerIds[8];
+		};
+
 		struct VehicleDamage
 		{
 			int vehicleid;

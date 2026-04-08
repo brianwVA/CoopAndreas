@@ -424,7 +424,7 @@ Text.PrintHelpForever('GYM1_36')
 $DUMBELL_TXT = 1
 
 :GYMDUMB_3006
-$upperbodymusclestat_gym = Stat.GetFloat(23)
+$upperbodymusclestat_gym = get_player_float_stat 23
 $upperbodymusclestat_gym /= 30.0
 if 
   0.0 > $upperbodymusclestat_gym
@@ -491,7 +491,7 @@ Text.ClearHelp
 $DUMBELL_TXT = 101
 
 :GYMDUMB_3508
-$upperbodymusclestat_gym = Stat.GetFloat(23)
+$upperbodymusclestat_gym = get_player_float_stat 23
 $upperbodymusclestat_gym /= 30.0
 if 
   0.0 > $upperbodymusclestat_gym
@@ -653,14 +653,14 @@ $dumb_weight = 110
 goto @GYMDUMB_4405
 
 :GYMDUMB_4405
-$temp_dumb_weight = Stat.GetInt(47)
+$temp_dumb_weight = get_player_int_stat 47
 if 
   is_int_var_greater_than_int_var $dumb_weight > $temp_dumb_weight
 goto_if_false @GYMDUMB_4438
-Stat.SetInt(StatId.HeaviestWeightDumbells, $dumb_weight)
+set_player_int_stat 47 $dumb_weight
 
 :GYMDUMB_4438
-$temp_muscle_stat_dumb = Stat.GetFloat(23)
+$temp_muscle_stat_dumb = get_player_float_stat 23
 if 
   1000.0 > $temp_muscle_stat_dumb
 goto_if_false @GYMDUMB_4746
@@ -980,12 +980,12 @@ if
   $dumb_show_stat == 8
 goto_if_false @GYMDUMB_5997
 $dumb_show_stat = 0
-Stat.IncrementFloat($incmusclestatdb, 23)
+add_player_float_stat 23 $incmusclestatdb
 add_float_var_to_float_var $gym_day_fitness += $incmusclestatdb
 goto @GYMDUMB_6019
 
 :GYMDUMB_5997
-Stat.IncrementFloatNoMessage(StatId.BodyMuscle, $incmusclestatdb)
+add_player_float_stat 23 $incmusclestatdb
 $dumb_show_stat += 1
 add_float_var_to_float_var $gym_day_fitness += $incmusclestatdb
 
@@ -997,11 +997,11 @@ $gym_final_day, $gym_final_month = Clock.GetCurrentDate()
 Text.PrintNow('GYM1_1B', 4000, 1)
 
 :GYMDUMB_6064
-$fatstat_gym = Stat.GetFloat(21)
+$fatstat_gym = get_player_float_stat 21
 if 
   $fatstat_gym >= 1.0
 goto_if_false @GYMDUMB_6101
-Stat.DecrementFloat(StatId.Fat, 1.0)
+add_player_float_stat 21 -1.0
 
 :GYMDUMB_6101
 Pad.Shake(PadId.Pad1, 200, 200)
@@ -1183,18 +1183,18 @@ $weight_dumbell = 1
 $reps_dumbell = 0
 $animframe = 0.0
 $animframe_freepickup = 0.0
-$upperbodymusclestat_gym = Stat.GetFloat(23)
+$upperbodymusclestat_gym = get_player_float_stat 23
 if 
   $upperbodymusclestat_gym >= 1000.0
 goto_if_false @GYMDUMB_7581
-Stat.SetFloat(StatId.BodyMuscle, 1000.0)
+set_player_float_stat 23 1000.0
 
 :GYMDUMB_7581
-$fatstat_gym = Stat.GetFloat(21)
+$fatstat_gym = get_player_float_stat 21
 if 
   0.0 >= $fatstat_gym
 goto_if_false @GYMDUMB_7618
-Stat.SetFloat(StatId.Fat, 0.0)
+set_player_float_stat 21 0.0
 
 :GYMDUMB_7618
 if 
@@ -1230,18 +1230,18 @@ $weight_dumbell = 1
 $reps_dumbell = 0
 $animframe = 0.0
 $animframe_freepickup = 0.0
-$upperbodymusclestat_gym = Stat.GetFloat(23)
+$upperbodymusclestat_gym = get_player_float_stat 23
 if 
   $upperbodymusclestat_gym >= 1000.0
 goto_if_false @GYMDUMB_7840
-Stat.SetFloat(StatId.BodyMuscle, 1000.0)
+set_player_float_stat 23 1000.0
 
 :GYMDUMB_7840
-$fatstat_gym = Stat.GetFloat(21)
+$fatstat_gym = get_player_float_stat 21
 if 
   0.0 >= $fatstat_gym
 goto_if_false @GYMDUMB_7877
-Stat.SetFloat(StatId.Fat, 0.0)
+set_player_float_stat 21 0.0
 
 :GYMDUMB_7877
 Hud.ClearCounter($reps_dumbell)
@@ -1256,4 +1256,5 @@ $are_anims_loaded = 0
 :GYMDUMB_7917
 goto @GYMDUMB_683
 terminate_this_script 
+
 

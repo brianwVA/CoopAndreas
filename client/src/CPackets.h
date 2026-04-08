@@ -1,6 +1,7 @@
 #pragma once
 
 #include "stdafx.h"
+#include "../../shared/player_progress.h"
 #include <CNetworkEntitySerializer.h>
 
 enum eNetworkEntityType : uint8_t;
@@ -79,6 +80,7 @@ enum CPacketsID : unsigned short
 	PICKUP_REMOVE,
 	DEATH_PICKUPS,
 	ITEM_DROP,
+	VEHICLE_OCCUPANTS,
 	PACKET_ID_MAX
 };
 
@@ -160,6 +162,7 @@ public:
 			sizeof(PickupRemove), // PICKUP_REMOVE,
 			sizeof(DeathPickups), // DEATH_PICKUPS,
 			sizeof(ItemDrop), // ITEM_DROP,
+			sizeof(VehicleOccupants), // VEHICLE_OCCUPANTS,
 		};
 
 		return m_nPacketSize[id];
@@ -496,7 +499,7 @@ public:
 	struct PlayerStats
 	{
 		int playerid;
-		float stats[14];
+		PlayerProgressState progress;
 	};
 
 	struct RebuildPlayer
@@ -742,5 +745,11 @@ public:
 		unsigned int weaponType;
 		unsigned int ammo;
 		int money;
+	};
+
+	struct VehicleOccupants
+	{
+		int vehicleid;
+		int playerIds[8];
 	};
 };
