@@ -6,26 +6,28 @@
 
 // Stored weapon inventory for death pickup sync (updated each frame)
 static CPackets::DeathPickups s_storedDeathPickups{};
-static bool s_pendingDeathRespawn = false;
-static uint32_t s_pendingDeathRespawnTick = 0;
-static constexpr uint32_t kDeathRespawnDelayMs = 60000;
+static bool s_downedActive = false;
+static bool s_downedAnnounced = false;
+static uint32_t s_downedStartTick = 0;
+static constexpr uint32_t kDownedDurationMs = 60000;
+static constexpr float kDownedMinHealth = 5.0f;
+static CVector s_downedFreezePos{};
 
-static bool IsLocalPlayerDeadState()
+static void SendReviveWindowMarker(CPlayerPed* ped)
 {
-    CPlayerPed* localPlayer = FindPlayerPed(0);
-    if (!localPlayer)
+    if (!ped || !CNetwork::m_bConnected)
     {
-        return false;
+        return;
     }
 
-    if (localPlayer->m_fHealth > 0.0f)
-    {
-        return false;
-    }
-
-    return localPlayer->m_ePedState == PEDSTATE_DEAD
-        || localPlayer->m_ePedState == PEDSTATE_DIE
-        || localPlayer->m_ePedState == PEDSTATE_ARRESTED;
+    CPackets::DeathPickups marker{};
+    CVector pos = ped->GetPosition();
+    marker.x = pos.x;
+    marker.y = pos.y;
+    marker.z = pos.z;
+    marker.money = 0;
+    marker.weaponCount = 0;
+    CNetwork::SendPacket(CPacketsID::DEATH_PICKUPS, &marker, sizeof marker, ENET_PACKET_FLAG_RELIABLE);
 }
 
 static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
@@ -34,6 +36,54 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 
     if (This == localPlayer)
     {
+        if (CNetwork::m_bConnected && s_downedActive)
+        {
+            if (GetTickCount() - s_downedStartTick >= kDownedDurationMs)
+            {
+                s_downedActive = false;
+                s_downedAnnounced = false;
+
+                // Permanent death after revive timeout: now drop inventory/cash.
+                if (s_storedDeathPickups.weaponCount > 0 || s_storedDeathPickups.money > 0)
+                {
+                    CNetwork::SendPacket(CPacketsID::DEATH_PICKUPS, &s_storedDeathPickups, sizeof s_storedDeathPickups, ENET_PACKET_FLAG_RELIABLE);
+                }
+
+                CPackets::RespawnPlayer packet{};
+                CNetwork::SendPacket(CPacketsID::RESPAWN_PLAYER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+                plugin::Call<0x571AD0>(); // CReferences::RemoveReferencesToPlayer();
+                return;
+            }
+
+            if (This->m_fHealth < kDownedMinHealth)
+            {
+                This->m_fHealth = kDownedMinHealth;
+            }
+
+            // Hard downed: immobilize and disable actions while waiting for revive.
+            This->m_matrix->pos = s_downedFreezePos;
+            This->m_vecMoveSpeed = CVector(0.0f, 0.0f, 0.0f);
+            This->m_vecTurnSpeed = CVector(0.0f, 0.0f, 0.0f);
+
+            if (This->m_pVehicle)
+            {
+                This->m_pVehicle->m_vecMoveSpeed = CVector(0.0f, 0.0f, 0.0f);
+                This->m_pVehicle->m_vecTurnSpeed = CVector(0.0f, 0.0f, 0.0f);
+                This->m_pVehicle->m_fGasPedal = 0.0f;
+                This->m_pVehicle->m_fBreakPedal = 1.0f;
+            }
+
+            if (CPad* pad = CPad::GetPad(0))
+            {
+                pad->bDisablePlayerEnterCar = 1;
+                pad->bDisablePlayerDuck = 1;
+                pad->bDisablePlayerJump = 1;
+                pad->bDisablePlayerFireWeapon = 1;
+                pad->bDisablePlayerFireWeaponWithL1 = 1;
+                pad->bDisablePlayerCycleWeapon = 1;
+            }
+        }
+
         patch::SetRaw(0x6884C4, (void*)"\xD9\x96\x5C\x05\x00\x00", 6, false);
         plugin::CallMethod<0x60EA90, CPlayerPed*>(This);
         patch::Nop(0x6884C4, 6, false);
@@ -246,45 +296,18 @@ static void __fastcall CPlayerPed__dctor_Hook(CPlayerPed* This, SKIP_EDX)
 
 void CReferences__RemoveReferencesToPlayer_Hook()
 {
-    if (!CNetwork::m_bConnected)
-    {
-        s_pendingDeathRespawn = false;
-        plugin::Call<0x571AD0>(); // CReferences::RemoveReferencesToPlayer();
-        return;
-    }
-
-    // If teammate revived us before timeout, cancel delayed respawn flow.
-    if (s_pendingDeathRespawn && !IsLocalPlayerDeadState())
-    {
-        s_pendingDeathRespawn = false;
-        return;
-    }
-
-    // First death tick: announce death pickups and start revive window.
-    if (!s_pendingDeathRespawn)
-    {
-        if (s_storedDeathPickups.weaponCount > 0 || s_storedDeathPickups.money > 0)
-        {
-            CNetwork::SendPacket(CPacketsID::DEATH_PICKUPS, &s_storedDeathPickups, sizeof s_storedDeathPickups, ENET_PACKET_FLAG_RELIABLE);
-        }
-
-        s_pendingDeathRespawn = true;
-        s_pendingDeathRespawnTick = GetTickCount();
-        CChat::AddMessage("~b~You are down. Teammate has 60 seconds to revive you.");
-        return;
-    }
-
-    // Hold player in downed state for revive window.
-    if (GetTickCount() - s_pendingDeathRespawnTick < kDeathRespawnDelayMs)
+    if (s_downedActive)
     {
         return;
     }
 
-    // Revive window expired: allow normal hospital respawn and notify peers.
-    s_pendingDeathRespawn = false;
-    CPackets::RespawnPlayer packet{};
-    CNetwork::SendPacket(CPacketsID::RESPAWN_PLAYER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
     plugin::Call<0x571AD0>(); // CReferences::RemoveReferencesToPlayer();
+
+    if (CNetwork::m_bConnected)
+    {
+        CPackets::RespawnPlayer packet{};
+        CNetwork::SendPacket(CPacketsID::RESPAWN_PLAYER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+    }
 }
 
 bool __fastcall CWeapon__TakePhotograph_Hook(CWeapon* This, SKIP_EDX, CEntity* entity, CVector* point)
@@ -314,6 +337,33 @@ void __fastcall CPedDamageResponseCalculator__ComputeWillKillPed_Hook(uintptr_t 
 
     if (ped == FindPlayerPed(0))
     {
+        if (CNetwork::m_bConnected)
+        {
+            float projectedHealth = ped->m_fHealth - dmgResponse->m_fDamageHealth;
+            bool shouldEnterDowned = !s_downedActive && projectedHealth <= kDownedMinHealth;
+
+            if (shouldEnterDowned)
+            {
+                s_downedActive = true;
+                s_downedStartTick = GetTickCount();
+                s_downedFreezePos = ped->GetPosition();
+                if (!s_downedAnnounced)
+                {
+                    CChat::AddMessage("~b~Downed: you are immobilized for 60s, teammate can revive (J)");
+                    s_downedAnnounced = true;
+                }
+                SendReviveWindowMarker((CPlayerPed*)ped);
+            }
+
+            if (s_downedActive && projectedHealth <= kDownedMinHealth)
+            {
+                ped->m_fHealth = kDownedMinHealth;
+                dmgResponse->m_bHealthZero = false;
+                dmgResponse->m_bForceDeath = false;
+                dmgResponse->m_fDamageHealth = 0.0f;
+                dmgResponse->m_fDamageArmor = 0.0f;
+            }
+        }
         return;
     }
 
@@ -493,5 +543,6 @@ void PlayerHooks::InjectHooks()
 
 void PlayerHooks::NotifyLocalRevived()
 {
-    s_pendingDeathRespawn = false;
+    s_downedActive = false;
+    s_downedAnnounced = false;
 }

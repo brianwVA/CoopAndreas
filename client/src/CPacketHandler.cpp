@@ -82,6 +82,59 @@ static PendingVehicleAction* AcquirePendingVehicleActionSlot()
 	return &s_pendingVehicleActions[0];
 }
 
+struct PendingVehicleEnter
+{
+	bool active = false;
+	uint32_t queuedTick = 0;
+	CPackets::VehicleEnter enter{};
+};
+
+static PendingVehicleEnter s_pendingVehicleEnters[16] = {};
+static constexpr uint32_t kPendingVehicleEnterTtlMs = 2000;
+static void TryApplyPendingVehicleEnters(int vehicleId);
+
+struct PendingVehicleOccupants
+{
+	bool active = false;
+	uint32_t queuedTick = 0;
+	CPackets::VehicleOccupants occupants{};
+};
+
+static PendingVehicleOccupants s_pendingVehicleOccupants[16] = {};
+static constexpr uint32_t kPendingVehicleOccupantsTtlMs = 3000;
+static bool ApplyVehicleOccupantsPacket(const CPackets::VehicleOccupants& occupants);
+static void TryApplyPendingVehicleOccupants(int vehicleId);
+
+static void QueuePendingVehicleEnter(const CPackets::VehicleEnter& packet)
+{
+	for (auto& pending : s_pendingVehicleEnters)
+	{
+		if (pending.active
+			&& pending.enter.playerid == packet.playerid
+			&& pending.enter.vehicleid == packet.vehicleid)
+		{
+			pending.enter = packet;
+			pending.queuedTick = GetTickCount();
+			return;
+		}
+	}
+
+	for (auto& pending : s_pendingVehicleEnters)
+	{
+		if (!pending.active)
+		{
+			pending.active = true;
+			pending.enter = packet;
+			pending.queuedTick = GetTickCount();
+			return;
+		}
+	}
+
+	s_pendingVehicleEnters[0].active = true;
+	s_pendingVehicleEnters[0].enter = packet;
+	s_pendingVehicleEnters[0].queuedTick = GetTickCount();
+}
+
 // PlayerConnected
 
 void CPacketHandler::PlayerConnected__Handle(void* data, int size)
@@ -402,6 +455,8 @@ void CPacketHandler::VehicleSpawn__Handle(void* data, int size)
 	);
 	CNetworkVehicleManager::m_bCreatingFromNetwork = false;
 	CNetworkVehicleManager::Add(vehicle);
+	TryApplyPendingVehicleEnters(packet->vehicleid);
+	TryApplyPendingVehicleOccupants(packet->vehicleid);
 }
 
 // VehicleRemove
@@ -669,24 +724,20 @@ void CPacketHandler::VehicleDriverUpdate__Handle(void* data, int size)
 
 // VehicleEnter
 
-void CPacketHandler::VehicleEnter__Handle(void* data, int size)
+static bool ApplyVehicleEnterPacket(const CPackets::VehicleEnter& enter)
 {
-	CPackets::VehicleEnter* packet = (CPackets::VehicleEnter*)data;
-	
-	CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(packet->playerid);
-	CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(packet->vehicleid);
+	CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(enter.playerid);
+	CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(enter.vehicleid);
 
-	if (player == nullptr || vehicle == nullptr || vehicle->m_pVehicle == nullptr)
+	if (player == nullptr || player->m_pPed == nullptr || vehicle == nullptr || vehicle->m_pVehicle == nullptr)
 	{
-		return;
+		return false;
 	}
-	
-	if (!CUtil::IsValidEntityPtr(vehicle->m_pVehicle) || !CUtil::IsValidEntityPtr(player->m_pPed))
-		return;
 
-#ifdef PACKET_DEBUG_MESSAGES
-	CChat::AddMessage("player %d entered vehicleid %d %s", packet->playerid, packet->vehicleid, packet->seatid != 0 ? "as passenger" : "");
-#endif
+	if (!CUtil::IsValidEntityPtr(vehicle->m_pVehicle) || !CUtil::IsValidEntityPtr(player->m_pPed))
+	{
+		return false;
+	}
 
 	if (auto* task = player->m_pPed->m_pIntelligence->GetTaskJetPack()) // drop the jetpack if present
 	{
@@ -696,9 +747,9 @@ void CPacketHandler::VehicleEnter__Handle(void* data, int size)
 		task->m_fThrustStrafe = 0.0f;
 	}
 
-	if (packet->passenger == 0) // driver
+	if (enter.passenger == 0) // driver
 	{
-		if (packet->force)
+		if (enter.force)
 		{
 			for (unsigned char i = 0; i < 5; i++)
 			{
@@ -719,7 +770,51 @@ void CPacketHandler::VehicleEnter__Handle(void* data, int size)
 	}
 	else
 	{
-		player->EnterVehiclePassenger(vehicle->m_pVehicle, packet->seatid);
+		player->EnterVehiclePassenger(vehicle->m_pVehicle, enter.seatid);
+	}
+
+	return true;
+}
+
+static void TryApplyPendingVehicleEnters(int vehicleId)
+{
+	uint32_t now = GetTickCount();
+	for (auto& pending : s_pendingVehicleEnters)
+	{
+		if (!pending.active)
+		{
+			continue;
+		}
+
+		if (now - pending.queuedTick > kPendingVehicleEnterTtlMs)
+		{
+			pending.active = false;
+			continue;
+		}
+
+		if (vehicleId >= 0 && pending.enter.vehicleid != vehicleId)
+		{
+			continue;
+		}
+
+		if (ApplyVehicleEnterPacket(pending.enter))
+		{
+			pending.active = false;
+		}
+	}
+}
+
+void CPacketHandler::VehicleEnter__Handle(void* data, int size)
+{
+	CPackets::VehicleEnter* packet = (CPackets::VehicleEnter*)data;
+
+#ifdef PACKET_DEBUG_MESSAGES
+	CChat::AddMessage("player %d entered vehicleid %d %s", packet->playerid, packet->vehicleid, packet->seatid != 0 ? "as passenger" : "");
+#endif
+
+	if (!ApplyVehicleEnterPacket(*packet))
+	{
+		QueuePendingVehicleEnter(*packet);
 	}
 }
 
@@ -908,16 +1003,42 @@ void CPacketHandler::VehiclePassengerUpdate__Handle(void* data, int size)
 	}
 }
 
-void CPacketHandler::VehicleOccupants__Handle(void* data, int size)
+static void QueuePendingVehicleOccupants(const CPackets::VehicleOccupants& packet)
 {
-	CPackets::VehicleOccupants* packet = (CPackets::VehicleOccupants*)data;
+	for (auto& pending : s_pendingVehicleOccupants)
+	{
+		if (pending.active && pending.occupants.vehicleid == packet.vehicleid)
+		{
+			pending.occupants = packet;
+			pending.queuedTick = GetTickCount();
+			return;
+		}
+	}
 
-	CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(packet->vehicleid);
+	for (auto& pending : s_pendingVehicleOccupants)
+	{
+		if (!pending.active)
+		{
+			pending.active = true;
+			pending.occupants = packet;
+			pending.queuedTick = GetTickCount();
+			return;
+		}
+	}
+
+	s_pendingVehicleOccupants[0].active = true;
+	s_pendingVehicleOccupants[0].occupants = packet;
+	s_pendingVehicleOccupants[0].queuedTick = GetTickCount();
+}
+
+static bool ApplyVehicleOccupantsPacket(const CPackets::VehicleOccupants& packet)
+{
+	CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(packet.vehicleid);
 	if (vehicle == nullptr || vehicle->m_pVehicle == nullptr)
-		return;
+		return false;
 
 	if (!CUtil::IsValidEntityPtr(vehicle->m_pVehicle))
-		return;
+		return false;
 
 	auto isNewerSeq = [](uint16_t incoming, uint16_t current) -> bool
 	{
@@ -926,16 +1047,16 @@ void CPacketHandler::VehicleOccupants__Handle(void* data, int size)
 		return (uint16_t)(incoming - current) < 0x8000;
 	};
 
-	if (vehicle->m_nOccupantsVersion != 0 && !isNewerSeq(packet->occupantsVersion, vehicle->m_nOccupantsVersion))
+	if (vehicle->m_nOccupantsVersion != 0 && !isNewerSeq(packet.occupantsVersion, vehicle->m_nOccupantsVersion))
 	{
-		return;
+		return true;
 	}
 
-	vehicle->m_nOccupantsVersion = packet->occupantsVersion;
+	vehicle->m_nOccupantsVersion = packet.occupantsVersion;
 
 	for (int seat = 0; seat < 8; ++seat)
 	{
-		int playerId = packet->playerIds[seat];
+		int playerId = packet.playerIds[seat];
 
 		if (seat == 0)
 		{
@@ -1002,6 +1123,46 @@ void CPacketHandler::VehicleOccupants__Handle(void* data, int size)
 			player->WarpIntoVehiclePassenger(vehicle->m_pVehicle, seat - 1);
 		}
 	}
+
+	return true;
+}
+
+static void TryApplyPendingVehicleOccupants(int vehicleId)
+{
+	uint32_t now = GetTickCount();
+	for (auto& pending : s_pendingVehicleOccupants)
+	{
+		if (!pending.active)
+		{
+			continue;
+		}
+
+		if (now - pending.queuedTick > kPendingVehicleOccupantsTtlMs)
+		{
+			pending.active = false;
+			continue;
+		}
+
+		if (vehicleId >= 0 && pending.occupants.vehicleid != vehicleId)
+		{
+			continue;
+		}
+
+		if (ApplyVehicleOccupantsPacket(pending.occupants))
+		{
+			pending.active = false;
+		}
+	}
+}
+
+void CPacketHandler::VehicleOccupants__Handle(void* data, int size)
+{
+	CPackets::VehicleOccupants* packet = (CPackets::VehicleOccupants*)data;
+
+	if (!ApplyVehicleOccupantsPacket(*packet))
+	{
+		QueuePendingVehicleOccupants(*packet);
+	}
 }
 
 void CPacketHandler::VehicleEnter__TriggerReliable(int vehicleid, uint8_t seatid, bool passenger, bool force)
@@ -1049,8 +1210,20 @@ void CPacketHandler::ProcessReliableVehicleActions()
 		{
 			action.active = false;
 		}
+		for (auto& pending : s_pendingVehicleEnters)
+		{
+			pending.active = false;
+		}
+		for (auto& pending : s_pendingVehicleOccupants)
+		{
+			pending.active = false;
+		}
 		return;
 	}
+
+	// Periodic reconciliation for packets that arrived before entity creation.
+	TryApplyPendingVehicleEnters(-1);
+	TryApplyPendingVehicleOccupants(-1);
 
 	uint32_t now = GetTickCount();
 
@@ -1710,6 +1883,8 @@ void CPacketHandler::VehicleConfirm__Handle(void* data, int size)
 				}
 
 			tempVehicles[tempId] = nullptr;
+			TryApplyPendingVehicleEnters(packet->vehicleid);
+			TryApplyPendingVehicleOccupants(packet->vehicleid);
 		}
 	}
 }
