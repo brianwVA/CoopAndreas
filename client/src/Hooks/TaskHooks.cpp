@@ -4,6 +4,7 @@
 #include "CNetworkVehicle.h"
 #include "CNetworkPed.h"
 #include "CAimSync.h"
+#include "CPacketHandler.h"
 
 // when local player enters any vehicle
 static void __fastcall CTaskComplexEnterCarAsDriver__Ctor_Hook(CTaskComplexEnterCarAsDriver* This, SKIP_EDX, CVehicle* vehicle)
@@ -30,12 +31,7 @@ static void __fastcall CTaskComplexEnterCarAsDriver__Ctor_Hook(CTaskComplexEnter
         // is assigned, if the player is already inside by then.
         if (networkVehicle->m_nVehicleId != -1)
         {
-            CPackets::VehicleEnter packet{};
-
-            packet.seatid = 0;
-            packet.vehicleid = networkVehicle->m_nVehicleId;
-
-            CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+            CPacketHandler::VehicleEnter__TriggerReliable(networkVehicle->m_nVehicleId, 0, false, false);
         }
     }
 
@@ -46,8 +42,7 @@ static void __fastcall CTaskComplexLeaveCar__Ctor_Hook(CTaskComplexLeaveCar* Thi
 {
     if (CNetwork::m_bConnected)
     {
-        CPackets::VehicleExit packet{};
-        CNetwork::SendPacket(CPacketsID::VEHICLE_EXIT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+        CPacketHandler::VehicleExit__TriggerReliable(false);
     }
 
     plugin::CallMethod<0x63B8C0, CTaskComplexLeaveCar*, CVehicle*, int, int, bool, bool>(This, vehicle, targetDoor, delayTime, sensibleLeaveCar, forceGetOut);

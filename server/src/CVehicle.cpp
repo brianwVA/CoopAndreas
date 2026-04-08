@@ -30,15 +30,38 @@ void CVehicle::ReassignSyncer(CPlayer* newSyncer)
 	}
 }
 
-void CVehicle::SetOccupant(uint8_t seatid, CPlayer* player)
+bool CVehicle::SetOccupant(uint8_t seatid, CPlayer* player)
 {
-	if (seatid < 0 || seatid > 7)
-		return;
+	if (seatid > 7)
+		return false;
+
+	bool changed = false;
+
+	// remove the same player from any other seat in this vehicle
+	for (uint8_t i = 0; i < 8; i++)
+	{
+		if (i != seatid && this->m_pPlayers[i] == player)
+		{
+			this->m_pPlayers[i] = nullptr;
+			changed = true;
+		}
+	}
+
+	if (this->m_pPlayers[seatid] == player)
+	{
+		if (player)
+		{
+			player->m_nVehicleId = this->m_nVehicleId;
+			player->m_nSeatId = seatid;
+		}
+		return changed;
+	}
 
 	if (this->m_pPlayers[seatid])
 	{
 		this->m_pPlayers[seatid]->m_nVehicleId = -1;
 		this->m_pPlayers[seatid]->m_nSeatId = -1;
+		changed = true;
 	}
 
 	this->m_pPlayers[seatid] = player;
@@ -48,4 +71,11 @@ void CVehicle::SetOccupant(uint8_t seatid, CPlayer* player)
 		player->m_nVehicleId = this->m_nVehicleId;
 		player->m_nSeatId = seatid;
 	}
+
+	changed = true;
+	if (changed)
+	{
+		m_nOccupantsVersion++;
+	}
+	return changed;
 }

@@ -7,6 +7,9 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
 
 #include "CControllerState.h"
 #include "CPlayer.h"
@@ -36,6 +39,118 @@ class CPlayerPackets
 {
 public:
 	CPlayerPackets();
+	struct DeathReviveState
+	{
+		bool active = false;
+		CVector pos{};
+		uint32_t deathTick = 0;
+	};
+
+	static inline std::array<DeathReviveState, MAX_SERVER_PLAYERS> ms_deathState{};
+
+	struct DeathPickupSnapshot
+	{
+		bool active = false;
+		uint32_t tick = 0;
+		int playerid = -1;
+		float x = 0.0f, y = 0.0f, z = 0.0f;
+		int money = 0;
+		unsigned char weaponCount = 0;
+		struct WeaponEntry
+		{
+			unsigned int weaponType;
+			unsigned int ammo;
+		} weapons[13];
+	};
+
+	struct ItemDropSnapshot
+	{
+		bool active = false;
+		uint32_t tick = 0;
+		int playerid = -1;
+		float x = 0.0f, y = 0.0f, z = 0.0f;
+		unsigned char dropType = 0;
+		unsigned int weaponType = 0;
+		unsigned int ammo = 0;
+		int money = 0;
+		int16_t cx = 0, cy = 0, cz = 0;
+	};
+
+	static inline std::array<DeathPickupSnapshot, MAX_SERVER_PLAYERS> ms_deathPickupSnapshots{};
+	static inline std::array<ItemDropSnapshot, 128> ms_itemDropSnapshots{};
+
+	static void ReplayLateJoinState(ENetPeer* peer)
+	{
+		uint32_t now = enet_time_get();
+		static constexpr uint32_t kReviveWindowMs = 60000;
+
+		for (const auto& snapshot : ms_deathPickupSnapshots)
+		{
+			if (!snapshot.active)
+			{
+				continue;
+			}
+
+			if ((now - snapshot.tick) > kReviveWindowMs)
+			{
+				continue;
+			}
+
+			struct DeathPickupsPacket
+			{
+				int playerid;
+				float x, y, z;
+				int money;
+				unsigned char weaponCount;
+				struct WeaponEntry
+				{
+					unsigned int weaponType;
+					unsigned int ammo;
+				} weapons[13];
+			} packet{};
+			packet.playerid = snapshot.playerid;
+			packet.x = snapshot.x;
+			packet.y = snapshot.y;
+			packet.z = snapshot.z;
+			packet.money = snapshot.money;
+			packet.weaponCount = snapshot.weaponCount;
+			for (int i = 0; i < 13; i++)
+			{
+				packet.weapons[i].weaponType = snapshot.weapons[i].weaponType;
+				packet.weapons[i].ammo = snapshot.weapons[i].ammo;
+			}
+
+			CNetwork::SendPacket(peer, CPacketsID::DEATH_PICKUPS, &packet, sizeof(packet), ENET_PACKET_FLAG_RELIABLE);
+		}
+
+		for (const auto& drop : ms_itemDropSnapshots)
+		{
+			if (!drop.active)
+			{
+				continue;
+			}
+
+			struct ItemDropPacket
+			{
+				int playerid;
+				float x, y, z;
+				unsigned char dropType;
+				unsigned int weaponType;
+				unsigned int ammo;
+				int money;
+			} packet{};
+			packet.playerid = drop.playerid;
+			packet.x = drop.x;
+			packet.y = drop.y;
+			packet.z = drop.z;
+			packet.dropType = drop.dropType;
+			packet.weaponType = drop.weaponType;
+			packet.ammo = drop.ammo;
+			packet.money = drop.money;
+			CNetwork::SendPacket(peer, CPacketsID::ITEM_DROP, &packet, sizeof(packet), ENET_PACKET_FLAG_RELIABLE);
+		}
+	}
+
 #pragma pack(1)
 	struct PlayerConnected
 	{
@@ -309,6 +424,11 @@ public:
 		{
 			CPlayerPackets::RespawnPlayer* packet = (CPlayerPackets::RespawnPlayer*)data;
 			packet->playerid = CPlayerManager::GetPlayer(peer)->m_iPlayerId;
+			if (packet->playerid >= 0 && packet->playerid < MAX_SERVER_PLAYERS)
+			{
+				ms_deathState[packet->playerid].active = false;
+				ms_deathPickupSnapshots[packet->playerid].active = false;
+			}
 			CNetwork::SendPacketToAll(CPacketsID::RESPAWN_PLAYER, packet, sizeof * packet, ENET_PACKET_FLAG_RELIABLE, peer);
 		}
 	};
@@ -802,6 +922,20 @@ public:
 		{
 			if (auto player = CPlayerManager::GetPlayer(peer))
 			{
+				PickupRemove* packet = (PickupRemove*)data;
+
+				for (auto& drop : ms_itemDropSnapshots)
+				{
+					if (!drop.active)
+						continue;
+
+					if (drop.cx == packet->pos_x && drop.cy == packet->pos_y && drop.cz == packet->pos_z)
+					{
+						drop.active = false;
+						break;
+					}
+				}
+
 				CNetwork::SendPacketToAll(CPacketsID::PICKUP_REMOVE, data, sizeof(PickupRemove), ENET_PACKET_FLAG_RELIABLE, peer);
 			}
 		}
@@ -825,6 +959,30 @@ public:
 			{
 				DeathPickups* packet = (DeathPickups*)data;
 				packet->playerid = player->m_iPlayerId;
+
+				if (player->m_iPlayerId >= 0 && player->m_iPlayerId < MAX_SERVER_PLAYERS)
+				{
+					auto& state = ms_deathState[player->m_iPlayerId];
+					state.active = true;
+					state.pos = CVector(packet->x, packet->y, packet->z);
+					state.deathTick = enet_time_get();
+
+					auto& snapshot = ms_deathPickupSnapshots[player->m_iPlayerId];
+					snapshot.active = true;
+					snapshot.tick = state.deathTick;
+					snapshot.playerid = packet->playerid;
+					snapshot.x = packet->x;
+					snapshot.y = packet->y;
+					snapshot.z = packet->z;
+					snapshot.money = packet->money;
+					snapshot.weaponCount = packet->weaponCount;
+					for (int i = 0; i < 13; i++)
+					{
+						snapshot.weapons[i].weaponType = packet->weapons[i].weaponType;
+						snapshot.weapons[i].ammo = packet->weapons[i].ammo;
+					}
+				}
+
 				CNetwork::SendPacketToAll(CPacketsID::DEATH_PICKUPS, packet, sizeof(DeathPickups), ENET_PACKET_FLAG_RELIABLE, peer);
 			}
 		}
@@ -845,8 +1003,129 @@ public:
 			{
 				ItemDrop* packet = (ItemDrop*)data;
 				packet->playerid = player->m_iPlayerId;
+
+				int16_t cx = (int16_t)(packet->x * 8.0f);
+				int16_t cy = (int16_t)(packet->y * 8.0f);
+				int16_t cz = (int16_t)(packet->z * 8.0f);
+
+				ItemDropSnapshot* slot = nullptr;
+				for (auto& drop : ms_itemDropSnapshots)
+				{
+					if (!drop.active)
+					{
+						slot = &drop;
+						break;
+					}
+				}
+				if (!slot)
+				{
+					slot = &ms_itemDropSnapshots[0];
+					for (auto& drop : ms_itemDropSnapshots)
+					{
+						if (drop.tick < slot->tick)
+						{
+							slot = &drop;
+						}
+					}
+				}
+
+				slot->active = true;
+				slot->tick = enet_time_get();
+				slot->playerid = packet->playerid;
+				slot->x = packet->x;
+				slot->y = packet->y;
+				slot->z = packet->z;
+				slot->dropType = packet->dropType;
+				slot->weaponType = packet->weaponType;
+				slot->ammo = packet->ammo;
+				slot->money = packet->money;
+				slot->cx = cx;
+				slot->cy = cy;
+				slot->cz = cz;
+
 				CNetwork::SendPacketToAll(CPacketsID::ITEM_DROP, packet, sizeof(ItemDrop), ENET_PACKET_FLAG_RELIABLE, peer);
 			}
+		}
+	};
+
+	struct ReviveRequest
+	{
+		int targetPlayerId;
+		CVector rescuerPos;
+
+		static void Handle(ENetPeer* peer, void* data, int size)
+		{
+			auto* rescuer = CPlayerManager::GetPlayer(peer);
+			if (!rescuer)
+			{
+				return;
+			}
+
+			auto* packet = (ReviveRequest*)data;
+			if (packet->targetPlayerId < 0 || packet->targetPlayerId >= MAX_SERVER_PLAYERS)
+			{
+				return;
+			}
+
+			if (packet->targetPlayerId == rescuer->m_iPlayerId)
+			{
+				return;
+			}
+
+			auto* target = CPlayerManager::GetPlayer(packet->targetPlayerId);
+			if (!target)
+			{
+				return;
+			}
+
+			auto& state = ms_deathState[packet->targetPlayerId];
+			if (!state.active)
+			{
+				return;
+			}
+
+			static constexpr uint32_t kReviveWindowMs = 60000;
+			static constexpr float kReviveDistance = 1.0f;
+
+			uint32_t now = enet_time_get();
+			if ((now - state.deathTick) > kReviveWindowMs)
+			{
+				state.active = false;
+				return;
+			}
+
+			CVector rescuerPos = packet->rescuerPos;
+			rescuerPos.x = std::clamp(rescuerPos.x, -3000.0f, 3000.0f);
+			rescuerPos.y = std::clamp(rescuerPos.y, -3000.0f, 3000.0f);
+			rescuerPos.z = std::clamp(rescuerPos.z, -300.0f, 1200.0f);
+
+			float dx = rescuerPos.x - state.pos.x;
+			float dy = rescuerPos.y - state.pos.y;
+			float dz = rescuerPos.z - state.pos.z;
+			float distSq = dx * dx + dy * dy + dz * dz;
+			if (distSq > (kReviveDistance * kReviveDistance))
+			{
+				return;
+			}
+
+			struct ReviveApply
+			{
+				int targetPlayerId;
+				int rescuerPlayerId;
+				CVector revivePos;
+				uint8_t success;
+			};
+
+			ReviveApply out{};
+			out.targetPlayerId = packet->targetPlayerId;
+			out.rescuerPlayerId = rescuer->m_iPlayerId;
+			out.revivePos = state.pos;
+			out.success = 1;
+
+			state.active = false;
+			ms_deathPickupSnapshots[packet->targetPlayerId].active = false;
+
+			CNetwork::SendPacketToAll(CPacketsID::REVIVE_APPLY, &out, sizeof(out), ENET_PACKET_FLAG_RELIABLE);
 		}
 	};
 };

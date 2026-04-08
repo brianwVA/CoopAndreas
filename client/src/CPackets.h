@@ -81,6 +81,9 @@ enum CPacketsID : unsigned short
 	DEATH_PICKUPS,
 	ITEM_DROP,
 	VEHICLE_OCCUPANTS,
+	REVIVE_REQUEST,
+	REVIVE_APPLY,
+	VEHICLE_ACTION_ACK,
 	PACKET_ID_MAX
 };
 
@@ -163,6 +166,9 @@ public:
 			sizeof(DeathPickups), // DEATH_PICKUPS,
 			sizeof(ItemDrop), // ITEM_DROP,
 			sizeof(VehicleOccupants), // VEHICLE_OCCUPANTS,
+			sizeof(ReviveRequest), // REVIVE_REQUEST,
+			sizeof(ReviveApply), // REVIVE_APPLY,
+			sizeof(VehicleActionAck), // VEHICLE_ACTION_ACK,
 		};
 
 		return m_nPacketSize[id];
@@ -306,12 +312,14 @@ public:
 		unsigned char seatid : 3;
 		unsigned char force : 1;
 		unsigned char passenger : 1;
+		uint16_t actionSeq;
 	};
 
 	struct VehicleExit
 	{
 		int playerid;
 		bool force;
+		uint16_t actionSeq;
 	};
 
 	struct VehicleDamage
@@ -751,5 +759,26 @@ public:
 	{
 		int vehicleid;
 		int playerIds[8];
+		uint16_t occupantsVersion;
+	};
+
+	struct ReviveRequest
+	{
+		int targetPlayerId;
+		CVector rescuerPos;
+	};
+
+	struct ReviveApply
+	{
+		int targetPlayerId;
+		int rescuerPlayerId;
+		CVector revivePos;
+		uint8_t success;
+	};
+
+	struct VehicleActionAck
+	{
+		uint16_t actionSeq;
+		uint8_t actionType; // 1 = enter, 2 = exit
 	};
 };

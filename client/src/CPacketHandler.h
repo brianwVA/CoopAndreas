@@ -89,8 +89,20 @@ public:
 	static void PickupRemove__Handle(void* data, int size);
 	static void DeathPickups__Handle(void* data, int size);
 	static void ItemDrop__Handle(void* data, int size);
+	static void ReviveApply__Handle(void* data, int size);
+	static void VehicleActionAck__Handle(void* data, int size);
 
 	// Dropped pickup tracking for removal sync
 	static void TrackDroppedPickup(int16_t cx, int16_t cy, int16_t cz);
 	static void CheckDroppedPickups();
+
+	// Revive helpers
+	static bool TryGetNearestReviveTarget(const CVector& from, int& outPlayerId, CVector& outDeathPos);
+	static void ClearReviveTarget(int playerId);
+
+	// Reliable vehicle actions (enter/exit)
+	static void VehicleEnter__TriggerReliable(int vehicleid, uint8_t seatid, bool passenger, bool force);
+	static void VehicleExit__TriggerReliable(bool force);
+	static void ProcessReliableVehicleActions();
+	static void GetReliableVehicleActionStats(uint32_t& outAcked, uint32_t& outRetried, uint32_t& outTimedOut, int& outPending);
 };

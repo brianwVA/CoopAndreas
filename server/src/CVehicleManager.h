@@ -13,6 +13,7 @@ public:
 	static CVehicle* GetVehicle(int vehicleid);
 	static int GetFreeID();
 	static void RemoveAllHostedAndNotify(CPlayer* player);
+	static void SendOccupantsSnapshot(CVehicle* vehicle, ENetPeer* onlyPeer = nullptr);
 };
 
 class CVehiclePackets
@@ -162,12 +163,17 @@ class CVehiclePackets
 
 					if (vehicle)
 					{
-						vehicle->SetOccupant(0, player);
+						bool changed = vehicle->SetOccupant(0, player);
 
 						vehicle->m_vecPosition = packet->pos;
 						vehicle->m_vecRotation = packet->rot;
 						vehicle->m_bUsedByPed = false;
 						vehicle->ReassignSyncer(player);
+
+						if (changed)
+						{
+							CVehicleManager::SendOccupantsSnapshot(vehicle);
+						}
 					}
 				}
 			}
@@ -180,21 +186,51 @@ class CVehiclePackets
 			unsigned char seatid : 3;
 			unsigned char force : 1; // if true - put directly in vehicle (without any anim)
 			unsigned char passenger : 1; 
+			uint16_t actionSeq;
 
 			static void Handle(ENetPeer* peer, void* data, int size)
 			{
 				if (auto player = CPlayerManager::GetPlayer(peer))
 				{
 					CVehiclePackets::VehicleEnter* packet = (CVehiclePackets::VehicleEnter*)data;
+
+					struct VehicleActionAck
+					{
+						uint16_t actionSeq;
+						uint8_t actionType; // 1 = enter, 2 = exit
+					};
+
+					VehicleActionAck ack{};
+					ack.actionSeq = packet->actionSeq;
+					ack.actionType = 1;
+					CNetwork::SendPacket(peer, CPacketsID::VEHICLE_ACTION_ACK, &ack, sizeof ack, ENET_PACKET_FLAG_RELIABLE);
+
+					if (player->m_bHasVehicleActionSeq)
+					{
+						if (packet->actionSeq == player->m_nLastVehicleActionSeq || (uint16_t)(packet->actionSeq - player->m_nLastVehicleActionSeq) >= 0x8000)
+						{
+							return;
+						}
+					}
+
+					player->m_nLastVehicleActionSeq = packet->actionSeq;
+					player->m_bHasVehicleActionSeq = true;
+
 					packet->playerid = player->m_iPlayerId;
 					CNetwork::SendPacketToAll(CPacketsID::VEHICLE_ENTER, packet, sizeof * packet, ENET_PACKET_FLAG_RELIABLE, peer);
 
 					if (auto vehicle = CVehicleManager::GetVehicle(packet->vehicleid))
 					{
+						bool changed = false;
 						if (packet->passenger)
-							vehicle->SetOccupant(packet->seatid + 1, player);
+							changed = vehicle->SetOccupant(packet->seatid + 1, player);
 						else
-							vehicle->SetOccupant(0, player);
+							changed = vehicle->SetOccupant(0, player);
+
+						if (changed)
+						{
+							CVehicleManager::SendOccupantsSnapshot(vehicle);
+						}
 					}
 				}
 			}
@@ -204,19 +240,49 @@ class CVehiclePackets
 		{
 			int playerid;
 			bool force;
+			uint16_t actionSeq;
 
 			static void Handle(ENetPeer* peer, void* data, int size)
 			{
 				if (auto player = CPlayerManager::GetPlayer(peer))
 				{
 					CVehiclePackets::VehicleExit* packet = (CVehiclePackets::VehicleExit*)data;
+
+					struct VehicleActionAck
+					{
+						uint16_t actionSeq;
+						uint8_t actionType; // 1 = enter, 2 = exit
+					};
+
+					VehicleActionAck ack{};
+					ack.actionSeq = packet->actionSeq;
+					ack.actionType = 2;
+					CNetwork::SendPacket(peer, CPacketsID::VEHICLE_ACTION_ACK, &ack, sizeof ack, ENET_PACKET_FLAG_RELIABLE);
+
+					if (player->m_bHasVehicleActionSeq)
+					{
+						if (packet->actionSeq == player->m_nLastVehicleActionSeq || (uint16_t)(packet->actionSeq - player->m_nLastVehicleActionSeq) >= 0x8000)
+						{
+							return;
+						}
+					}
+
+					player->m_nLastVehicleActionSeq = packet->actionSeq;
+					player->m_bHasVehicleActionSeq = true;
+
 					packet->playerid = player->m_iPlayerId;
 					CNetwork::SendPacketToAll(CPacketsID::VEHICLE_EXIT, packet, sizeof * packet, ENET_PACKET_FLAG_RELIABLE, peer);
 
 					if (auto vehicle = CVehicleManager::GetVehicle(player->m_nVehicleId))
 					{
+						bool changed = false;
 						if (player->m_nSeatId >= 0)
-							vehicle->SetOccupant(player->m_nSeatId, nullptr);
+							changed = vehicle->SetOccupant(player->m_nSeatId, nullptr);
+
+						if (changed)
+						{
+							CVehicleManager::SendOccupantsSnapshot(vehicle);
+						}
 					}
 				}
 			}
@@ -226,6 +292,7 @@ class CVehiclePackets
 		{
 			int vehicleid;
 			int playerIds[8];
+			uint16_t occupantsVersion;
 		};
 
 		struct VehicleDamage
@@ -295,9 +362,13 @@ class CVehiclePackets
 
 					if (auto vehicle = CVehicleManager::GetVehicle(packet->vehicleid))
 					{
-						vehicle->SetOccupant(packet->seatid + 1, player);
+						bool changed = vehicle->SetOccupant(packet->seatid + 1, player);
 						if (vehicle->m_nCreatedBy == 2) // MISSION_VEHICLE
 						{
+							if (changed)
+							{
+								CVehicleManager::SendOccupantsSnapshot(vehicle);
+							}
 							return;
 						}
 						if (!vehicle->m_pPlayers[0] && !vehicle->m_bUsedByPed ) // no driver
@@ -310,6 +381,10 @@ class CVehiclePackets
 									break;
 								}
 							}
+						}
+						if (changed)
+						{
+							CVehicleManager::SendOccupantsSnapshot(vehicle);
 						}
 
 					}

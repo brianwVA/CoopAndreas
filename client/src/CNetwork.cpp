@@ -179,6 +179,8 @@ void CNetwork::InitListeners()
 	CNetwork::AddListener(CPacketsID::DEATH_PICKUPS, CPacketHandler::DeathPickups__Handle);
 	CNetwork::AddListener(CPacketsID::ITEM_DROP, CPacketHandler::ItemDrop__Handle);
 	CNetwork::AddListener(CPacketsID::VEHICLE_OCCUPANTS, CPacketHandler::VehicleOccupants__Handle);
+	CNetwork::AddListener(CPacketsID::REVIVE_APPLY, CPacketHandler::ReviveApply__Handle);
+	CNetwork::AddListener(CPacketsID::VEHICLE_ACTION_ACK, CPacketHandler::VehicleActionAck__Handle);
 }
 
 void CNetwork::HandlePacketReceive(ENetEvent& event)

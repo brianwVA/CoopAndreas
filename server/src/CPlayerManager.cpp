@@ -7,6 +7,11 @@ std::vector<CPlayer*> CPlayerManager::m_pPlayers;
 void CPlayerManager::Add(CPlayer* player)
 {
 	m_pPlayers.push_back(player);
+	if (player && player->m_iPlayerId >= 0 && player->m_iPlayerId < MAX_SERVER_PLAYERS)
+	{
+		CPlayerPackets::ms_deathState[player->m_iPlayerId].active = false;
+		CPlayerPackets::ms_deathPickupSnapshots[player->m_iPlayerId].active = false;
+	}
 }
 
 void CPlayerManager::Remove(CPlayer* player)
@@ -14,6 +19,11 @@ void CPlayerManager::Remove(CPlayer* player)
 	auto it = std::find(m_pPlayers.begin(), m_pPlayers.end(), player);
 	if (it != m_pPlayers.end())
 	{
+		if (player && player->m_iPlayerId >= 0 && player->m_iPlayerId < MAX_SERVER_PLAYERS)
+		{
+			CPlayerPackets::ms_deathState[player->m_iPlayerId].active = false;
+			CPlayerPackets::ms_deathPickupSnapshots[player->m_iPlayerId].active = false;
+		}
 		m_pPlayers.erase(it);
 	}
 }

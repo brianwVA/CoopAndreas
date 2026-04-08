@@ -41,6 +41,39 @@ int CVehicleManager::GetFreeID()
 	return -1;
 }
 
+void CVehicleManager::SendOccupantsSnapshot(CVehicle* vehicle, ENetPeer* onlyPeer)
+{
+	if (!vehicle)
+		return;
+
+	CVehiclePackets::VehicleOccupants occupantsPacket{};
+	occupantsPacket.vehicleid = vehicle->m_nVehicleId;
+	occupantsPacket.occupantsVersion = vehicle->m_nOccupantsVersion;
+
+	bool hasOccupants = false;
+	for (int seat = 0; seat < 8; ++seat)
+	{
+		occupantsPacket.playerIds[seat] = -1;
+		if (vehicle->m_pPlayers[seat])
+		{
+			occupantsPacket.playerIds[seat] = vehicle->m_pPlayers[seat]->m_iPlayerId;
+			hasOccupants = true;
+		}
+	}
+
+	if (!hasOccupants)
+		return;
+
+	if (onlyPeer)
+	{
+		CNetwork::SendPacket(onlyPeer, CPacketsID::VEHICLE_OCCUPANTS, &occupantsPacket, sizeof occupantsPacket, ENET_PACKET_FLAG_RELIABLE);
+	}
+	else
+	{
+		CNetwork::SendPacketToAll(CPacketsID::VEHICLE_OCCUPANTS, &occupantsPacket, sizeof occupantsPacket, ENET_PACKET_FLAG_RELIABLE, nullptr);
+	}
+}
+
 void CVehicleManager::RemoveAllHostedAndNotify(CPlayer* player)
 {
 	CVehiclePackets::VehicleRemove packet{};

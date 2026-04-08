@@ -9,6 +9,7 @@
 #include "CPacket.h"
 #include "../../shared/player_progress.h"
 #include <string>
+#include <cstdint>
 class CPed;
 class CPlayer
 {
@@ -25,6 +26,8 @@ class CPlayer
 		int m_nVehicleId = -1;
 		bool m_bCorrectVersion = false;
 		PlayerProgressState m_progress{};
+		uint16_t m_nLastVehicleActionSeq = 0;
+		bool m_bHasVehicleActionSeq = false;
 		unsigned int m_anModelKeys[10]{};
 		unsigned int m_anTextureKeys[18]{};
 		float m_fFatStat;

@@ -141,6 +141,7 @@ void CNetwork::InitListeners()
     CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPlayerPackets::PickupRemove::Handle);
     CNetwork::AddListener(CPacketsID::DEATH_PICKUPS, CPlayerPackets::DeathPickups::Handle);
     CNetwork::AddListener(CPacketsID::ITEM_DROP, CPlayerPackets::ItemDrop::Handle);
+    CNetwork::AddListener(CPacketsID::REVIVE_REQUEST, CPlayerPackets::ReviveRequest::Handle);
 }
 
 void CNetwork::SendPacket(ENetPeer* peer, unsigned short id, void* data, size_t dataSize, ENetPacketFlag flag)
@@ -401,23 +402,7 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
             CNetwork::SendPacket(peer, CPacketsID::VEHICLE_COMPONENT_ADD, &vehicleComponentAddPacket, sizeof vehicleComponentAddPacket, ENET_PACKET_FLAG_RELIABLE);
         }
 
-        bool hasOccupants = false;
-        CVehiclePackets::VehicleOccupants occupantsPacket{};
-        occupantsPacket.vehicleid = i->m_nVehicleId;
-        for (int seat = 0; seat < 8; ++seat)
-        {
-            occupantsPacket.playerIds[seat] = -1;
-            if (i->m_pPlayers[seat])
-            {
-                occupantsPacket.playerIds[seat] = i->m_pPlayers[seat]->m_iPlayerId;
-                hasOccupants = true;
-            }
-        }
-
-        if (hasOccupants)
-        {
-            CNetwork::SendPacket(peer, CPacketsID::VEHICLE_OCCUPANTS, &occupantsPacket, sizeof occupantsPacket, ENET_PACKET_FLAG_RELIABLE);
-        }
+        CVehicleManager::SendOccupantsSnapshot(i, peer);
     }
 
     for (auto i : CPedManager::m_pPeds)
@@ -431,6 +416,8 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
         strncpy_s(packet.specialModelName, i->m_szSpecialModelName, strlen(i->m_szSpecialModelName));
         CNetwork::SendPacket(peer, CPacketsID::PED_SPAWN, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
     }
+
+    CPlayerPackets::ReplayLateJoinState(peer);
 
     if (CPlayerPackets::EnExSync::ms_pLastPlayerOwner)
     {
