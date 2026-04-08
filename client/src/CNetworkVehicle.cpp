@@ -135,6 +135,14 @@ CNetworkVehicle* CNetworkVehicle::CreateHosted(CVehicle* vehicle)
     networkVehicle->m_nTempId = CNetworkVehicleManager::AddToTempList(networkVehicle);
     networkVehicle->m_nCreatedBy = vehicle->m_nCreatedBy;
 
+    if (networkVehicle->m_nTempId == 255)
+    {
+        // Temp id pool exhausted: abort hosting this vehicle to avoid permanent
+        // vehicleid == -1 state (which breaks enter/driver sync).
+        delete networkVehicle;
+        return nullptr;
+    }
+
     // Add to m_pVehicles immediately so GetVehicle(CVehicle*) finds it.
     // Without this, entering a vehicle before VEHICLE_CONFIRM arrives causes
     // VehicleEnter / VehicleDriverUpdate to silently fail (lookup returns null).

@@ -68,6 +68,16 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
         if (entity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE)
         {
             CVehicle* vehicle = (CVehicle*)entity;
+
+            // Keep ambient/world vehicle hosting authoritative on host side.
+            // Guests should only host on-demand (e.g. when actually entering).
+            if (!CLocalPlayer::m_bIsHost)
+            {
+                if (CUtil::IsValidEntityPtr(entity))
+                    CWorld::Add(entity);
+                return;
+            }
+
             if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr)
             {
                 // Already tracked in the network pool. Let the original call path

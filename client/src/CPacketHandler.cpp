@@ -16,6 +16,7 @@
 #include <CAimSync.h>
 #include <game_sa/CTagManager.h>
 #include <CPickups.h>
+#include <Hooks/PlayerHooks.h>
 #include <cstdio>
 #include <cstdarg>
 
@@ -2642,6 +2643,7 @@ void CPacketHandler::ReviveApply__Handle(void* data, int size)
 			localPlayer->Teleport(revivePos, false);
 			localPlayer->m_fHealth = 20.0f;
 			localPlayer->m_fArmour = 0.0f;
+			PlayerHooks::NotifyLocalRevived();
 			CChat::AddMessage("~g~Teammate revived you");
 		}
 		return;
