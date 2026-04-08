@@ -68,15 +68,21 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
         if (entity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE)
         {
             CVehicle* vehicle = (CVehicle*)entity;
-            if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr
-                || CNetworkVehicleManager::m_bCreatingFromNetwork)
+            if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr)
             {
-                // Already known, or being created from a network packet — don't
-                // call CreateHosted (which would send a duplicate VEHICLE_SPAWN
-                // back to the server, causing an infinite cascade).
+                // Already tracked in the network pool. Let the original call path
+                // continue without trying to host (or re-add) it here.
+                return;
+            }
+
+            if (CNetworkVehicleManager::m_bCreatingFromNetwork)
+            {
+                // Vehicle is being created from a network packet. Allow original add,
+                // but do not host it again (would create a spawn loop).
                 CWorld::Add(entity);
                 return;
             }
+
             CNetworkVehicle* networkVehicle = CNetworkVehicle::CreateHosted(vehicle);
         }
         else if (entity->m_nType == eEntityType::ENTITY_TYPE_PED)

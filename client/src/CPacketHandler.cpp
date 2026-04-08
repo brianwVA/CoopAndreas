@@ -1421,17 +1421,40 @@ void CPacketHandler::VehicleConfirm__Handle(void* data, int size)
 
 			// If local player is already in this vehicle (entered before
 			// CONFIRM arrived), send VehicleEnter now so the guest catches up.
-			CPlayerPed* localPlayer = FindPlayerPed(0);
-			if (localPlayer && localPlayer->m_nPedFlags.bInVehicle
-				&& localPlayer->m_pVehicle == tempVehicles[tempId]->m_pVehicle)
-			{
-				CPackets::VehicleEnter enterPacket{};
-				enterPacket.vehicleid = packet->vehicleid;
-				enterPacket.force = 1;
-				enterPacket.seatid = 0;
-				enterPacket.passenger = (localPlayer->m_pVehicle->m_pDriver != localPlayer) ? 1 : 0;
-				CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &enterPacket, sizeof enterPacket, ENET_PACKET_FLAG_RELIABLE);
-			}
+				CPlayerPed* localPlayer = FindPlayerPed(0);
+				if (localPlayer && localPlayer->m_nPedFlags.bInVehicle
+					&& localPlayer->m_pVehicle == tempVehicles[tempId]->m_pVehicle)
+				{
+					CPackets::VehicleEnter enterPacket{};
+					enterPacket.vehicleid = packet->vehicleid;
+					enterPacket.force = 1;
+					enterPacket.seatid = 0;
+
+					if (localPlayer->m_pVehicle->m_pDriver == localPlayer)
+					{
+						enterPacket.passenger = 0;
+						CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &enterPacket, sizeof enterPacket, ENET_PACKET_FLAG_RELIABLE);
+					}
+					else
+					{
+						bool foundSeat = false;
+						for (int i = 0; i < localPlayer->m_pVehicle->m_nMaxPassengers; i++)
+						{
+							if (localPlayer->m_pVehicle->m_apPassengers[i] == localPlayer)
+							{
+								enterPacket.passenger = 1;
+								enterPacket.seatid = i;
+								foundSeat = true;
+								break;
+							}
+						}
+
+						if (foundSeat)
+						{
+							CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &enterPacket, sizeof enterPacket, ENET_PACKET_FLAG_RELIABLE);
+						}
+					}
+				}
 
 			tempVehicles[tempId] = nullptr;
 		}
