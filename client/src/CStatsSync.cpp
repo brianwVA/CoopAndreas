@@ -1,11 +1,26 @@
 #include "stdafx.h"
 #include "../../shared/player_progress.h"
+#include <array>
+#include <algorithm>
 
 int m_anStoredIntStats[COOPANDREAS_INT_STATS_COUNT];
 float m_afStoredFloatStats[COOPANDREAS_FLOAT_STATS_COUNT];
+static std::array<uint8_t, COOPANDREAS_PROPERTY_COUNT> g_ownedProperties{};
+static std::array<uint8_t, COOPANDREAS_SCHOOL_PROGRESS_COUNT> g_schoolProgress{};
+static std::array<uint8_t, COOPANDREAS_SCHOOL_MEDAL_COUNT> g_schoolMedals{};
 
 constexpr int MAX_INT_STATS = sizeof(m_anStoredIntStats) / sizeof(int);
 constexpr int MAX_FLOAT_STATS = sizeof(m_afStoredFloatStats) / sizeof(float);
+
+static void SyncLocalNetworkPlayerProgressCache()
+{
+	if (auto localNetworkPlayer = CNetworkPlayerManager::GetPlayer(CNetworkPlayerManager::m_nMyId))
+	{
+		localNetworkPlayer->m_ownedProperties = g_ownedProperties;
+		localNetworkPlayer->m_schoolProgress = g_schoolProgress;
+		localNetworkPlayer->m_schoolMedals = g_schoolMedals;
+	}
+}
 
 void CStatsSync::ApplyNetworkPlayerContext(CNetworkPlayer* player)
 {
@@ -50,6 +65,9 @@ void CStatsSync::NotifyChanged()
 
     memcpy(packet.progress.floatStats, CStats::StatTypesFloat, sizeof(packet.progress.floatStats));
     memcpy(packet.progress.intStats, CStats::StatTypesInt, sizeof(packet.progress.intStats));
+	memcpy(packet.progress.ownedProperties, g_ownedProperties.data(), sizeof(packet.progress.ownedProperties));
+	memcpy(packet.progress.schoolProgress, g_schoolProgress.data(), sizeof(packet.progress.schoolProgress));
+	memcpy(packet.progress.schoolMedals, g_schoolMedals.data(), sizeof(packet.progress.schoolMedals));
 
     CNetwork::SendPacket(CPacketsID::PLAYER_STATS, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
 }
@@ -57,4 +75,85 @@ void CStatsSync::NotifyChanged()
 bool CStatsSync::IsSupportedStat(eStats stat)
 {
     return stat >= 0 && stat < MAX_FLOAT_STATS + MAX_INT_STATS;
+}
+
+void CStatsSync::ApplyProgressSnapshot(const PlayerProgressState& progress)
+{
+	memcpy(g_ownedProperties.data(), progress.ownedProperties, sizeof(progress.ownedProperties));
+	memcpy(g_schoolProgress.data(), progress.schoolProgress, sizeof(progress.schoolProgress));
+	memcpy(g_schoolMedals.data(), progress.schoolMedals, sizeof(progress.schoolMedals));
+	SyncLocalNetworkPlayerProgressCache();
+}
+
+bool CStatsSync::SetOwnedProperty(std::size_t index, bool isOwned)
+{
+	if (index >= g_ownedProperties.size())
+		return false;
+
+	const uint8_t next = isOwned ? 1 : 0;
+	if (g_ownedProperties[index] == next)
+		return false;
+
+	g_ownedProperties[index] = next;
+	SyncLocalNetworkPlayerProgressCache();
+
+	if (CNetwork::m_bConnected)
+		NotifyChanged();
+
+	return true;
+}
+
+uint8_t CStatsSync::GetOwnedProperty(std::size_t index)
+{
+	if (index >= g_ownedProperties.size())
+		return 0;
+	return g_ownedProperties[index];
+}
+
+bool CStatsSync::SetSchoolProgress(std::size_t index, uint8_t value)
+{
+	if (index >= g_schoolProgress.size())
+		return false;
+
+	if (g_schoolProgress[index] == value)
+		return false;
+
+	g_schoolProgress[index] = value;
+	SyncLocalNetworkPlayerProgressCache();
+
+	if (CNetwork::m_bConnected)
+		NotifyChanged();
+
+	return true;
+}
+
+uint8_t CStatsSync::GetSchoolProgress(std::size_t index)
+{
+	if (index >= g_schoolProgress.size())
+		return 0;
+	return g_schoolProgress[index];
+}
+
+bool CStatsSync::SetSchoolMedal(std::size_t index, uint8_t value)
+{
+	if (index >= g_schoolMedals.size())
+		return false;
+
+	if (g_schoolMedals[index] == value)
+		return false;
+
+	g_schoolMedals[index] = value;
+	SyncLocalNetworkPlayerProgressCache();
+
+	if (CNetwork::m_bConnected)
+		NotifyChanged();
+
+	return true;
+}
+
+uint8_t CStatsSync::GetSchoolMedal(std::size_t index)
+{
+	if (index >= g_schoolMedals.size())
+		return 0;
+	return g_schoolMedals[index];
 }

@@ -25,6 +25,7 @@ Blip.Remove($steal_contact_blip)
 $steal_contact_blip = Blip.AddSpriteForContactPoint($steal_blip_icon, $stealX, $stealY, $stealZ)
 Blip.Remove($showroom_contact_blip)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 0 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_410
@@ -35,6 +36,7 @@ Blip.Remove($zero_contact_blip)
 World.SwitchEntryExit('RCPLAY', True)
 $zeros_property_bought = 1
 Stat.PlayerMadeProgress(1)
+set_player_property_state 1 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_504
@@ -54,6 +56,7 @@ Garage.Activate('CN2GAR2')
 Garage.Activate('DHANGAR')
 World.SetClosestEntryExitFlag($propertyX[2], $propertyY[2], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 2 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_688
@@ -66,6 +69,7 @@ Blip.ChangeDisplay($1624, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[3], $propertyY[3], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('BEACSV')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 3 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_814
@@ -78,6 +82,7 @@ Blip.ChangeDisplay($1625, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[4], $propertyY[4], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('VESVGRG')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 4 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_940
@@ -90,6 +95,7 @@ Blip.ChangeDisplay($1626, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[5], $propertyY[5], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('CN2GAR1')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 5 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_1066
@@ -102,6 +108,7 @@ Blip.ChangeDisplay($1627, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[6], $propertyY[6], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('BLOB69')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 6 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_1192
@@ -114,6 +121,7 @@ Blip.ChangeDisplay($1628, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[7], $propertyY[7], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('BLOB7')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 7 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_1318
@@ -126,6 +134,7 @@ Blip.ChangeDisplay($1629, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[8], $propertyY[8], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('BURBDOO')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 8 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_1444
@@ -138,6 +147,7 @@ Blip.ChangeDisplay($1630, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[9], $propertyY[9], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('BLOB6')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 9 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_1570
@@ -150,6 +160,7 @@ Blip.ChangeDisplay($1631, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[10], $propertyY[10], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('CARLAS1')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 10 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_1696
@@ -162,6 +173,7 @@ Blip.ChangeDisplay($1632, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[11], $propertyY[11], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('SAV1SFE')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 11 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_1822
@@ -174,6 +186,7 @@ Blip.ChangeDisplay($1633, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[12], $propertyY[12], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('CESAFE1')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 12 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_1948
@@ -186,6 +199,7 @@ Blip.ChangeDisplay($1634, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[13], $propertyY[13], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('SAV1SFW')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 13 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_2074
@@ -198,6 +212,7 @@ Blip.ChangeDisplay($1635, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[14], $propertyY[14], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('SVGSFS1')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 14 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_2200
@@ -209,6 +224,7 @@ $1636 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[15], $propertyY[1
 Blip.ChangeDisplay($1636, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[15], $propertyY[15], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 15 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_2315
@@ -220,6 +236,7 @@ $1637 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[16], $propertyY[1
 Blip.ChangeDisplay($1637, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[16], $propertyY[16], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 16 True
 34@ = 1
 goto @BUYPRO1_4201
 
@@ -232,6 +249,7 @@ $1638 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[17], $propertyY[1
 Blip.ChangeDisplay($1638, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[17], $propertyY[17], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 17 True
 34@ = 1
 goto @BUYPRO1_4201
 
@@ -244,6 +262,7 @@ $1639 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[18], $propertyY[1
 Blip.ChangeDisplay($1639, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[18], $propertyY[18], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 18 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_2674
@@ -255,6 +274,7 @@ $1640 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[19], $propertyY[1
 Blip.ChangeDisplay($1640, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[19], $propertyY[19], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 19 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_2789
@@ -266,6 +286,7 @@ $1641 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[20], $propertyY[2
 Blip.ChangeDisplay($1641, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[20], $propertyY[20], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 20 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_2904
@@ -277,6 +298,7 @@ $1642 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[21], $propertyY[2
 Blip.ChangeDisplay($1642, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[21], $propertyY[21], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 21 True
 34@ = 1
 goto @BUYPRO1_4201
 
@@ -289,6 +311,7 @@ $1643 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[22], $propertyY[2
 Blip.ChangeDisplay($1643, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[22], $propertyY[22], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 22 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_3141
@@ -300,6 +323,7 @@ $1644 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[23], $propertyY[2
 Blip.ChangeDisplay($1644, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[23], $propertyY[23], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 23 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_3256
@@ -311,6 +335,7 @@ $1645 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[24], $propertyY[2
 Blip.ChangeDisplay($1645, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[24], $propertyY[24], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 24 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_3371
@@ -323,6 +348,7 @@ Blip.ChangeDisplay($1646, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[25], $propertyY[25], 10.0, EntryexitsFlag.Enabled, True)
 Garage.Activate('BURBDO2')
 Stat.PlayerMadeProgress(1)
+set_player_property_state 25 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_3497
@@ -334,6 +360,7 @@ $1647 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[26], $propertyY[2
 Blip.ChangeDisplay($1647, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[26], $propertyY[26], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 26 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_3612
@@ -345,6 +372,7 @@ $1648 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[27], $propertyY[2
 Blip.ChangeDisplay($1648, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[27], $propertyY[27], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 27 True
 34@ = 1
 goto @BUYPRO1_4201
 
@@ -357,6 +385,7 @@ $1649 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[28], $propertyY[2
 Blip.ChangeDisplay($1649, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[28], $propertyY[28], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 28 True
 34@ = 1
 goto @BUYPRO1_4201
 
@@ -369,6 +398,7 @@ $1650 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[29], $propertyY[2
 Blip.ChangeDisplay($1650, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[29], $propertyY[29], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 29 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_3971
@@ -380,6 +410,7 @@ $1651 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[30], $propertyY[3
 Blip.ChangeDisplay($1651, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[30], $propertyY[30], 10.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 30 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_4086
@@ -391,6 +422,7 @@ $1652 = Blip.AddShortRangeSpriteForContactPoint(35, $propertyX[31], $propertyY[3
 Blip.ChangeDisplay($1652, BlipDisplay.BlipOnly)
 World.SetClosestEntryExitFlag($propertyX[31], $propertyY[31], 5.0, EntryexitsFlag.Enabled, True)
 Stat.PlayerMadeProgress(1)
+set_player_property_state 31 True
 goto @BUYPRO1_4201
 
 :BUYPRO1_4201

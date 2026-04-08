@@ -272,7 +272,7 @@ public:
 								{
 									lastDropTick = now;
 
-									int droppedMoney = std::min(playerInfo->m_nMoney, kDroppedMoneyAmount);
+									int droppedMoney = (std::min)(playerInfo->m_nMoney, kDroppedMoneyAmount);
 
 									typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
 									auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;

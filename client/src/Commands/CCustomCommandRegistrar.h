@@ -30,6 +30,12 @@
 #include "Commands/CCommandPedTakeHost.h"
 #include "Commands/CCommandGetNetworkPlayerInternalId.h"
 #include "Commands/CCommandTeleportPlayersToHostSafely.h"
+#include "Commands/CCommandSetPlayerPropertyState.h"
+#include "Commands/CCommandGetPlayerPropertyState.h"
+#include "Commands/CCommandSetPlayerSchoolProgress.h"
+#include "Commands/CCommandGetPlayerSchoolProgress.h"
+#include "Commands/CCommandSetPlayerSchoolMedal.h"
+#include "Commands/CCommandGetPlayerSchoolMedal.h"
 
 class CCustomCommandRegistrar
 {
@@ -65,5 +71,11 @@ public:
 		CCustomCommandMgr::RegisterCommand(0x1D1A, new CCommandPedTakeHost());
 		CCustomCommandMgr::RegisterCommand(0x1D1B, new CCommandGetNetworkPlayerInternalId());
 		CCustomCommandMgr::RegisterCommand(0x1D1C, new CCommandTeleportPlayersToHostSafely());
+		CCustomCommandMgr::RegisterCommand(0x1D1D, new CCommandSetPlayerPropertyState());
+		CCustomCommandMgr::RegisterCommand(0x1D1E, new CCommandGetPlayerPropertyState());
+		CCustomCommandMgr::RegisterCommand(0x1D1F, new CCommandSetPlayerSchoolProgress());
+		CCustomCommandMgr::RegisterCommand(0x1D20, new CCommandGetPlayerSchoolProgress());
+		CCustomCommandMgr::RegisterCommand(0x1D21, new CCommandSetPlayerSchoolMedal());
+		CCustomCommandMgr::RegisterCommand(0x1D22, new CCommandGetPlayerSchoolMedal());
 	}
 };

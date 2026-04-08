@@ -1469,6 +1469,11 @@ void CPacketHandler::PlayerStats__Handle(void* data, int size)
 {
 	CPackets::PlayerStats* packet = (CPackets::PlayerStats*)data;
 	
+	if (packet->playerid == CNetworkPlayerManager::m_nMyId)
+	{
+		CStatsSync::ApplyProgressSnapshot(packet->progress);
+	}
+
 	if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(packet->playerid))
 	{
 		memcpy(networkPlayer->m_stats.m_aStatsFloat.data(), packet->progress.floatStats, sizeof(packet->progress.floatStats));
