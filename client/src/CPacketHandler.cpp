@@ -252,6 +252,9 @@ void CPacketHandler::PlayerHandshake__Handle(void* data, int size)
 	CPackets::PlayerHandshake* packet = (CPackets::PlayerHandshake*)data;
 
 	CNetworkPlayerManager::m_nMyId = packet->yourid;
+	CStatsSync::NotifyChanged();
+	CPacketHandler::MoneySync__Trigger();
+	CPacketHandler::WantedLevelSync__Trigger();
 }
 
 // PlayerPlaceWaypoint
@@ -830,6 +833,43 @@ void CPacketHandler::VehiclePassengerUpdate__Handle(void* data, int size)
 	else if (!packet->driveby && CDriveBy::IsPedInDriveby(player->m_pPed))
 	{
 		CDriveBy::StopDriveby(player->m_pPed);
+	}
+}
+
+void CPacketHandler::VehicleOccupants__Handle(void* data, int size)
+{
+	CPackets::VehicleOccupants* packet = (CPackets::VehicleOccupants*)data;
+
+	CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(packet->vehicleid);
+	if (vehicle == nullptr || vehicle->m_pVehicle == nullptr)
+		return;
+
+	if (!CUtil::IsValidEntityPtr(vehicle->m_pVehicle))
+		return;
+
+	for (int seat = 0; seat < 8; ++seat)
+	{
+		int playerId = packet->playerIds[seat];
+		if (playerId < 0)
+			continue;
+
+		CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(playerId);
+		if (player == nullptr || player->m_pPed == nullptr || !CUtil::IsValidEntityPtr(player->m_pPed))
+			continue;
+
+		if (seat == 0)
+		{
+			if (vehicle->m_pVehicle->m_pDriver != player->m_pPed)
+			{
+				player->WarpIntoVehicleDriver(vehicle->m_pVehicle);
+			}
+			continue;
+		}
+
+		if (vehicle->m_pVehicle->m_apPassengers[seat - 1] != player->m_pPed)
+		{
+			player->WarpIntoVehiclePassenger(vehicle->m_pVehicle, seat - 1);
+		}
 	}
 }
 
@@ -1431,11 +1471,13 @@ void CPacketHandler::PlayerStats__Handle(void* data, int size)
 	
 	if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(packet->playerid))
 	{
-		for (size_t i = 0; i < CStatsSync::SYNCED_STATS_COUNT; i++)
-		{
-			eStats statId = CStatsSync::m_aeSyncedStats[i];
-			networkPlayer->m_stats[statId] = packet->stats[i];
-		}
+		memcpy(networkPlayer->m_stats.m_aStatsFloat.data(), packet->progress.floatStats, sizeof(packet->progress.floatStats));
+		memcpy(networkPlayer->m_stats.m_aStatsInt.data(), packet->progress.intStats, sizeof(packet->progress.intStats));
+		networkPlayer->m_nMoney = packet->progress.money;
+		networkPlayer->m_nWantedLevel = packet->progress.wantedLevel;
+		memcpy(networkPlayer->m_ownedProperties.data(), packet->progress.ownedProperties, sizeof(packet->progress.ownedProperties));
+		memcpy(networkPlayer->m_schoolProgress.data(), packet->progress.schoolProgress, sizeof(packet->progress.schoolProgress));
+		memcpy(networkPlayer->m_schoolMedals.data(), packet->progress.schoolMedals, sizeof(packet->progress.schoolMedals));
 	}
 }
 
@@ -2075,15 +2117,24 @@ void CPacketHandler::WantedLevelSync__Handle(void* data, int size)
 {
 	CPackets::WantedLevelSync* packet = (CPackets::WantedLevelSync*)data;
 
-	CPlayerPed* localPlayer = FindPlayerPed(0);
-	if (localPlayer)
+	if (packet->playerid == CNetworkPlayerManager::m_nMyId)
 	{
-		CWanted* wanted = localPlayer->GetWanted();
-		if (wanted)
+		CPlayerPed* localPlayer = FindPlayerPed(0);
+		if (localPlayer)
 		{
-			wanted->SetWantedLevelNoDrop(packet->wantedLevel);
-			s_nLastSentWantedLevel = packet->wantedLevel;
+			CWanted* wanted = localPlayer->GetWanted();
+			if (wanted)
+			{
+				wanted->SetWantedLevelNoDrop(packet->wantedLevel);
+				s_nLastSentWantedLevel = packet->wantedLevel;
+			}
 		}
+		return;
+	}
+
+	if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(packet->playerid))
+	{
+		networkPlayer->m_nWantedLevel = packet->wantedLevel;
 	}
 }
 
@@ -2113,12 +2164,21 @@ void CPacketHandler::MoneySync__Handle(void* data, int size)
 {
 	CPackets::MoneySync* packet = (CPackets::MoneySync*)data;
 
-	CPlayerInfo* playerInfo = &CWorld::Players[0];
-	if (playerInfo)
+	if (packet->playerid == CNetworkPlayerManager::m_nMyId)
 	{
-		playerInfo->m_nMoney = packet->money;
-		playerInfo->m_nDisplayMoney = packet->money;
-		s_nLastSentMoney = packet->money;
+		CPlayerInfo* playerInfo = &CWorld::Players[0];
+		if (playerInfo)
+		{
+			playerInfo->m_nMoney = packet->money;
+			playerInfo->m_nDisplayMoney = packet->money;
+			s_nLastSentMoney = packet->money;
+		}
+		return;
+	}
+
+	if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(packet->playerid))
+	{
+		networkPlayer->m_nMoney = packet->money;
 	}
 }
 
@@ -2241,6 +2301,11 @@ void CPacketHandler::ItemDrop__Handle(void* data, int size)
 		typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
 		auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
 		CreateSomeMoney(pos, packet->money);
+
+		TrackDroppedPickup(
+			(int16_t)(pos.x * 8.0f),
+			(int16_t)(pos.y * 8.0f),
+			(int16_t)(pos.z * 8.0f));
 	}
 }
 

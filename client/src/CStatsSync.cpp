@@ -1,28 +1,11 @@
 #include "stdafx.h"
+#include "../../shared/player_progress.h"
 
-int m_anStoredIntStats[224];
-float m_afStoredFloatStats[83];
+int m_anStoredIntStats[COOPANDREAS_INT_STATS_COUNT];
+float m_afStoredFloatStats[COOPANDREAS_FLOAT_STATS_COUNT];
 
 constexpr int MAX_INT_STATS = sizeof(m_anStoredIntStats) / sizeof(int);
 constexpr int MAX_FLOAT_STATS = sizeof(m_afStoredFloatStats) / sizeof(float);
-
-std::array<eStats, CStatsSync::SYNCED_STATS_COUNT> CStatsSync::m_aeSyncedStats =
-{
-    STAT_PISTOL_SKILL,
-    STAT_SILENCED_PISTOL_SKILL,
-    STAT_DESERT_EAGLE_SKILL,
-    STAT_SHOTGUN_SKILL,
-    STAT_SAWN_OFF_SHOTGUN_SKILL,
-    STAT_COMBAT_SHOTGUN_SKILL,
-    STAT_MACHINE_PISTOL_SKILL,
-    STAT_SMG_SKILL,
-    STAT_AK_47_SKILL,
-    STAT_M4_SKILL,
-    STAT_RIFLE_SKILL,
-    STAT_MAX_HEALTH,
-    STAT_LUNG_CAPACITY,
-    STAT_STAMINA
-};
 
 void CStatsSync::ApplyNetworkPlayerContext(CNetworkPlayer* player)
 {
@@ -52,22 +35,26 @@ void CStatsSync::ApplyLocalContext()
 void CStatsSync::NotifyChanged()
 {
     CPackets::PlayerStats packet{};
-    
-    for (uint8_t i = 0; i < CStatsSync::SYNCED_STATS_COUNT; i++)
+
+    CPlayerInfo* playerInfo = &CWorld::Players[0];
+    if (playerInfo)
     {
-        packet.stats[i] = CStats::GetStatValue(m_aeSyncedStats[i]);
+        packet.progress.money = playerInfo->m_nMoney;
     }
+
+    CPlayerPed* localPlayer = FindPlayerPed(0);
+    if (localPlayer && localPlayer->GetWanted())
+    {
+        packet.progress.wantedLevel = static_cast<uint8_t>(localPlayer->GetWanted()->m_nWantedLevel);
+    }
+
+    memcpy(packet.progress.floatStats, CStats::StatTypesFloat, sizeof(packet.progress.floatStats));
+    memcpy(packet.progress.intStats, CStats::StatTypesInt, sizeof(packet.progress.intStats));
 
     CNetwork::SendPacket(CPacketsID::PLAYER_STATS, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
 }
 
-int CStatsSync::GetSyncIdByInternal(eStats stat)
+bool CStatsSync::IsSupportedStat(eStats stat)
 {
-    for (int i = 0; i < CStatsSync::SYNCED_STATS_COUNT; i++)
-    {
-        if (m_aeSyncedStats[i] == stat)
-            return i;
-    }
-
-    return -1;
+    return stat >= 0 && stat < MAX_FLOAT_STATS + MAX_INT_STATS;
 }

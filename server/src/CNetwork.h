@@ -3,7 +3,7 @@
 #ifndef _CNETWORK_H_
 	#define _CNETWORK_H_ 
 
-#define COOPANDREAS_VERSION "0.2.7-alpha"
+#include "../../shared/version.h"
 
 #include <cstddef>
 #include <unordered_map>

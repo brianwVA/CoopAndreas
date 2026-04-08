@@ -12,6 +12,7 @@
 #include "CPlayer.h"
 #include "NetworkEntityType.h"
 #include "PlayerDisconnectReason.h"
+#include "../../shared/player_progress.h"
 
 class CPlayerManager
 {
@@ -258,7 +259,7 @@ public:
 	struct PlayerStats
 	{
 		int playerid;
-		float stats[14];
+		PlayerProgressState progress;
 
 		static void Handle(ENetPeer* peer, void* data, int size)
 		{
@@ -268,8 +269,8 @@ public:
 				packet->playerid = player->m_iPlayerId;
 				CNetwork::SendPacketToAll(CPacketsID::PLAYER_STATS, packet, sizeof * packet, ENET_PACKET_FLAG_RELIABLE, peer);
 
-				memcpy(player->m_afStats, packet->stats, sizeof(packet->stats));
-				player->m_ucSyncFlags.bStatsModified = true;
+				memcpy(&player->m_progress, &packet->progress, sizeof(packet->progress));
+				player->m_ucSyncFlags.bProgressModified = true;
 			}
 		}
 	};
@@ -733,6 +734,8 @@ public:
 			{
 				WantedLevelSync* packet = (WantedLevelSync*)data;
 				packet->playerid = player->m_iPlayerId;
+				player->m_progress.wantedLevel = packet->wantedLevel;
+				player->m_ucSyncFlags.bProgressModified = true;
 				CNetwork::SendPacketToAll(CPacketsID::WANTED_LEVEL_SYNC, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE, peer);
 			}
 		}
@@ -749,6 +752,8 @@ public:
 			{
 				MoneySync* packet = (MoneySync*)data;
 				packet->playerid = player->m_iPlayerId;
+				player->m_progress.money = packet->money;
+				player->m_ucSyncFlags.bProgressModified = true;
 				CNetwork::SendPacketToAll(CPacketsID::MONEY_SYNC, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE, peer);
 			}
 		}

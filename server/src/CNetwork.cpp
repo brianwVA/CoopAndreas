@@ -332,11 +332,11 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
 
         CNetwork::SendPacket(peer, CPacketsID::PLAYER_CONNECTED, &newPlayerPacket, sizeof(CPlayerPackets::PlayerConnected), ENET_PACKET_FLAG_RELIABLE);
 
-        if (i->m_ucSyncFlags.bStatsModified)
+        if (i->m_ucSyncFlags.bProgressModified)
         {
             CPlayerPackets::PlayerStats statsPacket{};
             statsPacket.playerid = i->m_iPlayerId;
-            memcpy(statsPacket.stats, i->m_afStats, sizeof(i->m_afStats));
+            memcpy(&statsPacket.progress, &i->m_progress, sizeof(i->m_progress));
             CNetwork::SendPacket(peer, CPacketsID::PLAYER_STATS, &statsPacket, sizeof(statsPacket), ENET_PACKET_FLAG_RELIABLE);
         }
 
@@ -398,6 +398,24 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
             vehicleComponentAddPacket.vehicleid = i->m_nVehicleId;
             vehicleComponentAddPacket.componentid = component;
             CNetwork::SendPacket(peer, CPacketsID::VEHICLE_COMPONENT_ADD, &vehicleComponentAddPacket, sizeof vehicleComponentAddPacket, ENET_PACKET_FLAG_RELIABLE);
+        }
+
+        bool hasOccupants = false;
+        CVehiclePackets::VehicleOccupants occupantsPacket{};
+        occupantsPacket.vehicleid = i->m_nVehicleId;
+        for (int seat = 0; seat < 8; ++seat)
+        {
+            occupantsPacket.playerIds[seat] = -1;
+            if (i->m_pPlayers[seat])
+            {
+                occupantsPacket.playerIds[seat] = i->m_pPlayers[seat]->m_iPlayerId;
+                hasOccupants = true;
+            }
+        }
+
+        if (hasOccupants)
+        {
+            CNetwork::SendPacket(peer, CPacketsID::VEHICLE_OCCUPANTS, &occupantsPacket, sizeof occupantsPacket, ENET_PACKET_FLAG_RELIABLE);
         }
     }
 

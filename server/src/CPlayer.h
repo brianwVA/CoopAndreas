@@ -7,6 +7,7 @@
 #include "CVector.h"
 #include "CNetwork.h"
 #include "CPacket.h"
+#include "../../shared/player_progress.h"
 #include <string>
 class CPed;
 class CPlayer
@@ -23,14 +24,14 @@ class CPlayer
 		unsigned char m_nSeatId = -1;
 		int m_nVehicleId = -1;
 		bool m_bCorrectVersion = false;
-		float m_afStats[14]{};
+		PlayerProgressState m_progress{};
 		unsigned int m_anModelKeys[10]{};
 		unsigned int m_anTextureKeys[18]{};
 		float m_fFatStat;
 		float m_fMuscleStat;
 		CVector m_vecWaypointPos{};
 		struct {
-			uint8_t bStatsModified : 1;
+			uint8_t bProgressModified : 1;
 			uint8_t bClothesModified : 1;
 			uint8_t bWaypointModified : 1;
 		} m_ucSyncFlags;

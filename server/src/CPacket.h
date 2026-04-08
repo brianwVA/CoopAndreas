@@ -76,6 +76,7 @@ enum CPacketsID : unsigned short
 	PICKUP_REMOVE,
 	DEATH_PICKUPS,
 	ITEM_DROP,
+	VEHICLE_OCCUPANTS,
 	PACKET_ID_MAX
 };
 
