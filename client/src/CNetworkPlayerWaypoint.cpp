@@ -4,11 +4,11 @@ void CNetworkPlayerWaypoint::Process()
 {
 	for (auto player : CNetworkPlayerManager::m_pPlayers)
 	{
-		if (!player->m_bWaypointPlaced || player->m_vecWaypointPos == nullptr)
+		if (!player->m_bWaypointPlaced)
 			continue;
 
 		CVector2D radar;
-		CRadar::TransformRealWorldPointToRadarSpace(radar, *player->m_vecWaypointPos);
+		CRadar::TransformRealWorldPointToRadarSpace(radar, player->m_vecWaypointPos);
 		
 		CRadar::LimitRadarPoint(radar);
 

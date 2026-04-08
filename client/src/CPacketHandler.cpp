@@ -264,9 +264,11 @@ void CPacketHandler::PlayerPlaceWaypoint__Handle(void* data, int size)
 	CPackets::PlayerPlaceWaypoint* packet = (CPackets::PlayerPlaceWaypoint*)data;
 
 	CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(packet->playerid);
+	if (player == nullptr)
+		return;
 
 	player->m_bWaypointPlaced = packet->place;
-	player->m_vecWaypointPos = &packet->position;
+	player->m_vecWaypointPos = packet->position;
 
 #ifdef PACKET_DEBUG_MESSAGES
 	CChat::AddMessage("WAYPOINT PLACE %d %.0f %.0f\n", packet->place, packet->position.x, packet->position.y);

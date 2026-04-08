@@ -12,7 +12,7 @@ public:
 	signed short m_oShockButtonL;
 	signed short m_lShockButtonL;
 
-	CVector* m_vecWaypointPos = nullptr;
+	CVector m_vecWaypointPos{};
 	bool m_bWaypointPlaced = false;
 
 	char m_Name[32 + 1] = { 0 };
