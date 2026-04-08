@@ -107,6 +107,9 @@ Status model:
 - [ ] Re-verify host migration edge cases for money/wanted/stats snapshots.
 - [ ] Confirm launcher-side server control remains in backlog (`OPEN`).
 
+Runtime session checklist used to close these items:
+- `RUNTIME_CHECKLIST_AB_2026-04-08.md`
+
 ### Notes
 
 - Legacy checklist blocks were intentionally replaced because they mixed historical claims with current status and were no longer reliable as a source of truth.
