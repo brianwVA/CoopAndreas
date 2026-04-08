@@ -36,6 +36,12 @@
 #include "Commands/CCommandGetPlayerSchoolProgress.h"
 #include "Commands/CCommandSetPlayerSchoolMedal.h"
 #include "Commands/CCommandGetPlayerSchoolMedal.h"
+#include "Commands/CCommandSetPlayerFloatStat.h"
+#include "Commands/CCommandGetPlayerFloatStat.h"
+#include "Commands/CCommandAddPlayerFloatStat.h"
+#include "Commands/CCommandSetPlayerIntStat.h"
+#include "Commands/CCommandGetPlayerIntStat.h"
+#include "Commands/CCommandAddPlayerIntStat.h"
 
 class CCustomCommandRegistrar
 {
@@ -77,5 +83,11 @@ public:
 		CCustomCommandMgr::RegisterCommand(0x1D20, new CCommandGetPlayerSchoolProgress());
 		CCustomCommandMgr::RegisterCommand(0x1D21, new CCommandSetPlayerSchoolMedal());
 		CCustomCommandMgr::RegisterCommand(0x1D22, new CCommandGetPlayerSchoolMedal());
+		CCustomCommandMgr::RegisterCommand(0x1D23, new CCommandSetPlayerFloatStat());
+		CCustomCommandMgr::RegisterCommand(0x1D24, new CCommandGetPlayerFloatStat());
+		CCustomCommandMgr::RegisterCommand(0x1D25, new CCommandAddPlayerFloatStat());
+		CCustomCommandMgr::RegisterCommand(0x1D26, new CCommandSetPlayerIntStat());
+		CCustomCommandMgr::RegisterCommand(0x1D27, new CCommandGetPlayerIntStat());
+		CCustomCommandMgr::RegisterCommand(0x1D28, new CCommandAddPlayerIntStat());
 	}
 };

@@ -274,9 +274,7 @@ public:
 
 									int droppedMoney = (std::min)(playerInfo->m_nMoney, kDroppedMoneyAmount);
 
-									typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
-									auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
-									CreateSomeMoney(pos, droppedMoney);
+									plugin::Command<0x02E1>(pos.x, pos.y, pos.z, droppedMoney);
 
 									playerInfo->m_nMoney -= droppedMoney;
 									playerInfo->m_nDisplayMoney = playerInfo->m_nMoney;

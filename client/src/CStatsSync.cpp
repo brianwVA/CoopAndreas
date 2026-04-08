@@ -79,10 +79,93 @@ bool CStatsSync::IsSupportedStat(eStats stat)
 
 void CStatsSync::ApplyProgressSnapshot(const PlayerProgressState& progress)
 {
+	memcpy(CStats::StatTypesFloat, progress.floatStats, sizeof(progress.floatStats));
+	memcpy(CStats::StatTypesInt, progress.intStats, sizeof(progress.intStats));
+
+	if (auto playerInfo = &CWorld::Players[0])
+	{
+		playerInfo->m_nMoney = progress.money;
+		playerInfo->m_nDisplayMoney = progress.money;
+	}
+
+	if (auto localPlayer = FindPlayerPed(0))
+	{
+		if (auto wanted = localPlayer->GetWanted())
+		{
+			wanted->SetWantedLevelNoDrop(progress.wantedLevel);
+		}
+	}
+
 	memcpy(g_ownedProperties.data(), progress.ownedProperties, sizeof(progress.ownedProperties));
 	memcpy(g_schoolProgress.data(), progress.schoolProgress, sizeof(progress.schoolProgress));
 	memcpy(g_schoolMedals.data(), progress.schoolMedals, sizeof(progress.schoolMedals));
 	SyncLocalNetworkPlayerProgressCache();
+}
+
+bool CStatsSync::SetFloatStat(std::size_t index, float value)
+{
+	if (index >= COOPANDREAS_FLOAT_STATS_COUNT)
+		return false;
+
+	const eStats statId = static_cast<eStats>(index);
+	const float oldValue = CStats::GetStatValue(statId);
+	if (oldValue == value)
+		return false;
+
+	CStats::SetStatValue(statId, value);
+
+	if (CNetwork::m_bConnected)
+		NotifyChanged();
+
+	return true;
+}
+
+float CStatsSync::GetFloatStat(std::size_t index)
+{
+	if (index >= COOPANDREAS_FLOAT_STATS_COUNT)
+		return 0.0f;
+
+	return CStats::GetStatValue(static_cast<eStats>(index));
+}
+
+bool CStatsSync::AddFloatStat(std::size_t index, float delta)
+{
+	if (index >= COOPANDREAS_FLOAT_STATS_COUNT)
+		return false;
+
+	return SetFloatStat(index, GetFloatStat(index) + delta);
+}
+
+bool CStatsSync::SetIntStat(std::size_t index, int32_t value)
+{
+	if (index >= COOPANDREAS_INT_STATS_COUNT)
+		return false;
+
+	if (CStats::StatTypesInt[index] == value)
+		return false;
+
+	CStats::StatTypesInt[index] = value;
+
+	if (CNetwork::m_bConnected)
+		NotifyChanged();
+
+	return true;
+}
+
+int32_t CStatsSync::GetIntStat(std::size_t index)
+{
+	if (index >= COOPANDREAS_INT_STATS_COUNT)
+		return 0;
+
+	return CStats::StatTypesInt[index];
+}
+
+bool CStatsSync::AddIntStat(std::size_t index, int32_t delta)
+{
+	if (index >= COOPANDREAS_INT_STATS_COUNT)
+		return false;
+
+	return SetIntStat(index, GetIntStat(index) + delta);
 }
 
 bool CStatsSync::SetOwnedProperty(std::size_t index, bool isOwned)

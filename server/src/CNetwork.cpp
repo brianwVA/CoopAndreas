@@ -197,8 +197,9 @@ void CNetwork::HandlePeerConnected(ENetEvent& event)
         (event.peer->address.host >> 24) & 0xFF,
         event.peer->address.port);
 
-    // set player disconnection timeout
-    enet_peer_timeout(event.peer, 10000, 6000, 10000); //timeoutLimit, timeoutMinimum, timeoutMaximum
+    // Keep dual-instance/local testing stable while one window is unfocused/loading.
+    // Previous 6-10s timeout was too aggressive and could drop the first client on alt-tab.
+    enet_peer_timeout(event.peer, 0, 30000, 120000); // timeoutLimit, timeoutMinimum, timeoutMaximum
 }
 
 void CNetwork::HandlePlayerDisconnected(ENetEvent& event)

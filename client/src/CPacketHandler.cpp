@@ -2273,10 +2273,7 @@ void CPacketHandler::DeathPickups__Handle(void* data, int size)
 	// Create money pickup
 	if (packet->money > 0)
 	{
-		// CreateSomeMoney(CVector coors, int amount) @ 0x458970
-		typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
-		auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
-		CreateSomeMoney(pos, packet->money);
+		plugin::Command<0x02E1>(pos.x, pos.y, pos.z, packet->money);
 	}
 }
 
@@ -2303,9 +2300,7 @@ void CPacketHandler::ItemDrop__Handle(void* data, int size)
 	}
 	else if (packet->dropType == 1) // money
 	{
-		typedef void(__cdecl* CreateSomeMoney_t)(CVector, int);
-		auto CreateSomeMoney = (CreateSomeMoney_t)0x458970;
-		CreateSomeMoney(pos, packet->money);
+		plugin::Command<0x02E1>(pos.x, pos.y, pos.z, packet->money);
 
 		TrackDroppedPickup(
 			(int16_t)(pos.x * 8.0f),
