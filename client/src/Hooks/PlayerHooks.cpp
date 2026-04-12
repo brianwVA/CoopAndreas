@@ -66,11 +66,12 @@ static void ApplyDownedAnimation(CPed* ped, bool alternate)
         return;
     }
 
-    const char* animName = alternate ? "GNSTWALL_INJURD_L" : "GNSTWALL_INJURD";
+    // Use prone hit animations from PED so downed players look actually collapsed on the ground.
+    const char* animName = alternate ? "KO_shot_stom" : "KO_shot_front";
     plugin::Command<Commands::TASK_PLAY_ANIM_NON_INTERRUPTABLE>(
         pedRef,
         animName,
-        "SWAT",
+        "PED",
         4.0f,
         1,
         1,
