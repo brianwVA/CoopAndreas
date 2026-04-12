@@ -17,6 +17,7 @@
 #include <CAimSync.h>
 #include <game_sa/CTagManager.h>
 #include <Hooks/PlayerHooks.h>
+#include <Hooks/GameHooks.h>
 
 struct ReviveTargetState
 {
@@ -799,6 +800,14 @@ void CPacketHandler::PlayerChatMessage__Handle(void* data, int size)
 	{
 		CChat::SendPlayerMessage(player->GetName().c_str(), player->m_iPlayerId, packet->message);
 	}
+}
+
+void CPacketHandler::CheatsToggle__Handle(void* data, int size)
+{
+	CPackets::CheatsToggle* packet = (CPackets::CheatsToggle*)data;
+	const bool enabled = packet->enabled != 0;
+	GameHooks::SetCheatsEnabled(enabled);
+	CChat::AddMessage(enabled ? "{cecedb}[Host] {00ff00}Cheaty wlaczone." : "{cecedb}[Host] {ff3b3b}Cheaty wylaczone.");
 }
 
 // PedSpawn

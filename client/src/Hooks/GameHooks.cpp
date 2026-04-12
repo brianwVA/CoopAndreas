@@ -24,12 +24,20 @@ static void __cdecl CClock__SetGameClock_Hook(unsigned char h, unsigned char m, 
 }
 
 DWORD ProcessCheat_Hook_Ret = 0x438589;
+static bool g_bCheatsEnabled = true;
+static bool g_bDidProcessCheat = false;
+
 static void __declspec(naked) ProcessCheat_Hook()
 {
     // finally figured out how to hook functions without masturbating RedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCall
     __asm
     {
+        mov byte ptr ds:[g_bDidProcessCheat], 0
+        cmp byte ptr ds:[g_bCheatsEnabled], 0
+        je skipCall
         call eax; call orig code
+        mov byte ptr ds:[g_bDidProcessCheat], 1
+    skipCall:
         pop edi
         pop esi
         mov byte ptr ds : [0x969110] , bl
@@ -37,8 +45,11 @@ static void __declspec(naked) ProcessCheat_Hook()
         pushad; store registers
     }
 
-    // sync time and weather after processing cheat code
-    CPacketHandler::GameWeatherTime__Trigger();
+    // sync time and weather only when a cheat was actually processed
+    if (g_bDidProcessCheat)
+    {
+        CPacketHandler::GameWeatherTime__Trigger();
+    }
 
     __asm
     {
@@ -46,6 +57,16 @@ static void __declspec(naked) ProcessCheat_Hook()
 
         jmp ProcessCheat_Hook_Ret; jump to function continuation
     }
+}
+
+void GameHooks::SetCheatsEnabled(bool enabled)
+{
+    g_bCheatsEnabled = enabled;
+}
+
+bool GameHooks::AreCheatsEnabled()
+{
+    return g_bCheatsEnabled;
 }
 
 CEntity* pEntity = nullptr;

@@ -177,6 +177,7 @@ void CNetwork::InitListeners()
 	CNetwork::AddListener(CPacketsID::REVIVE_APPLY, CPacketHandler::ReviveApply__Handle);
 	CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPacketHandler::PickupRemove__Handle);
 	CNetwork::AddListener(CPacketsID::ITEM_DROP, CPacketHandler::ItemDrop__Handle);
+	CNetwork::AddListener(CPacketsID::CHEATS_TOGGLE, CPacketHandler::CheatsToggle__Handle);
 }
 
 void CNetwork::HandlePacketReceive(ENetEvent& event)

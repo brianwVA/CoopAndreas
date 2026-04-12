@@ -80,6 +80,7 @@ enum CPacketsID : unsigned short
 	REVIVE_APPLY,
 	PICKUP_REMOVE,
 	ITEM_DROP,
+	CHEATS_TOGGLE,
 	PACKET_ID_MAX
 };
 
@@ -161,6 +162,7 @@ public:
 					sizeof(ReviveApply), // REVIVE_APPLY,
 					sizeof(PickupRemove), // PICKUP_REMOVE,
 					sizeof(ItemDrop), // ITEM_DROP,
+					sizeof(CheatsToggle), // CHEATS_TOGGLE,
 				};
 
 		return m_nPacketSize[id];
@@ -733,5 +735,10 @@ public:
 		unsigned int weaponType;
 		unsigned int ammo;
 		int money;
+	};
+
+	struct CheatsToggle
+	{
+		uint8_t enabled;
 	};
 };

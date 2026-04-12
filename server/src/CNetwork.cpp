@@ -140,6 +140,7 @@ void CNetwork::InitListeners()
     CNetwork::AddListener(CPacketsID::REVIVE_REQUEST, CPlayerPackets::ReviveRequest::Handle);
     CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPlayerPackets::PickupRemove::Handle);
     CNetwork::AddListener(CPacketsID::ITEM_DROP, CPlayerPackets::ItemDrop::Handle);
+    CNetwork::AddListener(CPacketsID::CHEATS_TOGGLE, CPlayerPackets::CheatsToggle::Handle);
 }
 
 void CNetwork::SendPacket(ENetPeer* peer, unsigned short id, void* data, size_t dataSize, ENetPacketFlag flag)
@@ -423,6 +424,10 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
 
     CPlayerPackets::PlayerHandshake handshakePacket = { freeId };
     CNetwork::SendPacket(peer, CPacketsID::PLAYER_HANDSHAKE, &handshakePacket, sizeof handshakePacket, ENET_PACKET_FLAG_RELIABLE);
+
+    CPlayerPackets::CheatsToggle cheatsPacket{};
+    cheatsPacket.enabled = CPlayerPackets::ms_bCheatsEnabled ? 1 : 0;
+    CNetwork::SendPacket(peer, CPacketsID::CHEATS_TOGGLE, &cheatsPacket, sizeof(cheatsPacket), ENET_PACKET_FLAG_RELIABLE);
 
     CPlayerManager::AssignHostToFirstPlayer();
 }

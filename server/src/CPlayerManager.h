@@ -80,6 +80,7 @@ public:
 
 	static inline std::array<DeathReviveState, MAX_SERVER_PLAYERS> ms_deathState{};
 	static inline std::array<DeathPickupSnapshot, MAX_SERVER_PLAYERS> ms_deathPickupSnapshots{};
+	static inline bool ms_bCheatsEnabled = true;
 
 	#pragma pack(1)
 	struct PlayerConnected
@@ -1009,6 +1010,25 @@ public:
 				slot->cz = cz;
 
 				CNetwork::SendPacketToAll(CPacketsID::ITEM_DROP, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE, peer);
+			}
+		};
+
+		struct CheatsToggle
+		{
+			uint8_t enabled;
+
+			static void Handle(ENetPeer* peer, void* data, int size)
+			{
+				auto player = CPlayerManager::GetPlayer(peer);
+				if (!player || !player->m_bIsHost)
+				{
+					return;
+				}
+
+				CheatsToggle* packet = (CheatsToggle*)data;
+				packet->enabled = packet->enabled ? 1 : 0;
+				ms_bCheatsEnabled = packet->enabled != 0;
+				CNetwork::SendPacketToAll(CPacketsID::CHEATS_TOGGLE, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE);
 			}
 		};
 	};

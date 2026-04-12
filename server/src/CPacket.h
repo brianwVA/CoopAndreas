@@ -76,6 +76,7 @@ enum CPacketsID : unsigned short
 	REVIVE_APPLY,
 	PICKUP_REMOVE,
 	ITEM_DROP,
+	CHEATS_TOGGLE,
 	PACKET_ID_MAX
 };
 
