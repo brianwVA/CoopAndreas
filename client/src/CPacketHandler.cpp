@@ -739,6 +739,11 @@ static bool ApplyVehicleEnterPacket(const CPackets::VehicleEnter& enter)
 		return false;
 	}
 
+	// Defensive re-add for streamed-out entities: GTA can remove ambient entities
+	// from the world list while pointers remain valid.
+	CWorld::Add(vehicle->m_pVehicle);
+	CWorld::Add(player->m_pPed);
+
 	if (auto* task = player->m_pPed->m_pIntelligence->GetTaskJetPack()) // drop the jetpack if present
 	{
 		task->MakeAbortable(player->m_pPed, ABORT_PRIORITY_URGENT, nullptr);
@@ -1039,6 +1044,9 @@ static bool ApplyVehicleOccupantsPacket(const CPackets::VehicleOccupants& packet
 
 	if (!CUtil::IsValidEntityPtr(vehicle->m_pVehicle))
 		return false;
+
+	// Keep network vehicle in world when occupancy snapshots arrive after streaming.
+	CWorld::Add(vehicle->m_pVehicle);
 
 	auto isNewerSeq = [](uint16_t incoming, uint16_t current) -> bool
 	{

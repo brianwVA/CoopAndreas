@@ -63,8 +63,6 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
 {
     if (CNetwork::m_bConnected)
     {
-        bool dontCreateEntity = false;
-
         if (entity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE)
         {
             CVehicle* vehicle = (CVehicle*)entity;
@@ -80,8 +78,10 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
 
             if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr)
             {
-                // Already tracked in the network pool. Let the original call path
-                // continue without trying to host (or re-add) it here.
+                // Already tracked in the network pool. Re-add to world if needed,
+                // but do not attempt to host again.
+                if (CUtil::IsValidEntityPtr(entity))
+                    CWorld::Add(entity);
                 return;
             }
 
@@ -93,7 +93,31 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
                 return;
             }
 
-            CNetworkVehicle* networkVehicle = CNetworkVehicle::CreateHosted(vehicle);
+            // Avoid syncing every ambient/NPC vehicle from host world generation.
+            // Those are non-deterministic between clients and quickly exhaust server vehicle IDs.
+            // We host vehicles on-demand (enter/driver/passenger flows) instead.
+            bool hasPlayerOccupant = false;
+            if (vehicle->m_pDriver && vehicle->m_pDriver->IsPlayer())
+            {
+                hasPlayerOccupant = true;
+            }
+            if (!hasPlayerOccupant)
+            {
+                for (int i = 0; i < vehicle->m_nMaxPassengers; ++i)
+                {
+                    if (vehicle->m_apPassengers[i] && vehicle->m_apPassengers[i]->IsPlayer())
+                    {
+                        hasPlayerOccupant = true;
+                        break;
+                    }
+                }
+            }
+
+            const bool missionLikeVehicle = vehicle->m_nCreatedBy == MISSION_VEHICLE;
+            if (hasPlayerOccupant || missionLikeVehicle)
+            {
+                CNetworkVehicle::CreateHosted(vehicle);
+            }
         }
         else if (entity->m_nType == eEntityType::ENTITY_TYPE_PED)
         {

@@ -8,10 +8,53 @@
 static CPackets::DeathPickups s_storedDeathPickups{};
 static bool s_downedActive = false;
 static bool s_downedAnnounced = false;
+static bool s_downedTimedOutPendingDeath = false;
 static uint32_t s_downedStartTick = 0;
 static constexpr uint32_t kDownedDurationMs = 60000;
 static constexpr float kDownedMinHealth = 5.0f;
 static CVector s_downedFreezePos{};
+static uint32_t s_downedAnimTick = 0;
+static bool s_remoteDownedAnimApplied[MAX_SERVER_PLAYERS] = {};
+static uint32_t s_remoteDownedAnimTick[MAX_SERVER_PLAYERS] = {};
+
+static void ResetDownedInputLocks()
+{
+    if (CPad* pad = CPad::GetPad(0))
+    {
+        pad->bDisablePlayerEnterCar = 0;
+        pad->bDisablePlayerDuck = 0;
+        pad->bDisablePlayerJump = 0;
+        pad->bDisablePlayerFireWeapon = 0;
+        pad->bDisablePlayerFireWeaponWithL1 = 0;
+        pad->bDisablePlayerCycleWeapon = 0;
+    }
+}
+
+static void ApplyDownedAnimation(CPed* ped, bool alternate)
+{
+    if (!ped)
+    {
+        return;
+    }
+
+    int pedRef = CPools::GetPedRef(ped);
+    if (pedRef < 0)
+    {
+        return;
+    }
+
+    const char* animName = alternate ? "GNSTWALL_INJURD_L" : "GNSTWALL_INJURD";
+    plugin::Command<Commands::TASK_PLAY_ANIM_NON_INTERRUPTABLE>(
+        pedRef,
+        animName,
+        "SWAT",
+        4.0f,
+        1,
+        1,
+        1,
+        1,
+        -1);
+}
 
 static void SendReviveWindowMarker(CPlayerPed* ped)
 {
@@ -42,16 +85,16 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
             {
                 s_downedActive = false;
                 s_downedAnnounced = false;
-
-                // Permanent death after revive timeout: now drop inventory/cash.
-                if (s_storedDeathPickups.weaponCount > 0 || s_storedDeathPickups.money > 0)
+                s_downedTimedOutPendingDeath = true;
+                ResetDownedInputLocks();
+                This->m_fHealth = 0.0f;
+                int pedRef = CPools::GetPedRef(This);
+                if (pedRef >= 0)
                 {
-                    CNetwork::SendPacket(CPacketsID::DEATH_PICKUPS, &s_storedDeathPickups, sizeof s_storedDeathPickups, ENET_PACKET_FLAG_RELIABLE);
+                    // Force an actual death transition when revive timeout ends.
+                    // Some game states ignore direct m_fHealth writes.
+                    plugin::Command<0x0223>(pedRef, 0);
                 }
-
-                CPackets::RespawnPlayer packet{};
-                CNetwork::SendPacket(CPacketsID::RESPAWN_PLAYER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-                plugin::Call<0x571AD0>(); // CReferences::RemoveReferencesToPlayer();
                 return;
             }
 
@@ -82,6 +125,17 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
                 pad->bDisablePlayerFireWeaponWithL1 = 1;
                 pad->bDisablePlayerCycleWeapon = 1;
             }
+
+            uint32_t now = GetTickCount();
+            if (now > s_downedAnimTick + 1200)
+            {
+                ApplyDownedAnimation(This, ((now / 1200) & 1u) != 0u);
+                s_downedAnimTick = now;
+            }
+        }
+        else
+        {
+            ResetDownedInputLocks();
         }
 
         patch::SetRaw(0x6884C4, (void*)"\xD9\x96\x5C\x05\x00\x00", 6, false);
@@ -193,6 +247,31 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 
     CWorld::PlayerInFocus = 0;
 
+    // Render remote downed animation when that player is in downed-like synced state.
+    {
+        int remoteId = player->m_iPlayerId;
+        bool remoteDowned = player->m_playerOnFoot.health <= (unsigned char)kDownedMinHealth
+            && !player->m_pPed->m_nPedFlags.bInVehicle;
+
+        if (remoteId >= 0 && remoteId < MAX_SERVER_PLAYERS)
+        {
+            uint32_t now = GetTickCount();
+            if (remoteDowned)
+            {
+                if (!s_remoteDownedAnimApplied[remoteId] || now > s_remoteDownedAnimTick[remoteId] + 1200)
+                {
+                    ApplyDownedAnimation(player->m_pPed, ((now / 1200) & 1u) != 0u);
+                    s_remoteDownedAnimApplied[remoteId] = true;
+                    s_remoteDownedAnimTick[remoteId] = now;
+                }
+            }
+            else
+            {
+                s_remoteDownedAnimApplied[remoteId] = false;
+            }
+        }
+    }
+
     CKeySync::ApplyLocalContext();
     CAimSync::ApplyLocalContext();
     //CStatsSync::ApplyLocalContext();
@@ -301,10 +380,17 @@ void CReferences__RemoveReferencesToPlayer_Hook()
         return;
     }
 
+    s_downedTimedOutPendingDeath = false;
+
     plugin::Call<0x571AD0>(); // CReferences::RemoveReferencesToPlayer();
 
     if (CNetwork::m_bConnected)
     {
+        if (s_storedDeathPickups.weaponCount > 0 || s_storedDeathPickups.money > 0)
+        {
+            CNetwork::SendPacket(CPacketsID::DEATH_PICKUPS, &s_storedDeathPickups, sizeof s_storedDeathPickups, ENET_PACKET_FLAG_RELIABLE);
+        }
+
         CPackets::RespawnPlayer packet{};
         CNetwork::SendPacket(CPacketsID::RESPAWN_PLAYER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
     }
@@ -339,6 +425,11 @@ void __fastcall CPedDamageResponseCalculator__ComputeWillKillPed_Hook(uintptr_t 
     {
         if (CNetwork::m_bConnected)
         {
+            if (s_downedTimedOutPendingDeath)
+            {
+                return;
+            }
+
             float projectedHealth = ped->m_fHealth - dmgResponse->m_fDamageHealth;
             bool shouldEnterDowned = !s_downedActive && projectedHealth <= kDownedMinHealth;
 
@@ -347,6 +438,8 @@ void __fastcall CPedDamageResponseCalculator__ComputeWillKillPed_Hook(uintptr_t 
                 s_downedActive = true;
                 s_downedStartTick = GetTickCount();
                 s_downedFreezePos = ped->GetPosition();
+                s_downedAnimTick = 0;
+                s_downedTimedOutPendingDeath = false;
                 if (!s_downedAnnounced)
                 {
                     CChat::AddMessage("~b~Downed: you are immobilized for 60s, teammate can revive (J)");
@@ -545,4 +638,6 @@ void PlayerHooks::NotifyLocalRevived()
 {
     s_downedActive = false;
     s_downedAnnounced = false;
+    s_downedTimedOutPendingDeath = false;
+    ResetDownedInputLocks();
 }
