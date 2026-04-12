@@ -26,5 +26,6 @@ public:
 
 	static bool SetSchoolMedal(std::size_t index, uint8_t value);
 	static uint8_t GetSchoolMedal(std::size_t index);
+	static void PollScriptProgress();
 };
 

@@ -29,6 +29,11 @@ static void __cdecl CWeather__SetWeatherToAppropriateTypeNow_Hook()
 static CdeclEvent	 <AddressList<0x5775D2, H_CALL>, PRIORITY_AFTER, ArgPick5N<eBlipType, 0, CVector, 1, eBlipColour, 2, eBlipDisplay, 3, char*, 4>, void(eBlipType, CVector, eBlipColour, eBlipDisplay, char*)> waypointPlaceEvent;
 static void PlaceWaypointHook(eBlipType type, CVector posn, eBlipColour color, eBlipDisplay blipDisplay, char* scriptName)
 {
+    if (!CNetwork::m_bConnected)
+    {
+        return;
+    }
+
     CPackets::PlayerPlaceWaypoint packet = { 0, true, posn };
     CNetwork::SendPacket(CPacketsID::PLAYER_PLACE_WAYPOINT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
 }
@@ -36,8 +41,21 @@ static void PlaceWaypointHook(eBlipType type, CVector posn, eBlipColour color, e
 // hide waypoint
 static void __fastcall CRadar__ClearBlip_Hook(int blipIndex, SKIP_EDX)
 {
-    CPackets::PlayerPlaceWaypoint packet = { 0, false, CVector(0, 0, 0) };
-    CNetwork::SendPacket(CPacketsID::PLAYER_PLACE_WAYPOINT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+    bool isWaypointBlip = false;
+    if (blipIndex >= 0)
+    {
+        if (const auto index = CRadar::GetActualBlipArrayIndex(blipIndex); index != -1)
+        {
+            isWaypointBlip = static_cast<eRadarSprite>(CRadar::ms_RadarTrace[index].m_nRadarSprite) == eRadarSprite::RADAR_SPRITE_WAYPOINT;
+        }
+    }
+
+    if (CNetwork::m_bConnected && isWaypointBlip)
+    {
+        CPackets::PlayerPlaceWaypoint packet = { 0, false, CVector(0, 0, 0) };
+        CNetwork::SendPacket(CPacketsID::PLAYER_PLACE_WAYPOINT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+    }
+
     CRadar::ClearBlip(blipIndex);
 }
 

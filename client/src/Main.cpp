@@ -131,6 +131,7 @@ public:
 					CPlayerPed* localPlayer = FindPlayerPed(0);
 
 					CDriveBy::Process(localPlayer);
+					CStatsSync::PollScriptProgress();
 					
 					int syncRate = 40;
 					CVector velocity{};
@@ -226,7 +227,8 @@ public:
 							CPlayerPed* localPed = FindPlayerPed(0);
 							if (localPed)
 							{
-								const bool isOnFoot = !localPed->m_nPedFlags.bInVehicle && localPed->m_pVehicle == nullptr;
+								const bool isInVehicle = localPed->m_nPedFlags.bInVehicle != 0;
+								const bool isOnFoot = !isInVehicle;
 								float heading = localPed->m_fCurrentRotation;
 								CVector pos = localPed->GetPosition();
 								pos.x += -sinf(heading) * 2.0f;
@@ -355,7 +357,7 @@ public:
 								}
 								else
 								{
-									if (localPed->m_nPedFlags.bInVehicle || localPed->m_pVehicle)
+									if (localPed->m_nPedFlags.bInVehicle)
 									{
 										g_reviveInProgress = false;
 										g_reviveTargetId = -1;

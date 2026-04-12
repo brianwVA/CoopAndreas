@@ -8,6 +8,7 @@ float m_afStoredFloatStats[COOPANDREAS_FLOAT_STATS_COUNT];
 static std::array<uint8_t, COOPANDREAS_PROPERTY_COUNT> g_ownedProperties{};
 static std::array<uint8_t, COOPANDREAS_SCHOOL_PROGRESS_COUNT> g_schoolProgress{};
 static std::array<uint8_t, COOPANDREAS_SCHOOL_MEDAL_COUNT> g_schoolMedals{};
+static constexpr std::size_t kScmAlreadyBoughtHouseBase = 728;
 
 constexpr int MAX_INT_STATS = sizeof(m_anStoredIntStats) / sizeof(int);
 constexpr int MAX_FLOAT_STATS = sizeof(m_afStoredFloatStats) / sizeof(float);
@@ -20,6 +21,49 @@ static void SyncLocalNetworkPlayerProgressCache()
 		localNetworkPlayer->m_schoolProgress = g_schoolProgress;
 		localNetworkPlayer->m_schoolMedals = g_schoolMedals;
 	}
+}
+
+static int32_t ReadScmGlobalInt(std::size_t variableIndex)
+{
+	return *reinterpret_cast<int32_t*>(&CTheScripts::ScriptSpace[variableIndex * sizeof(int32_t)]);
+}
+
+static void WriteScmGlobalInt(std::size_t variableIndex, int32_t value)
+{
+	*reinterpret_cast<int32_t*>(&CTheScripts::ScriptSpace[variableIndex * sizeof(int32_t)]) = value;
+}
+
+static void PushOwnedPropertiesToScm()
+{
+	for (std::size_t i = 0; i < g_ownedProperties.size(); ++i)
+	{
+		WriteScmGlobalInt(kScmAlreadyBoughtHouseBase + i, g_ownedProperties[i] ? 1 : 0);
+	}
+}
+
+static bool PullOwnedPropertiesFromScm(bool sendUpdateIfChanged)
+{
+	bool changed = false;
+	for (std::size_t i = 0; i < g_ownedProperties.size(); ++i)
+	{
+		const uint8_t next = ReadScmGlobalInt(kScmAlreadyBoughtHouseBase + i) != 0 ? 1 : 0;
+		if (g_ownedProperties[i] != next)
+		{
+			g_ownedProperties[i] = next;
+			changed = true;
+		}
+	}
+
+	if (changed)
+	{
+		SyncLocalNetworkPlayerProgressCache();
+		if (sendUpdateIfChanged && CNetwork::m_bConnected)
+		{
+			CStatsSync::NotifyChanged();
+		}
+	}
+
+	return changed;
 }
 
 void CStatsSync::ApplyNetworkPlayerContext(CNetworkPlayer* player)
@@ -50,6 +94,8 @@ void CStatsSync::ApplyLocalContext()
 void CStatsSync::NotifyChanged()
 {
     CPackets::PlayerStats packet{};
+
+	PullOwnedPropertiesFromScm(false);
 
     CPlayerInfo* playerInfo = &CWorld::Players[0];
     if (playerInfo)
@@ -99,6 +145,7 @@ void CStatsSync::ApplyProgressSnapshot(const PlayerProgressState& progress)
 	memcpy(g_ownedProperties.data(), progress.ownedProperties, sizeof(progress.ownedProperties));
 	memcpy(g_schoolProgress.data(), progress.schoolProgress, sizeof(progress.schoolProgress));
 	memcpy(g_schoolMedals.data(), progress.schoolMedals, sizeof(progress.schoolMedals));
+	PushOwnedPropertiesToScm();
 	SyncLocalNetworkPlayerProgressCache();
 }
 
@@ -178,6 +225,7 @@ bool CStatsSync::SetOwnedProperty(std::size_t index, bool isOwned)
 		return false;
 
 	g_ownedProperties[index] = next;
+	PushOwnedPropertiesToScm();
 	SyncLocalNetworkPlayerProgressCache();
 
 	if (CNetwork::m_bConnected)
@@ -239,4 +287,9 @@ uint8_t CStatsSync::GetSchoolMedal(std::size_t index)
 	if (index >= g_schoolMedals.size())
 		return 0;
 	return g_schoolMedals[index];
+}
+
+void CStatsSync::PollScriptProgress()
+{
+	PullOwnedPropertiesFromScm(true);
 }
