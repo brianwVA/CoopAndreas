@@ -3,6 +3,7 @@
 
 :HOODS5
 script_name 'HOODS5'
+Coop.EnableSyncingThisScript()
 gosub @HOODS5_251
 if 
   has_deatharrest_been_executed 
@@ -29,6 +30,7 @@ goto_if_false @HOODS5_251
 
 :HOODS5_251
 Stat.RegisterMissionGiven
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Player.SetGroupToFollowAlways($player1, True)
 154@ = 14
@@ -302,6 +304,7 @@ Streaming.RequestCollision(2770.116, -1915.896)
 Char.SetCoordinates($scplayer, 2770.116, -1915.896, 11.651)
 Char.ClearTasksImmediately($scplayer)
 Streaming.LoadScene(2770.116, -1915.896, 11.651)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetFixedPosition(2770.897, -1915.951, 12.6746, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(2770.337, -1916.334, 13.4091, SwitchType.JumpCut)
 Hud.SwitchWidescreen(True)
@@ -515,6 +518,7 @@ Streaming.RequestCollision(2518.789, -1677.22)
 Char.SetCoordinates($scplayer, 2518.448, -1677.224, 13.4109)
 Char.SetHeading($scplayer, 90.691)
 Streaming.LoadScene(2510.284, -1674.066, 14.5338)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 set_lvar_int_to_lvar_int 35@ = TIMERA
 35@ += 300
 148@ = 9
@@ -542,6 +546,13 @@ World.SetCarDensityMultiplier(1.0)
 34@ = Char.GetScriptTaskStatus($scplayer, 1833)
 Text.Print('SW5_A2', 6000, 1)
 Text.Print('SW5_17', 6000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('SW5_A2', 6000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 Player.SetControl($player1, True)
 Player.MakeGangReappear
 Hud.SwitchWidescreen(False)
@@ -1177,6 +1188,13 @@ Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Text.ClearPrints
 Text.Print('SW5_I', 5000, 1)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.PrintNowForNetworkPlayer('SW5_I', 5000, 1, $NETWORK_PLAYER[$temp_int])
+    end
+end
 127@ = 6
 125@ = 1
 set_lvar_int_to_lvar_int 153@ = TIMERA
@@ -2443,6 +2461,13 @@ DecisionMaker.Remove(47@)
 DecisionMaker.Remove(99@)
 Game.SetCreateRandomGangMembers(True)
 Player.SetGroupToFollowAlways($player1, False)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
 Mission.Finish

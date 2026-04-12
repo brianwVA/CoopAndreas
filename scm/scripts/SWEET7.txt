@@ -3,6 +3,7 @@
 
 :SWEET7
 script_name 'SWEET7'
+Coop.EnableSyncingThisScript()
 gosub @SWEET7_54
 if 
   has_deatharrest_been_executed 
@@ -17,6 +18,7 @@ terminate_this_script
 :SWEET7_54
 Stat.RegisterMissionGiven
 Text.LoadMissionText('SWEET7')
+$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 Player.SetControl($player1, False)
@@ -69,6 +71,7 @@ Weather.Release
 wait 0
 Char.SetCoordinates($scplayer, 2515.207, -1674.086, 12.7552)
 Char.SetHeading($scplayer, 54.1779)
+Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Streaming.LoadSpecialCharacter('SWEET', 1)
 Streaming.RequestModel(492)
 Streaming.RequestModel(68)
@@ -5232,6 +5235,13 @@ Streaming.MarkModelAsNoLongerNeeded(12)
 Path.SwitchRoadsOn(772.243, -1050.323, 10.2931, 806.2723, -1130.195, 23.8359)
 Path.SwitchRoadsOn(135@, 136@, 0.0, 137@, 138@, 60.0)
 Path.SwitchPedRoadsOn(135@, 136@, 0.0, 137@, 138@, 60.0)
+for $temp_int = 0 to 2
+    if 
+        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
+    then
+        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
+    end
+end
 $onmission = 0
 Mission.Finish
 return 

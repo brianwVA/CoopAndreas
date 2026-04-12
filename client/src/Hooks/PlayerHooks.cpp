@@ -14,8 +14,10 @@ static constexpr uint32_t kDownedDurationMs = 60000;
 static constexpr float kDownedMinHealth = 5.0f;
 static CVector s_downedFreezePos{};
 static uint32_t s_downedAnimTick = 0;
+static bool s_downedAnimAlternate = false;
 static bool s_remoteDownedAnimApplied[MAX_SERVER_PLAYERS] = {};
 static uint32_t s_remoteDownedAnimTick[MAX_SERVER_PLAYERS] = {};
+static bool s_remoteDownedAnimAlternate[MAX_SERVER_PLAYERS] = {};
 static void SendReviveWindowMarker(CPlayerPed* ped);
 
 static void ActivateDownedState(CPlayerPed* ped)
@@ -29,6 +31,7 @@ static void ActivateDownedState(CPlayerPed* ped)
     s_downedStartTick = GetTickCount();
     s_downedFreezePos = ped->GetPosition();
     s_downedAnimTick = 0;
+    s_downedAnimAlternate = false;
     s_downedTimedOutPendingDeath = false;
 
     if (!s_downedAnnounced)
@@ -78,6 +81,31 @@ static void ApplyDownedAnimation(CPed* ped, bool alternate)
         1,
         1,
         -1);
+}
+
+static bool IsPedInDownedAnimTask(CPed* ped)
+{
+    if (!ped || !ped->m_pIntelligence)
+    {
+        return false;
+    }
+
+    CTask* activeTask = ped->m_pIntelligence->m_TaskMgr.GetActiveTask();
+    if (!activeTask)
+    {
+        return false;
+    }
+
+    switch (activeTask->GetId())
+    {
+    case eTaskType::TASK_SIMPLE_ANIM:
+    case eTaskType::TASK_SIMPLE_NAMED_ANIM:
+    case eTaskType::TASK_SIMPLE_TIMED_ANIM:
+    case eTaskType::TASK_SIMPLE_ANIM_LOOPED_MIDDLE:
+        return true;
+    default:
+        return false;
+    }
 }
 
 static void SendReviveWindowMarker(CPlayerPed* ped)
@@ -157,9 +185,15 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
             }
 
             uint32_t now = GetTickCount();
-            if (now > s_downedAnimTick + 1200)
+            if (s_downedAnimTick == 0)
             {
-                ApplyDownedAnimation(This, ((now / 1200) & 1u) != 0u);
+                ApplyDownedAnimation(This, s_downedAnimAlternate);
+                s_downedAnimTick = now;
+            }
+            else if (now > s_downedAnimTick + 500 && !IsPedInDownedAnimTask(This))
+            {
+                s_downedAnimAlternate = !s_downedAnimAlternate;
+                ApplyDownedAnimation(This, s_downedAnimAlternate);
                 s_downedAnimTick = now;
             }
         }
@@ -288,16 +322,23 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
             uint32_t now = GetTickCount();
             if (remoteDowned)
             {
-                if (!s_remoteDownedAnimApplied[remoteId] || now > s_remoteDownedAnimTick[remoteId] + 1200)
+                if (!s_remoteDownedAnimApplied[remoteId])
                 {
-                    ApplyDownedAnimation(player->m_pPed, ((now / 1200) & 1u) != 0u);
+                    ApplyDownedAnimation(player->m_pPed, s_remoteDownedAnimAlternate[remoteId]);
                     s_remoteDownedAnimApplied[remoteId] = true;
+                    s_remoteDownedAnimTick[remoteId] = now;
+                }
+                else if (now > s_remoteDownedAnimTick[remoteId] + 500 && !IsPedInDownedAnimTask(player->m_pPed))
+                {
+                    s_remoteDownedAnimAlternate[remoteId] = !s_remoteDownedAnimAlternate[remoteId];
+                    ApplyDownedAnimation(player->m_pPed, s_remoteDownedAnimAlternate[remoteId]);
                     s_remoteDownedAnimTick[remoteId] = now;
                 }
             }
             else
             {
                 s_remoteDownedAnimApplied[remoteId] = false;
+                s_remoteDownedAnimAlternate[remoteId] = false;
             }
         }
     }
@@ -670,5 +711,7 @@ void PlayerHooks::NotifyLocalRevived()
     s_downedActive = false;
     s_downedAnnounced = false;
     s_downedTimedOutPendingDeath = false;
+    s_downedAnimTick = 0;
+    s_downedAnimAlternate = false;
     ResetDownedInputLocks();
 }
