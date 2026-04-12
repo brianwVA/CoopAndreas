@@ -226,12 +226,13 @@ public:
 							CPlayerPed* localPed = FindPlayerPed(0);
 							if (localPed)
 							{
+								const bool isOnFoot = !localPed->m_nPedFlags.bInVehicle && localPed->m_pVehicle == nullptr;
 								float heading = localPed->m_fCurrentRotation;
 								CVector pos = localPed->GetPosition();
 								pos.x += -sinf(heading) * 2.0f;
 								pos.y += cosf(heading) * 2.0f;
 
-								if (GetAsyncKeyState('G') & 0x8000)
+								if ((GetAsyncKeyState('G') & 0x8000) && isOnFoot)
 								{
 									CWeapon& weapon = localPed->m_aWeapons[localPed->m_nActiveWeaponSlot];
 									bool canDropWeapon = weapon.m_eWeaponType != WEAPON_UNARMED && weapon.m_nTotalAmmo > 0;
@@ -268,7 +269,7 @@ public:
 										CChat::AddMessage("~g~Dropped weapon");
 									}
 								}
-									else if (GetAsyncKeyState('H') & 0x8000)
+									else if ((GetAsyncKeyState('H') & 0x8000) && isOnFoot)
 									{
 									CPlayerInfo* playerInfo = &CWorld::Players[0];
 									if (playerInfo && playerInfo->m_nMoney > 0)
@@ -307,20 +308,27 @@ public:
 										{
 											lastReviveTryTick = now;
 
-											int targetId = -1;
-											CVector deathPos{};
-											if (CPacketHandler::TryGetNearestReviveTarget(localPed->GetPosition(), targetId, deathPos))
+											if (!isOnFoot)
 											{
-												g_reviveInProgress = true;
-												g_reviveStartTick = now;
-												g_reviveTargetId = targetId;
-												g_reviveTargetPos = deathPos;
-												g_reviveRescuerStartPos = localPed->GetPosition();
-												CChat::AddMessage("~b~Reviving teammate... stay still and keep 1m range for 10 seconds");
+												CChat::AddMessage("~r~Get out of vehicle to revive");
 											}
 											else
 											{
-												CChat::AddMessage("~r~No teammate to revive nearby (or revive window expired)");
+												int targetId = -1;
+												CVector deathPos{};
+												if (CPacketHandler::TryGetNearestReviveTarget(localPed->GetPosition(), targetId, deathPos))
+												{
+													g_reviveInProgress = true;
+													g_reviveStartTick = now;
+													g_reviveTargetId = targetId;
+													g_reviveTargetPos = deathPos;
+													g_reviveRescuerStartPos = localPed->GetPosition();
+													CChat::AddMessage("~b~Reviving teammate... don't move for 10 seconds");
+												}
+												else
+												{
+													CChat::AddMessage("~r~No teammate to revive nearby (or revive window expired)");
+												}
 											}
 										}
 									}
@@ -347,47 +355,40 @@ public:
 								}
 								else
 								{
-									const CVector pos = localPed->GetPosition();
-									const float dx = pos.x - g_reviveTargetPos.x;
-									const float dy = pos.y - g_reviveTargetPos.y;
-									const float dz = pos.z - g_reviveTargetPos.z;
-									const float distSq = dx * dx + dy * dy + dz * dz;
-
-									const float mx = pos.x - g_reviveRescuerStartPos.x;
-									const float my = pos.y - g_reviveRescuerStartPos.y;
-									const float mz = pos.z - g_reviveRescuerStartPos.z;
-									const float movedSq = mx * mx + my * my + mz * mz;
-									const bool movementInput =
-										(GetAsyncKeyState('W') & 0x8000) || (GetAsyncKeyState('A') & 0x8000) ||
-										(GetAsyncKeyState('S') & 0x8000) || (GetAsyncKeyState('D') & 0x8000) ||
-										(GetAsyncKeyState(VK_UP) & 0x8000) || (GetAsyncKeyState(VK_DOWN) & 0x8000) ||
-										(GetAsyncKeyState(VK_LEFT) & 0x8000) || (GetAsyncKeyState(VK_RIGHT) & 0x8000) ||
-										(GetAsyncKeyState(VK_SPACE) & 0x8000) || (GetAsyncKeyState(VK_SHIFT) & 0x8000) ||
-										(GetAsyncKeyState(VK_LSHIFT) & 0x8000) || (GetAsyncKeyState(VK_RSHIFT) & 0x8000);
-
-									localPed->m_vecMoveSpeed = CVector(0.0f, 0.0f, 0.0f);
-
-									if (distSq > (kReviveDistance * kReviveDistance))
+									if (localPed->m_nPedFlags.bInVehicle || localPed->m_pVehicle)
 									{
 										g_reviveInProgress = false;
 										g_reviveTargetId = -1;
-										CChat::AddMessage("~r~Revive canceled (too far)");
+										CChat::AddMessage("~r~Revive canceled (in vehicle)");
 									}
-									else if (movementInput || movedSq > 0.01f)
+									else
 									{
-										g_reviveInProgress = false;
-										g_reviveTargetId = -1;
-										CChat::AddMessage("~r~Revive canceled (movement detected)");
-									}
-									else if (reviveNow >= g_reviveStartTick + kReviveDurationMs)
-									{
-										CPackets::ReviveRequest revive{};
-										revive.targetPlayerId = g_reviveTargetId;
-										revive.rescuerPos = pos;
-										CNetwork::SendPacket(CPacketsID::REVIVE_REQUEST, &revive, sizeof revive, ENET_PACKET_FLAG_RELIABLE);
-										g_reviveInProgress = false;
-										g_reviveTargetId = -1;
-										CChat::AddMessage("~b~Revive attempt sent");
+										// Lock rescuer in place so revive cannot be done while moving.
+										localPed->SetPosn(g_reviveRescuerStartPos);
+										localPed->m_vecMoveSpeed = CVector(0.0f, 0.0f, 0.0f);
+
+										const CVector pos = localPed->GetPosition();
+										const float dx = pos.x - g_reviveTargetPos.x;
+										const float dy = pos.y - g_reviveTargetPos.y;
+										const float dz = pos.z - g_reviveTargetPos.z;
+										const float distSq = dx * dx + dy * dy + dz * dz;
+
+										if (distSq > (kReviveDistance * kReviveDistance))
+										{
+											g_reviveInProgress = false;
+											g_reviveTargetId = -1;
+											CChat::AddMessage("~r~Revive canceled (too far)");
+										}
+										else if (reviveNow >= g_reviveStartTick + kReviveDurationMs)
+										{
+											CPackets::ReviveRequest revive{};
+											revive.targetPlayerId = g_reviveTargetId;
+											revive.rescuerPos = pos;
+											CNetwork::SendPacket(CPacketsID::REVIVE_REQUEST, &revive, sizeof revive, ENET_PACKET_FLAG_RELIABLE);
+											g_reviveInProgress = false;
+											g_reviveTargetId = -1;
+											CChat::AddMessage("~b~Revive attempt sent");
+										}
 									}
 								}
 							}
@@ -459,6 +460,7 @@ public:
 						float remaining = (kReviveDurationMs > elapsed) ? ((kReviveDurationMs - elapsed) / 1000.0f) : 0.0f;
 						sprintf(reviveBarText, "REVIVE %.1fs", remaining);
 						CDXFont::Draw((int)(x + barW * 0.5f - 45.0f), (int)(y - CUtil::SCREEN_SCALE_Y(18.0f)), reviveBarText, D3DCOLOR_ARGB(255, 230, 230, 230));
+						CDXFont::Draw((int)(x + barW * 0.5f - 85.0f), (int)(y + barH + CUtil::SCREEN_SCALE_Y(4.0f)), "DO NOT MOVE", D3DCOLOR_ARGB(255, 255, 210, 120));
 					}
 
 				if (CNetwork::m_bConnected && GetAsyncKeyState(VK_F10))
