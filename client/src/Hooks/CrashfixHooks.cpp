@@ -46,8 +46,40 @@ static void __declspec(naked) CAnimManager__BlendAnimation_Hook()
     }
 }
 
+// Crashfix for 0x005D12DD — rep movsd writes to NULL destination.
+// Original code at 0x5D12D1:
+//   mov edx, [0xC16EE8]   ; animation buffer base pointer
+//   lea edi, [edx+eax]    ; dest = base + offset
+//   ...
+//   rep movsd              ; crashes when edx (buffer base) is NULL
+// We hook at 0x5D12D1 (6 bytes), check edx for NULL, and skip the
+// memcpy block if the buffer is not allocated.
+static void __declspec(naked) AnimBuf_NullGuard_Hook()
+{
+    __asm
+    {
+        // Replaced instruction: mov edx, [0xC16EE8]
+        mov edx, dword ptr ds:[0x00C16EE8]
+        test edx, edx
+        jnz buf_ok
+
+        // Buffer is NULL — skip the copy and the offset advance.
+        // Jump to the function epilogue: pop edi; pop esi; mov al,1; pop ebx; ret
+        push 0x005D12F0
+        ret
+
+    buf_ok:
+        // Continue with original code: lea edi, [edx+eax]
+        lea edi, [edx + eax]
+        push 0x005D12DA  // return to mov ecx, ebx (next instruction after lea)
+        ret
+    }
+}
+
 void CrashfixHooks::InjectHooks()
 {
     patch::RedirectJump(0x6E3D10, CVehicleAnimGroup__ComputeAnimDoorOffsets_Hook);
     patch::RedirectJump(0x4D4610, CAnimManager__BlendAnimation_Hook);
+    // Guard against NULL animation buffer at 0x5D12D1 (covers crash at 0x5D12DD)
+    patch::RedirectJump(0x5D12D1, AnimBuf_NullGuard_Hook);
 }
