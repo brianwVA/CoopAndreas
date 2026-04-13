@@ -67,12 +67,14 @@ static void ApplyDownedAnimation(CPed* ped, bool alternate)
 
     // Use prone hit animations from PED so downed players look actually collapsed on the ground.
     const char* animName = alternate ? "KO_shot_stom" : "KO_shot_front";
+    // Do not loop the downed animation - looping KO_* causes visual
+    // "stand up / fall down" bouncing on some clients.
     plugin::Command<Commands::TASK_PLAY_ANIM_NON_INTERRUPTABLE>(
         pedRef,
         animName,
         "PED",
         4.0f,
-        1,
+        0,
         1,
         1,
         1,
