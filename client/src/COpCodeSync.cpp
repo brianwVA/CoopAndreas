@@ -375,6 +375,17 @@ std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize)
 
 void BuildAndSendOpcode()
 {
+    // 0x04BB (set_area_visible) is unstable in network replay during SWEET2/Nines and AKs.
+    // Keep it local-only to prevent remote script-crash chains (EIP=0x00000001).
+    if (lastOpCodeProcessed == 0x04BB)
+    {
+        memset(textParamBuffer, 0, sizeof textParamBuffer);
+        memset(textLengthBuffer, 0, sizeof textLengthBuffer);
+        scriptParamCount = 0;
+        textParamCount = 0;
+        return;
+    }
+
     if (!CTaskSequenceSync::OnOpCodeExecuted((eScriptCommands)lastOpCodeProcessed))
     {
         memset(textParamBuffer, 0, sizeof textParamBuffer);
@@ -435,6 +446,13 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     OpcodeSyncHeader header;
     memcpy(&header, current, sizeof(header));
     current += sizeof(header);
+
+    // 0x04BB (set_area_visible) is unstable in network replay during SWEET2/Nines and AKs.
+    // Keep it local-only to prevent remote script-crash chains (EIP=0x00000001).
+    if (header.opcode == 0x04BB)
+    {
+        return;
+    }
 
     if (bufferSize < sizeof(header) + header.intParamCount * sizeof(int))
     {
