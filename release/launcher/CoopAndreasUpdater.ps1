@@ -183,6 +183,20 @@ function Get-LatestPackagePath([string]$repoRootPath) {
     return (Join-Path "release" $latest.Name)
 }
 
+function Get-LocalInstalledChannel([string]$gameDir) {
+    $versionPath = Join-Path $gameDir "VERSION.txt"
+    if (-not (Test-Path $versionPath)) {
+        return $null
+    }
+
+    $line = Get-Content -LiteralPath $versionPath | Where-Object { $_ -like "channel=*" } | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($line)) {
+        return $null
+    }
+
+    return ($line -replace '^channel=', '').Trim()
+}
+
 function Stop-IfRunning([string[]]$processNames) {
     foreach ($procName in $processNames) {
         $running = Get-Process -Name $procName -ErrorAction SilentlyContinue
@@ -325,6 +339,22 @@ try {
         throw "Brak folderu paczki '$PackagePath' w branchu '$Branch'."
     }
 
+    $remoteChannel = Split-Path -Leaf ($PackagePath -replace '/', '\')
+    $localChannel = Get-LocalInstalledChannel -gameDir $gtaDir
+    if ([string]::IsNullOrWhiteSpace($localChannel)) {
+        $localChannel = "brak/nieznana"
+    }
+
+    Write-Info "Zainstalowana wersja: $localChannel"
+    Write-Info "Najnowsza wersja na GitHub: $remoteChannel"
+
+    $needsUpdate = ($localChannel -ne $remoteChannel)
+    if ($needsUpdate) {
+        Write-Info "Wykryto nowa wersje: $remoteChannel (aktualna lokalna: $localChannel)"
+    } else {
+        Write-Ok "Masz juz najnowsza wersje: $remoteChannel"
+    }
+
     $files = @("CoopAndreasSA.dll", "server.exe", "proxy.dll", "VERSION.txt")
 
     if ($CloseRunningProcesses) {
@@ -333,25 +363,33 @@ try {
 
     Ensure-AsiLoader -pkgDir $pkg -gameDir $gtaDir
 
-    $backupDir = Join-Path $gtaDir ("CoopAndreas_backup_" + (Get-Date -Format "yyyyMMdd_HHmmss"))
-    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+    if ($needsUpdate) {
+        $backupDir = Join-Path $gtaDir ("CoopAndreas_backup_" + (Get-Date -Format "yyyyMMdd_HHmmss"))
+        New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 
-    foreach ($f in $files) {
-        $src = Join-Path $pkg $f
-        if (-not (Test-Path $src)) { throw "Brak pliku w paczce: $f" }
+        foreach ($f in $files) {
+            $src = Join-Path $pkg $f
+            if (-not (Test-Path $src)) { throw "Brak pliku w paczce: $f" }
 
-        $dst = Join-Path $gtaDir $f
-        if (Test-Path $dst) {
-            Copy-Item -LiteralPath $dst -Destination (Join-Path $backupDir $f) -Force
+            $dst = Join-Path $gtaDir $f
+            if (Test-Path $dst) {
+                Copy-Item -LiteralPath $dst -Destination (Join-Path $backupDir $f) -Force
+            }
+
+            Copy-Item -LiteralPath $src -Destination $dst -Force
+            Write-Ok "Podmieniono: $f"
         }
-
-        Copy-Item -LiteralPath $src -Destination $dst -Force
-        Write-Ok "Podmieniono: $f"
+    } else {
+        Write-Info "Pomijam podmiane plikow, bo wersja jest juz aktualna."
     }
 
     Write-LocalLaunchers -gameDir $gtaDir
 
-    Write-Ok "Aktualizacja zakonczona pomyslnie."
+    if ($needsUpdate) {
+        Write-Ok "Aktualizacja zakonczona pomyslnie."
+    } else {
+        Write-Ok "Brak aktualizacji - wersja juz najnowsza."
+    }
 
     if ($RunAfterUpdate) {
         $serverExe = Join-Path $gtaDir "server.exe"
