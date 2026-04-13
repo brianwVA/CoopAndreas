@@ -47,31 +47,39 @@ static void __declspec(naked) CAnimManager__BlendAnimation_Hook()
 }
 
 // Crashfix for 0x005D12DD — rep movsd writes to NULL destination.
-// Original code at 0x5D12D1:
-//   mov edx, [0xC16EE8]   ; animation buffer base pointer
-//   lea edi, [edx+eax]    ; dest = base + offset
+// Disassembly around the crash site:
+//   0x5D12C8: A1 EC6EC100        mov eax, [0xC16EEC]   ; buffer write-offset
+//   0x5D12CD: 8B15 E86EC100      mov edx, [0xC16EE8]   ; buffer base pointer
+//   0x5D12D3: 8D3C02             lea edi, [edx+eax]     ; dest = base + offset
+//   0x5D12D6: 8BCB               mov ecx, ebx           ; byte count
 //   ...
-//   rep movsd              ; crashes when edx (buffer base) is NULL
-// We hook at 0x5D12D1 (6 bytes), check edx for NULL, and skip the
-// memcpy block if the buffer is not allocated.
+//   0x5D12DD: F3A5               rep movsd              ; ← crashes when edx is NULL
+//   ...
+//   0x5D12EC: 5F                 pop edi                ; epilogue
+//   0x5D12ED: 5E                 pop esi
+//   0x5D12EE: B001               mov al, 1
+//   0x5D12F0: 5B                 pop ebx
+//   0x5D12F1: C3                 ret
+//
+// Hook at 0x5D12CD (6-byte mov edx instruction), check for NULL buffer,
+// skip the copy block if not allocated.
 static void __declspec(naked) AnimBuf_NullGuard_Hook()
 {
     __asm
     {
-        // Replaced instruction: mov edx, [0xC16EE8]
+        // Replaced instruction: mov edx, [0xC16EE8]  (6 bytes at 0x5D12CD)
         mov edx, dword ptr ds:[0x00C16EE8]
         test edx, edx
         jnz buf_ok
 
-        // Buffer is NULL — skip the copy and the offset advance.
-        // Jump to the function epilogue: pop edi; pop esi; mov al,1; pop ebx; ret
-        push 0x005D12F0
+        // Buffer is NULL — skip copy + offset advance, jump to epilogue.
+        // 0x5D12EC = pop edi; pop esi; mov al,1; pop ebx; ret
+        push 0x005D12EC
         ret
 
     buf_ok:
-        // Continue with original code: lea edi, [edx+eax]
-        lea edi, [edx + eax]
-        push 0x005D12DA  // return to mov ecx, ebx (next instruction after lea)
+        // Buffer valid — continue to lea edi,[edx+eax] at 0x5D12D3
+        push 0x005D12D3
         ret
     }
 }
@@ -80,6 +88,6 @@ void CrashfixHooks::InjectHooks()
 {
     patch::RedirectJump(0x6E3D10, CVehicleAnimGroup__ComputeAnimDoorOffsets_Hook);
     patch::RedirectJump(0x4D4610, CAnimManager__BlendAnimation_Hook);
-    // Guard against NULL animation buffer at 0x5D12D1 (covers crash at 0x5D12DD)
-    patch::RedirectJump(0x5D12D1, AnimBuf_NullGuard_Hook);
+    // Guard against NULL animation buffer at 0x5D12CD (covers crash at 0x5D12DD)
+    patch::RedirectJump(0x5D12CD, AnimBuf_NullGuard_Hook);
 }
