@@ -375,9 +375,14 @@ std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize)
 
 void BuildAndSendOpcode()
 {
-    // 0x04BB (set_area_visible) is unstable in network replay during SWEET2/Nines and AKs.
-    // Keep it local-only to prevent remote script-crash chains (EIP=0x00000001).
-    if (lastOpCodeProcessed == 0x04BB)
+    // Some mission/cutscene opcodes are unstable in network replay during SWEET2/Nines and AKs.
+    // Keep them local-only to prevent remote script-crash chains (EIP=0x00000001).
+    if (lastOpCodeProcessed == 0x04BB   // set_area_visible
+        || lastOpCodeProcessed == 0x02E4 // load_cutscene
+        || lastOpCodeProcessed == 0x02E7 // start_cutscene
+        || lastOpCodeProcessed == 0x02EA // clear_cutscene
+        || lastOpCodeProcessed == 0x0701 // end_scene_skip
+        )
     {
         memset(textParamBuffer, 0, sizeof textParamBuffer);
         memset(textLengthBuffer, 0, sizeof textLengthBuffer);
@@ -447,9 +452,14 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     memcpy(&header, current, sizeof(header));
     current += sizeof(header);
 
-    // 0x04BB (set_area_visible) is unstable in network replay during SWEET2/Nines and AKs.
-    // Keep it local-only to prevent remote script-crash chains (EIP=0x00000001).
-    if (header.opcode == 0x04BB)
+    // Some mission/cutscene opcodes are unstable in network replay during SWEET2/Nines and AKs.
+    // Keep them local-only to prevent remote script-crash chains (EIP=0x00000001).
+    if (header.opcode == 0x04BB   // set_area_visible
+        || header.opcode == 0x02E4 // load_cutscene
+        || header.opcode == 0x02E7 // start_cutscene
+        || header.opcode == 0x02EA // clear_cutscene
+        || header.opcode == 0x0701 // end_scene_skip
+        )
     {
         return;
     }
