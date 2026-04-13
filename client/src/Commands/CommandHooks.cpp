@@ -11,6 +11,16 @@ bool ProcessCustomCommand()
 {
 	// if is in custom command range
 	uint16_t commandNormalised = (nCommand & 0x7FFF);
+
+	// Temporary crash shield for SWEET2: opcode 0x04BB resolves to invalid call target
+	// in some environments (EIP=0x1). Skip it to keep game running.
+	if (commandNormalised == 0x04BB)
+	{
+		pScript->m_pCurrentIP += 2;
+		pScript->m_bNotFlag = (nCommand & 0x8000) != 0;
+		return true;
+	}
+
 	if (commandNormalised >= CCustomCommandMgr::MIN_CUSTOM_COMMAND && commandNormalised <= CCustomCommandMgr::MAX_CUSTOM_COMMAND)
 	{
 		pScript->m_pCurrentIP += 2;
