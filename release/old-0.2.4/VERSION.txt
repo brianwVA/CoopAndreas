@@ -1,0 +1,5 @@
+channel=old-0.2.4
+source_branch=old-0.2.2
+build_commit=working-tree
+built_at=2026-04-13 10:07:30
+files=CoopAndreasSA.dll,server.exe,proxy.dll

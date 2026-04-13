@@ -874,25 +874,6 @@ public:
 					if (!target)
 						return;
 
-					auto& state = ms_deathState[packet->targetPlayerId];
-					if (!state.active)
-						return;
-
-					const uint32_t now = enet_time_get();
-					static constexpr uint32_t kReviveWindowMs = 60000;
-					if ((now - state.deathTick) > kReviveWindowMs)
-					{
-						state.active = false;
-						return;
-					}
-
-					float dx = packet->rescuerPos.x - state.pos.x;
-					float dy = packet->rescuerPos.y - state.pos.y;
-					float dz = packet->rescuerPos.z - state.pos.z;
-					float distSq = dx * dx + dy * dy + dz * dz;
-					if (distSq > 1.0f * 1.0f)
-						return;
-
 					struct ReviveApply
 					{
 						int targetPlayerId;
@@ -900,6 +881,52 @@ public:
 						CVector revivePos;
 						uint8_t success;
 					};
+
+					auto sendReviveFail = [&]()
+					{
+						ReviveApply fail{};
+						fail.targetPlayerId = packet->targetPlayerId;
+						fail.rescuerPlayerId = rescuer->m_iPlayerId;
+						fail.success = 0;
+						CNetwork::SendPacket(peer, CPacketsID::REVIVE_APPLY, &fail, sizeof(fail), ENET_PACKET_FLAG_RELIABLE);
+					};
+
+					auto& state = ms_deathState[packet->targetPlayerId];
+					if (!state.active)
+					{
+						sendReviveFail();
+						return;
+					}
+
+					// Downed players cannot revive others.
+					if (rescuer->m_iPlayerId >= 0 && rescuer->m_iPlayerId < MAX_SERVER_PLAYERS)
+					{
+						auto& rescuerState = ms_deathState[rescuer->m_iPlayerId];
+						if (rescuerState.active)
+						{
+							sendReviveFail();
+							return;
+						}
+					}
+
+					const uint32_t now = enet_time_get();
+					static constexpr uint32_t kReviveWindowMs = 60000;
+					if ((now - state.deathTick) > kReviveWindowMs)
+					{
+						state.active = false;
+						sendReviveFail();
+						return;
+					}
+
+					float dx = packet->rescuerPos.x - state.pos.x;
+					float dy = packet->rescuerPos.y - state.pos.y;
+					float dz = packet->rescuerPos.z - state.pos.z;
+					float distSq = dx * dx + dy * dy + dz * dz;
+					if (distSq > 1.5f * 1.5f)
+					{
+						sendReviveFail();
+						return;
+					}
 
 					ReviveApply out{};
 					out.targetPlayerId = packet->targetPlayerId;

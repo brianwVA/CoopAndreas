@@ -670,3 +670,19 @@ void PlayerHooks::NotifyLocalRevived()
     s_downedAnimTick = 0;
     ResetDownedInputLocks();
 }
+
+bool PlayerHooks::IsLocalPlayerDowned()
+{
+    if (s_downedActive)
+    {
+        return true;
+    }
+
+    CPlayerPed* localPed = FindPlayerPed(0);
+    if (!localPed)
+    {
+        return false;
+    }
+
+    return (localPed->m_fHealth <= kDownedMinHealth) && !s_downedTimedOutPendingDeath;
+}

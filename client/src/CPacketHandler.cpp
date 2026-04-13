@@ -28,7 +28,7 @@ struct ReviveTargetState
 
 static ReviveTargetState s_reviveTargets[MAX_SERVER_PLAYERS] = {};
 static constexpr uint32_t kReviveWindowMs = 60000;
-static constexpr float kReviveDistance = 1.0f;
+static constexpr float kReviveDistance = 1.5f;
 
 // PlayerConnected
 
@@ -2140,7 +2140,13 @@ void CPacketHandler::ReviveApply__Handle(void* data, int size)
 {
 	CPackets::ReviveApply* packet = (CPackets::ReviveApply*)data;
 	if (!packet->success)
+	{
+		if (packet->rescuerPlayerId == CNetworkPlayerManager::m_nMyId)
+		{
+			CChat::AddMessage("~r~Revive failed (target invalid, too far, or you are downed)");
+		}
 		return;
+	}
 
 	ClearReviveTarget(packet->targetPlayerId);
 

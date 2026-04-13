@@ -15,6 +15,7 @@
 #include <CEntryExitMarkerSync.h>
 #include <CNetworkStaticBlip.h>
 #include <CNetworkAnimQueue.h>
+#include <Hooks/PlayerHooks.h>
 #include <game_sa/CTagManager.h>
 #include <CPedPlacement.h>
 #include <CGeneral.h>
@@ -34,8 +35,35 @@ static uint32_t g_reviveStartTick = 0;
 static int g_reviveTargetId = -1;
 static CVector g_reviveTargetPos{};
 static CVector g_reviveRescuerStartPos{};
+static bool g_reviveActionMessageShown = false;
 static constexpr uint32_t kReviveDurationMs = 10000;
-static constexpr float kReviveDistance = 1.0f;
+static constexpr float kReviveDistance = 1.5f;
+static constexpr float kReviveMoveCancelDistance = 0.10f;
+
+static void CancelRevive(const char* reasonMessage = nullptr)
+{
+	g_reviveInProgress = false;
+	g_reviveTargetId = -1;
+	g_reviveActionMessageShown = false;
+	if (reasonMessage && reasonMessage[0] != '\0')
+	{
+		CChat::AddMessage("%s", reasonMessage);
+	}
+}
+
+static bool HasReviveMovementInput()
+{
+	return (GetAsyncKeyState('W') & 0x8000)
+		|| (GetAsyncKeyState('A') & 0x8000)
+		|| (GetAsyncKeyState('S') & 0x8000)
+		|| (GetAsyncKeyState('D') & 0x8000)
+		|| (GetAsyncKeyState(VK_UP) & 0x8000)
+		|| (GetAsyncKeyState(VK_DOWN) & 0x8000)
+		|| (GetAsyncKeyState(VK_LEFT) & 0x8000)
+		|| (GetAsyncKeyState(VK_RIGHT) & 0x8000)
+		|| (GetAsyncKeyState(VK_SPACE) & 0x8000)
+		|| (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+}
 
 class CoopAndreas {
 public:
@@ -310,7 +338,15 @@ public:
 										{
 											lastReviveTryTick = now;
 
-											if (!isOnFoot)
+											if (g_reviveInProgress)
+											{
+												CChat::AddMessage("~r~Revive already in progress");
+											}
+											else if (PlayerHooks::IsLocalPlayerDowned())
+											{
+												CChat::AddMessage("~r~You are downed - you cannot revive others");
+											}
+											else if (!isOnFoot)
 											{
 												CChat::AddMessage("~r~Get out of vehicle to revive");
 											}
@@ -325,7 +361,8 @@ public:
 													g_reviveTargetId = targetId;
 													g_reviveTargetPos = deathPos;
 													g_reviveRescuerStartPos = localPed->GetPosition();
-													CChat::AddMessage("~b~Reviving teammate... don't move for 10 seconds");
+													g_reviveActionMessageShown = false;
+													CChat::AddMessage("~b~Reviving teammate... any movement cancels");
 												}
 												else
 												{
@@ -344,52 +381,63 @@ public:
 
 							if (!CNetwork::m_bConnected || CChat::m_bInputActive || FrontEndMenuManager.m_bMenuActive)
 							{
-								g_reviveInProgress = false;
-								g_reviveTargetId = -1;
+								CancelRevive();
 							}
 							else
 							{
 								CPlayerPed* localPed = FindPlayerPed(0);
 								if (!localPed)
 								{
-									g_reviveInProgress = false;
-									g_reviveTargetId = -1;
+									CancelRevive();
 								}
 								else
 								{
-									if (localPed->m_nPedFlags.bInVehicle)
+									if (PlayerHooks::IsLocalPlayerDowned())
 									{
-										g_reviveInProgress = false;
-										g_reviveTargetId = -1;
-										CChat::AddMessage("~r~Revive canceled (in vehicle)");
+										CancelRevive("~r~Revive canceled (you are downed)");
+									}
+									else if (localPed->m_nPedFlags.bInVehicle)
+									{
+										CancelRevive("~r~Revive canceled (in vehicle)");
 									}
 									else
 									{
-										// Lock rescuer in place so revive cannot be done while moving.
-										localPed->SetPosn(g_reviveRescuerStartPos);
-										localPed->m_vecMoveSpeed = CVector(0.0f, 0.0f, 0.0f);
+										// Play one-shot action feedback once per revive start.
+										if (!g_reviveActionMessageShown)
+										{
+											localPed->SetMoveAnim();
+											g_reviveActionMessageShown = true;
+										}
 
 										const CVector pos = localPed->GetPosition();
-										const float dx = pos.x - g_reviveTargetPos.x;
-										const float dy = pos.y - g_reviveTargetPos.y;
-										const float dz = pos.z - g_reviveTargetPos.z;
-										const float distSq = dx * dx + dy * dy + dz * dz;
-
-										if (distSq > (kReviveDistance * kReviveDistance))
+										const float moveDx = pos.x - g_reviveRescuerStartPos.x;
+										const float moveDy = pos.y - g_reviveRescuerStartPos.y;
+										const float moveDz = pos.z - g_reviveRescuerStartPos.z;
+										const float movedSq = moveDx * moveDx + moveDy * moveDy + moveDz * moveDz;
+										if (HasReviveMovementInput() || movedSq > (kReviveMoveCancelDistance * kReviveMoveCancelDistance))
 										{
-											g_reviveInProgress = false;
-											g_reviveTargetId = -1;
-											CChat::AddMessage("~r~Revive canceled (too far)");
+											CancelRevive("~r~Revive canceled (movement detected)");
 										}
-										else if (reviveNow >= g_reviveStartTick + kReviveDurationMs)
+										else
 										{
-											CPackets::ReviveRequest revive{};
-											revive.targetPlayerId = g_reviveTargetId;
-											revive.rescuerPos = pos;
-											CNetwork::SendPacket(CPacketsID::REVIVE_REQUEST, &revive, sizeof revive, ENET_PACKET_FLAG_RELIABLE);
-											g_reviveInProgress = false;
-											g_reviveTargetId = -1;
-											CChat::AddMessage("~b~Revive attempt sent");
+											const float dx = pos.x - g_reviveTargetPos.x;
+											const float dy = pos.y - g_reviveTargetPos.y;
+											const float dz = pos.z - g_reviveTargetPos.z;
+											const float distSq = dx * dx + dy * dy + dz * dz;
+
+											if (distSq > (kReviveDistance * kReviveDistance))
+											{
+												CancelRevive("~r~Revive canceled (too far)");
+											}
+											else if (reviveNow >= g_reviveStartTick + kReviveDurationMs)
+											{
+												CPackets::ReviveRequest revive{};
+												revive.targetPlayerId = g_reviveTargetId;
+												revive.rescuerPos = pos;
+												CNetwork::SendPacket(CPacketsID::REVIVE_REQUEST, &revive, sizeof revive, ENET_PACKET_FLAG_RELIABLE);
+												CancelRevive();
+												CChat::AddMessage("~b~Revive attempt sent");
+											}
 										}
 									}
 								}
