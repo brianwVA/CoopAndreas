@@ -2,6 +2,7 @@
 #include "CommandHooks.h"
 #include "CCustomCommandMgr.h"
 #include "Commands/CCommandAddChatMessage.h"
+#include <cstdint>
 
 uint16_t nCommand = 0x0;
 CRunningScript* pScript = nullptr;
@@ -17,6 +18,18 @@ bool ProcessCustomCommand()
 		CCustomCommandMgr::ProcessCommand(commandNormalised, pScript); // process it
 		return true;
 	}
+
+	// Defensive guard for invalid vanilla opcode handlers.
+	// Some opcodes in script streams may map to an invalid handler pointer (e.g. 0x1),
+	// which would crash on call. Skip such opcode safely instead.
+	auto handler = CRunningScript::CommandHandlerTable[commandNormalised / 100];
+	if ((uintptr_t)handler < 0x10000)
+	{
+		pScript->m_pCurrentIP += 2;
+		pScript->m_bNotFlag = (nCommand & 0x8000) != 0;
+		return true;
+	}
+
 	return false;
 }
 
