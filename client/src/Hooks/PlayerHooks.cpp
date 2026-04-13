@@ -296,6 +296,17 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
             }
             else
             {
+                if (s_remoteDownedAnimApplied[remoteId])
+                {
+                    // Ped transitioned from downed to alive – clear the
+                    // non-interruptable KO task so the animation system
+                    // does not process stale blend data.
+                    int ref = CPools::GetPedRef(player->m_pPed);
+                    if (ref >= 0)
+                    {
+                        plugin::Command<0x0792>(ref); // CLEAR_CHAR_TASKS_IMMEDIATELY
+                    }
+                }
                 s_remoteDownedAnimApplied[remoteId] = false;
             }
         }
@@ -671,6 +682,25 @@ void PlayerHooks::NotifyLocalRevived()
     s_downedTimedOutPendingDeath = false;
     s_downedAnimTick = 0;
     ResetDownedInputLocks();
+
+    // Clear the non-interruptable KO animation task so the animation
+    // system does not process stale blend data after health is restored.
+    if (CPlayerPed* ped = FindPlayerPed(0))
+    {
+        int ref = CPools::GetPedRef(ped);
+        if (ref >= 0)
+        {
+            plugin::Command<0x0792>(ref); // CLEAR_CHAR_TASKS_IMMEDIATELY
+        }
+    }
+}
+
+void PlayerHooks::ClearRemoteDownedAnim(int playerId)
+{
+    if (playerId >= 0 && playerId < MAX_SERVER_PLAYERS)
+    {
+        s_remoteDownedAnimApplied[playerId] = false;
+    }
 }
 
 bool PlayerHooks::IsLocalPlayerDowned()

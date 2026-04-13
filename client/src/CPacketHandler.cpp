@@ -2169,12 +2169,21 @@ void CPacketHandler::ReviveApply__Handle(void* data, int size)
 	{
 		if (networkPlayer->m_pPed)
 		{
+			// Clear the KO animation task before restoring state so the
+			// animation system does not process stale blend data.
+			int pedRef = CPools::GetPedRef(networkPlayer->m_pPed);
+			if (pedRef >= 0)
+			{
+				plugin::Command<0x0792>(pedRef); // CLEAR_CHAR_TASKS_IMMEDIATELY
+			}
+
 			CVector revivePos = packet->revivePos;
 			revivePos.z += 0.8f;
 			networkPlayer->m_pPed->SetPosn(revivePos);
 			networkPlayer->m_pPed->m_fHealth = 20.0f;
 			networkPlayer->m_playerOnFoot.health = 20;
 		}
+		PlayerHooks::ClearRemoteDownedAnim(packet->targetPlayerId);
 	}
 }
 
