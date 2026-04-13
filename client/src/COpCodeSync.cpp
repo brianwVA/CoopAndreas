@@ -162,6 +162,9 @@ static char textParamBuffer[NUM_SYNCED_PARAMS][256];
 static uint16_t scriptParamCount = 0;
 static uint16_t textParamCount = 0;
 static bool g_syncParamOverflow = false;
+static constexpr uint16_t kMaxVanillaOpcode = 2699;
+static constexpr uintptr_t kMinExecutableCodePtr = 0x00400000;
+static constexpr uintptr_t kMaxExecutableCodePtr = 0x02000000;
 
 static uint32_t lastOpCodeProcessed;
 static CRunningScript* lastProcessedScript;
@@ -790,8 +793,17 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     const uint16_t opcode = (header.opcode & 0x7FFF);
     if (opcode < CCustomCommandMgr::MIN_CUSTOM_COMMAND)
     {
+        if (opcode > kMaxVanillaOpcode)
+        {
+            patch::SetRaw(0x464080, (void*)"\x66\x8B\x44\x24\x04", 5, false);
+            patch::SetRaw(0x463D50, (void*)"\x8B\x41\x14\x83\xEC\x08", 6, false);
+            bProcessingNetworkOpcode = false;
+            return;
+        }
+
         auto handler = CRunningScript::CommandHandlerTable[opcode / 100];
-        if ((uintptr_t)handler >= 0x10000)
+        uintptr_t handlerPtr = (uintptr_t)handler;
+        if (handlerPtr >= kMinExecutableCodePtr && handlerPtr < kMaxExecutableCodePtr)
         {
             handler(&script, opcode);
         }
@@ -816,8 +828,10 @@ void __declspec(naked) OpcodeProcessingWellDone_Hook()
         // Avoid executing an invalid function pointer (e.g. 0x00000001).
         test edx, edx
         jz invalid_handler
-        cmp edx, 10000h
+        cmp edx, 400000h
         jb invalid_handler
+        cmp edx, 2000000h
+        jae invalid_handler
 
         mov ecx, esi
         call edx

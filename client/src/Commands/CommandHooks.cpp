@@ -6,6 +6,9 @@
 
 uint16_t nCommand = 0x0;
 CRunningScript* pScript = nullptr;
+static constexpr uint16_t kMaxVanillaOpcode = 2699;
+static constexpr uintptr_t kMinExecutableCodePtr = 0x00400000;
+static constexpr uintptr_t kMaxExecutableCodePtr = 0x02000000;
 
 bool ProcessCustomCommand()
 {
@@ -23,8 +26,16 @@ bool ProcessCustomCommand()
 	// Defensive guard for invalid vanilla opcode handlers.
 	// Some opcodes in script streams may map to an invalid handler pointer (e.g. 0x1),
 	// which would crash on call. Skip such opcode safely instead.
+	if (commandNormalised > kMaxVanillaOpcode)
+	{
+		pScript->m_pCurrentIP += 2;
+		pScript->m_bNotFlag = (nCommand & 0x8000) != 0;
+		return true;
+	}
+
 	auto handler = CRunningScript::CommandHandlerTable[commandNormalised / 100];
-	if ((uintptr_t)handler < 0x10000)
+	uintptr_t handlerPtr = (uintptr_t)handler;
+	if (handlerPtr < kMinExecutableCodePtr || handlerPtr >= kMaxExecutableCodePtr)
 	{
 		pScript->m_pCurrentIP += 2;
 		pScript->m_bNotFlag = (nCommand & 0x8000) != 0;
