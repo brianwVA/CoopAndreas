@@ -2,26 +2,9 @@
 #include "CConfigLoader.h"
 #include "CCustomMenuManager.h"
 
-std::string CConfigLoader::ResolveConfigFileName()
-{
-	char modulePath[MAX_PATH] = {};
-	GetModuleFileNameA(nullptr, modulePath, sizeof(modulePath));
-
-	const char* moduleName = strrchr(modulePath, '\\');
-	moduleName = moduleName ? moduleName + 1 : modulePath;
-
-	// Keep per-instance config to avoid shared nickname/IP races when two game clients run at once.
-	if (strstr(moduleName, "gta_sa_2.exe") != nullptr)
-	{
-		return CONFIG_FILE_NAME_SECOND_INSTANCE;
-	}
-
-	return CONFIG_FILE_NAME;
-}
-
 void CConfigLoader::BuildPath()
 {
-	ms_sDataPath = std::string((const char*)0xC92368) + "\\" + ResolveConfigFileName(); // 0xC92368 - gta_user_dir_path var
+	ms_sDataPath = std::string((const char*)0xC92368) + "\\" + CONFIG_FILE_NAME; // 0xC92368 - gta_user_dir_path var
 }
 
 void CConfigLoader::BuildDefaultConfig()

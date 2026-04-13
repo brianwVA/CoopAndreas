@@ -3,7 +3,6 @@
 
 :MUSIC2
 script_name 'MUSIC2'
-Coop.EnableSyncingThisScript()
 gosub @MUSIC2_47
 if 
   has_deatharrest_been_executed 
@@ -15,7 +14,6 @@ gosub @MUSIC2_10582
 terminate_this_script 
 
 :MUSIC2_47
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Stat.RegisterMissionGiven
 Text.LoadMissionText('STRAP2')
@@ -105,7 +103,6 @@ Char.SetCoordinates($scplayer, 790.0, -1626.0, 12.5)
 Streaming.LoadScene(790.0, -1626.0, 12.5)
 Camera.SetBehindPlayer
 Char.SetHeading($scplayer, 356.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 45@ = DecisionMakerChar.Load(DecisionMakerType.Steal)
 46@ = DecisionMakerChar.Load(DecisionMakerType.Empty)
 Game.SetRelationship(RelationshipType.Hate, PedType.Mission1, PedType.Player1)
@@ -143,13 +140,6 @@ Camera.DoFade(1, 1500)
 96@ = 0
 97@ = 0
 Text.PrintNow('STP2_1', 10000, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('STP2_1', 10000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 if 
   $tripskip_s2flag > 0
 goto_if_false @MUSIC2_745
@@ -277,13 +267,6 @@ Camera.SetBehindPlayer
 Hud.SwitchWidescreen(False)
 Player.SetControl($player1, True)
 Char.GiveWeapon($scplayer, WeaponType.Knife, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Knife, 1)
-    end
-end
 Pad.SetPlayerCycleWeaponButton($player1, False)
 Car.Delete(35@)
 Streaming.MarkModelAsNoLongerNeeded(579)
@@ -1447,13 +1430,6 @@ Streaming.MarkModelAsNoLongerNeeded(335)
 $onmission = 0
 World.DisableAllEntryExits(False)
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

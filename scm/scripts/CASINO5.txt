@@ -3,7 +3,6 @@
 
 :CASINO5
 script_name 'CASINO5'
-Coop.EnableSyncingThisScript()
 gosub @CASINO5_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :CASINO5_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Text.LoadMissionText('CASINO5')
 Char.SetCoordinates($scplayer, 2175.412, 1681.548, 9.8203)
@@ -2068,13 +2066,6 @@ Streaming.MarkModelAsNoLongerNeeded(#CJ_WHEELCHAIR1)
 Streaming.RemoveAnimation("GANGS")
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

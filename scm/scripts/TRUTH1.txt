@@ -3,7 +3,6 @@
 
 :TRUTH1
 script_name 'TRUTH1'
-Coop.EnableSyncingThisScript()
 gosub @TRUTH1_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :TRUTH1_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('TRU1')
 $onmission = 1
 wait 0
@@ -111,7 +109,6 @@ Game.SetRelationship(RelationshipType.Hate, PedType.Mission1, PedType.Player1)
 Game.SetRelationship(RelationshipType.Respect, PedType.Mission1, PedType.Mission1)
 Char.SetCoordinates($scplayer, -2195.9, -2258.029, 30.0)
 Char.SetHeading($scplayer, 141.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Streaming.LoadSceneInDirection(-2196.46, -2256.96, 31.43, 141.0)
 Camera.DoFade(1, 500)
 117@ = 0
@@ -145,13 +142,6 @@ Camera.DoFade(1, 500)
 145@ = 0
 146@ = 0
 Text.PrintNow('TRU1_1', 10000, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('TRU1_1', 10000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 if 
   122@ == 100
 goto_if_false @TRUTH1_888
@@ -2521,13 +2511,6 @@ Blip.Remove(116@)
 Car.MarkAsNoLongerNeeded(56@)
 Game.SetWantedMultiplier(1.0)
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

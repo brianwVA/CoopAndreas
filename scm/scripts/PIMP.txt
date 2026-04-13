@@ -3,7 +3,6 @@
 
 :PIMP
 script_name 'PIMP'
-Coop.EnableSyncingThisScript()
 gosub @PIMP_47
 if 
   has_deatharrest_been_executed 
@@ -19,7 +18,6 @@ if
   $pimp_passed_once == 0
 goto_if_false @PIMP_67
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :PIMP_67
 $flag_player_on_pimp_mission = 1
@@ -5613,13 +5611,6 @@ Game.SetRelationship(RelationshipType.Dislike, PedType.Gang1, PedType.Player1)
 $timer_mobile_start = Clock.GetGameTimer()
 $flag_player_on_pimp_mission = 0
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

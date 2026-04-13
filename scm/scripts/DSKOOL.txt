@@ -3,7 +3,6 @@
 
 :DSKOOL
 script_name 'DSKOOL'
-Coop.EnableSyncingThisScript()
 gosub @DSKOOL_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :DSKOOL_47
 $onmission = 1
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 if 
   $driving_test_passed == 0
 goto_if_false @DSKOOL_74
@@ -4349,7 +4347,6 @@ Player.ClearWantedLevel($player1)
 Stat.RegisterMissionPassed('FAR_1')
 Stat.PlayerMadeProgress(1)
 $driving_test_passed = 1
-set_player_school_progress 0 1
 
 :DSKOOL_24616
 return 
@@ -4396,7 +4393,6 @@ if
 goto_if_false @DSKOOL_24866
 CarGenerator.Switch($f1_bronze_car_gen, 101)
 $f1_bronze_award = 1
-set_player_school_medal 0 1
 
 :DSKOOL_24866
 if 
@@ -4440,7 +4436,6 @@ if
 goto_if_false @DSKOOL_25114
 CarGenerator.Switch($f1_silver_car_gen, 101)
 $f1_silver_award = 1
-set_player_school_medal 0 2
 
 :DSKOOL_25114
 if 
@@ -4484,7 +4479,6 @@ if
 goto_if_false @DSKOOL_25362
 CarGenerator.Switch($f1_gold_car_gen, 101)
 $f1_gold_award = 1
-set_player_school_medal 0 3
 
 :DSKOOL_25362
 Hud.ClearTimer($car_timer)
@@ -4535,13 +4529,6 @@ Checkpoint.Delete(42@)
 Game.EnableAmbientCrime(True)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

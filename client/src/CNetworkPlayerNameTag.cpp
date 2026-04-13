@@ -1,8 +1,7 @@
 #include "stdafx.h"
 
-// AR-corrected scaling from 1920x1080 design basis to any resolution
-#define PROPORION_X(value) CUtil::SCREEN_SCALE_X((value) * 640.0f / 1920.0f)
-#define PROPORION_Y(value) CUtil::SCREEN_SCALE_Y((value) * 448.0f / 1080.0f)
+#define PROPORION_X(value) (value * RsGlobal.maximumWidth / 1920)
+#define PROPORION_Y(value) (value * RsGlobal.maximumHeight / 1080)
 
 uint8_t GetHudAlpha(float distance)
 {
@@ -34,8 +33,8 @@ void DrawNickName(float x, float y, float scale, unsigned char alpha, const char
 
 void DrawWeaponIcon(CPed* ped, float x, float y, float scale, unsigned char alpha)
 {
-	const float width = CUtil::SCREEN_SCALE_X(47.0f / 2.0f) * scale;
-	const float height = CUtil::SCREEN_SCALE_Y(58.0f / 2.0f) * scale;
+	const float width = CUtil::SCREEN_STRETCH_X(47.0f / 2.0f) * scale;
+	const float height = CUtil::SCREEN_STRETCH_Y(58.0f / 2.0f) * scale;
 	const float halfWidth = width / 2.0f;
 	const float halfHeight = height / 2.0f;
 
@@ -87,7 +86,7 @@ void DrawBarChartScale(float x, float y, uint16_t width, uint8_t height, float s
 	// Background (from currX to endX)
 	CSprite2d::DrawRect({ currX, y, endX, y + fheight }, { uint8_t(color.r / 2.0f), uint8_t(color.g / 2.0f), uint8_t(color.b / 2.0f), color.a });
 
-	const float w = CUtil::SCREEN_SCALE_X(2.0f) * scale, h = CUtil::SCREEN_SCALE_Y(2.0f) * scale;
+	const float w = CUtil::SCREEN_STRETCH_X(2.0f) * scale, h = CUtil::SCREEN_SCALE_Y(2.0f) * scale;
 	const CRect rects[] = {
 		//left,     top,              right,    bottom
 		{ x,        y,                endX,     y + h       },       // Top

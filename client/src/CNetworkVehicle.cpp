@@ -87,13 +87,6 @@ bool CNetworkVehicle::CreateVehicle(int vehicleid, int modelid, CVector pos, flo
 
 CNetworkVehicle::~CNetworkVehicle()
 {
-    // Clear temp slot to prevent use-after-free when VEHICLE_CONFIRM
-    // arrives after this vehicle has already been deleted.
-    if (m_nTempId < 255 && CNetworkVehicleManager::m_apTempVehicles[m_nTempId] == this)
-    {
-        CNetworkVehicleManager::m_apTempVehicles[m_nTempId] = nullptr;
-    }
-
     if (m_bSyncing)
     {
         CPackets::VehicleRemove vehicleRemovePacket{};
@@ -135,19 +128,6 @@ CNetworkVehicle* CNetworkVehicle::CreateHosted(CVehicle* vehicle)
     networkVehicle->m_nTempId = CNetworkVehicleManager::AddToTempList(networkVehicle);
     networkVehicle->m_nCreatedBy = vehicle->m_nCreatedBy;
 
-    if (networkVehicle->m_nTempId == 255)
-    {
-        // Temp id pool exhausted: abort hosting this vehicle to avoid permanent
-        // vehicleid == -1 state (which breaks enter/driver sync).
-        delete networkVehicle;
-        return nullptr;
-    }
-
-    // Add to m_pVehicles immediately so GetVehicle(CVehicle*) finds it.
-    // Without this, entering a vehicle before VEHICLE_CONFIRM arrives causes
-    // VehicleEnter / VehicleDriverUpdate to silently fail (lookup returns null).
-    CNetworkVehicleManager::Add(networkVehicle);
-
     CPackets::VehicleSpawn vehicleSpawnPacket{};
     vehicleSpawnPacket.vehicleid = -1;
     vehicleSpawnPacket.tempid = networkVehicle->m_nTempId;
@@ -156,7 +136,7 @@ CNetworkVehicle* CNetworkVehicle::CreateHosted(CVehicle* vehicle)
     vehicleSpawnPacket.rot = vehicle->GetHeading();
     vehicleSpawnPacket.color1 = vehicle->m_nPrimaryColor;
     vehicleSpawnPacket.color2 = vehicle->m_nSecondaryColor;
-    vehicleSpawnPacket.createdBy = networkVehicle->m_nCreatedBy;
+    vehicleSpawnPacket.createdBy = vehicle->m_nCreatedBy;
     CNetwork::SendPacket(CPacketsID::VEHICLE_SPAWN, &vehicleSpawnPacket, sizeof vehicleSpawnPacket, ENET_PACKET_FLAG_RELIABLE);
 
     return networkVehicle;

@@ -27,10 +27,9 @@ class CVehicle
 		std::vector<int> m_pComponents;
 		uint8_t m_nCreatedBy;
 		bool m_bUsedByPed = false;
-		uint16_t m_nOccupantsVersion = 0;
 
 		void ReassignSyncer(CPlayer* newSyncer);
-		bool SetOccupant(uint8_t seatid, CPlayer* player);
+		void SetOccupant(uint8_t seatid, CPlayer* player);
 
 		~CVehicle() {}
 };

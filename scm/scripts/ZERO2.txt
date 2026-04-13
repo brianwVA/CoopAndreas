@@ -13,9 +13,7 @@ terminate_this_script
 119@ = 0
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'ZERO2'
-Coop.EnableSyncingThisScript()
 Player.SetControl($player1, False)
 Text.LoadMissionText('ZERO2')
 Hud.DisplayCarNames(False)
@@ -702,7 +700,6 @@ Char.SetCoordinates($scplayer, -2244.444, 136.8633, 34.3203)
 
 :ZERO2_3936
 Char.SetHeading($scplayer, 90.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 
 :ZERO2_3946
 Camera.SetFadingColor(0, 0, 0)
@@ -1868,13 +1865,6 @@ Char.RemoveElegantly(57@)
 Hud.ClearCounter($timer_time_limit_converted_int)
 $timer_mobile_start = Clock.GetGameTimer()
 Text.ClearPrints
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

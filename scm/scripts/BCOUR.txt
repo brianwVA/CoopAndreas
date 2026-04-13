@@ -3,7 +3,6 @@
 
 :BCOUR
 script_name 'BCOUR'
-Coop.EnableSyncingThisScript()
 gosub @BCOUR_47
 if 
   has_deatharrest_been_executed 
@@ -49,7 +48,6 @@ Stat.RegisterMissionGiven
 
 :BCOUR_185
 $onmission = 1
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 wait 0
 wait 0
 Text.LoadMissionText('BCOU')
@@ -2450,13 +2448,6 @@ goto @BCOUR_16399
 CarGenerator.Switch($gen_car21, 101)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

@@ -30,18 +30,6 @@
 #include "Commands/CCommandPedTakeHost.h"
 #include "Commands/CCommandGetNetworkPlayerInternalId.h"
 #include "Commands/CCommandTeleportPlayersToHostSafely.h"
-#include "Commands/CCommandSetPlayerPropertyState.h"
-#include "Commands/CCommandGetPlayerPropertyState.h"
-#include "Commands/CCommandSetPlayerSchoolProgress.h"
-#include "Commands/CCommandGetPlayerSchoolProgress.h"
-#include "Commands/CCommandSetPlayerSchoolMedal.h"
-#include "Commands/CCommandGetPlayerSchoolMedal.h"
-#include "Commands/CCommandSetPlayerFloatStat.h"
-#include "Commands/CCommandGetPlayerFloatStat.h"
-#include "Commands/CCommandAddPlayerFloatStat.h"
-#include "Commands/CCommandSetPlayerIntStat.h"
-#include "Commands/CCommandGetPlayerIntStat.h"
-#include "Commands/CCommandAddPlayerIntStat.h"
 
 class CCustomCommandRegistrar
 {
@@ -77,17 +65,5 @@ public:
 		CCustomCommandMgr::RegisterCommand(0x1D1A, new CCommandPedTakeHost());
 		CCustomCommandMgr::RegisterCommand(0x1D1B, new CCommandGetNetworkPlayerInternalId());
 		CCustomCommandMgr::RegisterCommand(0x1D1C, new CCommandTeleportPlayersToHostSafely());
-		CCustomCommandMgr::RegisterCommand(0x1D1D, new CCommandSetPlayerPropertyState());
-		CCustomCommandMgr::RegisterCommand(0x1D1E, new CCommandGetPlayerPropertyState());
-		CCustomCommandMgr::RegisterCommand(0x1D1F, new CCommandSetPlayerSchoolProgress());
-		CCustomCommandMgr::RegisterCommand(0x1D20, new CCommandGetPlayerSchoolProgress());
-		CCustomCommandMgr::RegisterCommand(0x1D21, new CCommandSetPlayerSchoolMedal());
-		CCustomCommandMgr::RegisterCommand(0x1D22, new CCommandGetPlayerSchoolMedal());
-		CCustomCommandMgr::RegisterCommand(0x1D23, new CCommandSetPlayerFloatStat());
-		CCustomCommandMgr::RegisterCommand(0x1D24, new CCommandGetPlayerFloatStat());
-		CCustomCommandMgr::RegisterCommand(0x1D25, new CCommandAddPlayerFloatStat());
-		CCustomCommandMgr::RegisterCommand(0x1D26, new CCommandSetPlayerIntStat());
-		CCustomCommandMgr::RegisterCommand(0x1D27, new CCommandGetPlayerIntStat());
-		CCustomCommandMgr::RegisterCommand(0x1D28, new CCommandAddPlayerIntStat());
 	}
 };

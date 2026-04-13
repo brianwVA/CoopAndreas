@@ -20,7 +20,7 @@ Instalacja na czystym GTA:
   `CoopAndreasUpdater.ps1 -NoResolutionFix`
 
 Co robi updater:
-- pobiera branch `old-0.2.2` z GitHuba,
+- pobiera branch `main` z GitHuba,
 - wybiera najnowsza paczke z `release/old-*`,
 - podmienia: `CoopAndreasSA.dll`, `server.exe`, `proxy.dll`, `VERSION.txt`,
 - robi backup do `CoopAndreas_backup_YYYYMMDD_HHMMSS`,

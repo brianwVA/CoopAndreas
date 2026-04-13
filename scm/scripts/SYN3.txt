@@ -3,7 +3,6 @@
 
 :SYN3
 script_name 'SYN3'
-Coop.EnableSyncingThisScript()
 gosub @SYN3_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :SYN3_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('SYN3')
 $onmission = 1
 wait 0
@@ -478,13 +476,6 @@ Camera.RestoreJumpcut
 Player.SetControl($player1, True)
 213@ = Blip.AddForCoord(42@, 43@, 44@)
 Text.PrintNow('SYN3_1', 10000, 0)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SYN3_1', 10000, 0, $NETWORK_PLAYER[$temp_int])
-    end
-end
 if 
   135@ <> 1
 goto_if_false @SYN3_2669
@@ -3457,13 +3448,6 @@ World.SetCarDensityMultiplier(1.0)
 World.SetPedDensityMultiplier(1.0)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

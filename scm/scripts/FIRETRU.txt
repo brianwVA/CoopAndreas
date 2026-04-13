@@ -7,13 +7,11 @@ terminate_this_script
 $onmission = 1
 $flag_player_on_fire_mission = 1
 script_name 'FIRETRU'
-Coop.EnableSyncingThisScript()
 wait 0
 if 
   $done_firetruck_progress == 0
 goto_if_false @FIRETRU_65
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :FIRETRU_65
 165@ = DecisionMakerChar.Load(DecisionMakerType.Empty)
@@ -1984,13 +1982,6 @@ $onmission = 0
 $flag_player_on_fire_mission = 0
 World.ClearAllScriptFireFlags
 DecisionMaker.Remove(165@)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 if 
   $done_firetruck_progress == 1

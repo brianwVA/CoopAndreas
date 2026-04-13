@@ -1,5 +1,5 @@
 #pragma once
-#include "../../shared/version.h"
+#define COOPANDREAS_VERSION "0.2.5-bewu"
 #define MAX_SERVER_PLAYERS 8
 #define MAX_SERVER_VEHICLES 200
 #define MAX_SERVER_PEDS 300

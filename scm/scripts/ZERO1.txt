@@ -14,9 +14,7 @@ $onmission = 1
 World.DisableAllEntryExits(True)
 Game.SetScriptLimitToGangSize(0)
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'ZERO1'
-Coop.EnableSyncingThisScript()
 Player.SetControl($player1, False)
 Text.LoadMissionText('ZERO1')
 Camera.SetFadingColor(0, 0, 0)
@@ -161,7 +159,6 @@ Object.SetCollision(34@, False)
 Char.SetCurrentWeapon($scplayer, WeaponType.Unarmed)
 Player.SetControl($player1, False)
 Char.SetCoordinates($scplayer, -2214.436, 123.9208, 56.4219)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Object.SetHeading(34@, 90.0)
 Hud.DisplayTimerWithString($mission_countdown_zero1, TimerDirection.Down, 'ZER1_26')
 Hud.DisplayCounterWithString($transmitter_overallhealth, CounterDisplay.Bar, 'ZER1_20')
@@ -3014,13 +3011,6 @@ Char.RemoveElegantly(55@)
 Object.MarkAsNoLongerNeeded(34@)
 Streaming.RemoveAnimation("CASINO")
 Streaming.RemoveAnimation("ON_LOOKERS")
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

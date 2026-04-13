@@ -540,11 +540,11 @@ goto_if_false @GYMTREA_3569
 Task.PlayAnim($scplayer, "GYM_TREAD_FALLOFF", "GYMNASIUM", 100.0, False, False, False, False, -1)
 
 :GYMTREA_3569
-$fatstat_gym = get_player_float_stat 21
+$fatstat_gym = Stat.GetFloat(21)
 if 
   0.0 >= $fatstat_gym
 goto_if_false @GYMTREA_3606
-set_player_float_stat 21 0.0
+Stat.SetFloat(StatId.Fat, 0.0)
 
 :GYMTREA_3606
 $starttreadmill_flag = 0
@@ -776,23 +776,23 @@ if
   $stattreadstamina_ctr >= 170.0
 goto_if_false @GYMTREA_5243
 $stattreadstamina_ctr -= 170.0
-$fatstat_gym = get_player_float_stat 21
+$fatstat_gym = Stat.GetFloat(21)
 if 
   $fatstat_gym >= 1.0
 goto_if_false @GYMTREA_5166
-add_player_float_stat 21 -8.0
+Stat.DecrementFloat(StatId.Fat, 8.0)
 
 :GYMTREA_5166
 if 
   $tread_show_stat == 3
 goto_if_false @GYMTREA_5217
 $tread_show_stat = 0
-add_player_float_stat 22 4.0
+Stat.IncrementFloat(4.0, 22)
 $gym_day_fitness += 4.0
 goto @GYMTREA_5243
 
 :GYMTREA_5217
-add_player_float_stat 22 4.0
+Stat.IncrementFloatNoMessage(StatId.Stamina, 4.0)
 $gym_day_fitness += 4.0
 $tread_show_stat += 1
 
@@ -827,10 +827,10 @@ Task.PlayAnim($scplayer, "GYM_TREAD_GETOFF", "GYMNASIUM", 100.0, False, False, F
 
 :GYMTREA_5443
 Pad.Shake(PadId.Pad1, 1, 1)
-add_player_int_stat 28 $distanceon_tread
+Stat.IncrementInt($distanceon_tread, 28)
 set_lvar_int_to_lvar_int 29@ = TIMERA
 29@ /= 1000
-add_player_int_stat 44 29@
+Stat.IncrementInt(29@, 44)
 Text.ClearHelp
 Menu.Delete($main_menu_tread)
 $starttreadmill_flag = 0
@@ -865,18 +865,18 @@ Streaming.RemoveAnimation("GYMNASIUM")
 Audio.ClearMissionAudio(MissionAudioSlot.Slot4)
 Camera.RestoreJumpcut
 $finishedtread_flag = 1
-$upperbodymusclestat_gym = get_player_float_stat 23
+$upperbodymusclestat_gym = Stat.GetFloat(23)
 if 
   $upperbodymusclestat_gym >= 1000.0
 goto_if_false @GYMTREA_5731
-set_player_float_stat 23 1000.0
+Stat.SetFloat(StatId.BodyMuscle, 1000.0)
 
 :GYMTREA_5731
-$fatstat_gym = get_player_float_stat 21
+$fatstat_gym = Stat.GetFloat(21)
 if 
   0.0 >= $fatstat_gym
 goto_if_false @GYMTREA_5768
-set_player_float_stat 21 0.0
+Stat.SetFloat(StatId.Fat, 0.0)
 
 :GYMTREA_5768
 if 
@@ -909,5 +909,4 @@ cset_var_int_to_lvar_float $speed_treadbar = float 17@
 :GYMTREA_5900
 goto @GYMTREA_573
 terminate_this_script 
-
 

@@ -12,10 +12,10 @@
 #include <COpCodeSync.h>
 #include <CNetworkCheckpoint.h>
 #include <CEntryExitManager.h>
-#include <CPickups.h>
 #include <CEntryExitMarkerSync.h>
 #include <CNetworkStaticBlip.h>
 #include <CNetworkAnimQueue.h>
+#include <Hooks/PlayerHooks.h>
 #include <game_sa/CTagManager.h>
 #include <CPedPlacement.h>
 #include <CGeneral.h>
@@ -35,8 +35,35 @@ static uint32_t g_reviveStartTick = 0;
 static int g_reviveTargetId = -1;
 static CVector g_reviveTargetPos{};
 static CVector g_reviveRescuerStartPos{};
+static bool g_reviveActionMessageShown = false;
 static constexpr uint32_t kReviveDurationMs = 10000;
-static constexpr float kReviveDistance = 1.0f;
+static constexpr float kReviveDistance = 1.5f;
+static constexpr float kReviveMoveCancelDistance = 0.10f;
+
+static void CancelRevive(const char* reasonMessage = nullptr)
+{
+	g_reviveInProgress = false;
+	g_reviveTargetId = -1;
+	g_reviveActionMessageShown = false;
+	if (reasonMessage && reasonMessage[0] != '\0')
+	{
+		CChat::AddMessage("%s", reasonMessage);
+	}
+}
+
+static bool HasReviveMovementInput()
+{
+	return (GetAsyncKeyState('W') & 0x8000)
+		|| (GetAsyncKeyState('A') & 0x8000)
+		|| (GetAsyncKeyState('S') & 0x8000)
+		|| (GetAsyncKeyState('D') & 0x8000)
+		|| (GetAsyncKeyState(VK_UP) & 0x8000)
+		|| (GetAsyncKeyState(VK_DOWN) & 0x8000)
+		|| (GetAsyncKeyState(VK_LEFT) & 0x8000)
+		|| (GetAsyncKeyState(VK_RIGHT) & 0x8000)
+		|| (GetAsyncKeyState(VK_SPACE) & 0x8000)
+		|| (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+}
 
 class CoopAndreas {
 public:
@@ -132,6 +159,7 @@ public:
 					CPlayerPed* localPlayer = FindPlayerPed(0);
 
 					CDriveBy::Process(localPlayer);
+					CStatsSync::PollScriptProgress();
 					
 					int syncRate = 40;
 					CVector velocity{};
@@ -167,69 +195,6 @@ public:
 						CNetworkVehicleManager::UpdatePassenger(localPlayer->m_pVehicle, localPlayer);
 						lastPassengerSyncTickRate = tickCount;
 					}
-
-					// Fallback enter sync for ambient/NPC vehicles:
-					// guarantees VEHICLE_ENTER once the vehicle gets a valid network id.
-					static bool s_prevInVehicle = false;
-					static CVehicle* s_prevVehicle = nullptr;
-					static bool s_pendingVehicleEnterSync = false;
-					static uint32_t s_lastVehicleEnterSyncTick = 0;
-
-					const bool inVehicleNow = isDriver || isPassenger;
-					if (inVehicleNow && (!s_prevInVehicle || s_prevVehicle != localPlayer->m_pVehicle))
-					{
-						s_pendingVehicleEnterSync = true;
-						s_prevVehicle = localPlayer->m_pVehicle;
-					}
-					else if (!inVehicleNow)
-					{
-						s_prevVehicle = nullptr;
-					}
-					s_prevInVehicle = inVehicleNow;
-
-					if (s_pendingVehicleEnterSync && inVehicleNow && localPlayer->m_pVehicle && tickCount > s_lastVehicleEnterSyncTick + 200)
-					{
-						CNetworkVehicle* networkVehicle = CNetworkVehicleManager::GetVehicle(localPlayer->m_pVehicle);
-						if (!networkVehicle)
-						{
-							networkVehicle = CNetworkVehicle::CreateHosted(localPlayer->m_pVehicle);
-						}
-
-						if (networkVehicle && networkVehicle->m_nVehicleId != -1)
-						{
-							CPackets::VehicleEnter enterPacket{};
-							enterPacket.vehicleid = networkVehicle->m_nVehicleId;
-							enterPacket.force = 1;
-							enterPacket.passenger = isPassenger ? 1 : 0;
-							enterPacket.seatid = 0;
-
-							if (isPassenger)
-							{
-								bool foundSeat = false;
-								for (int i = 0; i < localPlayer->m_pVehicle->m_nMaxPassengers; i++)
-								{
-									if (localPlayer->m_pVehicle->m_apPassengers[i] == localPlayer)
-									{
-										enterPacket.seatid = i;
-										foundSeat = true;
-										break;
-									}
-								}
-
-								if (!foundSeat)
-								{
-									enterPacket.vehicleid = -1;
-								}
-							}
-
-							if (enterPacket.vehicleid != -1)
-							{
-							CPacketHandler::VehicleEnter__TriggerReliable(enterPacket.vehicleid, enterPacket.seatid, enterPacket.passenger != 0, true);
-							s_pendingVehicleEnterSync = false;
-							s_lastVehicleEnterSyncTick = tickCount;
-						}
-					}
-				}
 
 					if (tickCount > lastIdleVehicleSyncTickRate + 150)
 					{
@@ -273,200 +238,214 @@ public:
 
 					CNetworkPedManager::Process();
 
-					if (GetAsyncKeyState(VK_F7) && GetAsyncKeyState(VK_F10) && GetAsyncKeyState(VK_NUMPAD1))
-					{
-						*(uint*)0x0 =  1212;
-					}
-				}
-
-				// Drop weapon (G key) or money (H key) — works offline too
-				if (!CChat::m_bInputActive && !FrontEndMenuManager.m_bMenuActive)
-				{
-					static constexpr int kDroppedMoneyAmount = 100;
-					static DWORD lastDropTick = 0;
-					DWORD now = GetTickCount();
-
-					if (now > lastDropTick + 500) // 500ms cooldown
-					{
-						CPlayerPed* localPed = FindPlayerPed(0);
-						if (localPed)
+						if (GetAsyncKeyState(VK_F7) && GetAsyncKeyState(VK_F10) && GetAsyncKeyState(VK_NUMPAD1))
 						{
-							// Drop position: 2m in front of player
-							float heading = localPed->m_fCurrentRotation;
-							CVector pos = localPed->GetPosition();
-							pos.x += -sinf(heading) * 2.0f;
-							pos.y += cosf(heading) * 2.0f;
+							*(uint*)0x0 =  1212;
+						}
+					}
 
-							if (GetAsyncKeyState('G') & 0x8000) // drop weapon
+						if (!CChat::m_bInputActive && !FrontEndMenuManager.m_bMenuActive)
+						{
+							static constexpr int kDroppedMoneyAmount = 100;
+						static DWORD lastDropTick = 0;
+						DWORD now = GetTickCount();
+
+						if (now > lastDropTick + 500)
+						{
+							CPlayerPed* localPed = FindPlayerPed(0);
+							if (localPed)
 							{
-								CWeapon& wep = localPed->m_aWeapons[localPed->m_nActiveWeaponSlot];
-								if (wep.m_eWeaponType != WEAPON_UNARMED && wep.m_nTotalAmmo > 0)
+								const bool isInVehicle = localPed->m_nPedFlags.bInVehicle != 0;
+								const bool isOnFoot = !isInVehicle;
+								float heading = localPed->m_fCurrentRotation;
+								CVector pos = localPed->GetPosition();
+								pos.x += -sinf(heading) * 2.0f;
+								pos.y += cosf(heading) * 2.0f;
+
+								if ((GetAsyncKeyState('G') & 0x8000) && isOnFoot)
 								{
-									lastDropTick = now;
-
-									unsigned int weapType = wep.m_eWeaponType;
-									unsigned int ammo = wep.m_nTotalAmmo;
-
-									// Remove weapon from player
-									localPed->ClearWeapon(wep.m_eWeaponType);
-
-									// Create pickup locally and track for removal sync
-									typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
-									auto GenPickup = (GenerateNewOne_WeaponType_t)0x457380;
-									GenPickup(pos, weapType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
-
-									// Track by compressed position (don't rely on return value)
-									CPacketHandler::TrackDroppedPickup(
-										(int16_t)(pos.x * 8.0f),
-										(int16_t)(pos.y * 8.0f),
-										(int16_t)(pos.z * 8.0f));
-
-									if (CNetwork::m_bConnected)
+									CWeapon& weapon = localPed->m_aWeapons[localPed->m_nActiveWeaponSlot];
+									bool canDropWeapon = weapon.m_eWeaponType != WEAPON_UNARMED && weapon.m_nTotalAmmo > 0;
+									if (canDropWeapon)
 									{
-										CPackets::ItemDrop packet{};
-										packet.x = pos.x;
-										packet.y = pos.y;
-										packet.z = pos.z;
-										packet.dropType = 0;
-										packet.weaponType = weapType;
-										packet.ammo = ammo;
-										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-									}
+										lastDropTick = now;
 
-									CChat::AddMessage("~g~Dropped weapon");
+										unsigned int weaponType = weapon.m_eWeaponType;
+										unsigned int ammo = weapon.m_nTotalAmmo;
+
+										localPed->ClearWeapon(weapon.m_eWeaponType);
+
+										typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
+										auto GenerateNewOne_WeaponType = (GenerateNewOne_WeaponType_t)0x457380;
+										GenerateNewOne_WeaponType(pos, weaponType, 3 /*PICKUP_ONCE*/, ammo, false, nullptr);
+
+										CPacketHandler::TrackDroppedPickup(
+											(int16_t)(pos.x * 8.0f),
+											(int16_t)(pos.y * 8.0f),
+											(int16_t)(pos.z * 8.0f));
+
+										if (CNetwork::m_bConnected)
+										{
+											CPackets::ItemDrop packet{};
+											packet.x = pos.x;
+											packet.y = pos.y;
+											packet.z = pos.z;
+											packet.dropType = 0;
+											packet.weaponType = weaponType;
+											packet.ammo = ammo;
+											CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+										}
+
+										CChat::AddMessage("~g~Dropped weapon");
+									}
+								}
+									else if ((GetAsyncKeyState('H') & 0x8000) && isOnFoot)
+									{
+									CPlayerInfo* playerInfo = &CWorld::Players[0];
+									if (playerInfo && playerInfo->m_nMoney > 0)
+									{
+										lastDropTick = now;
+
+										int droppedMoney = (std::min)(playerInfo->m_nMoney, kDroppedMoneyAmount);
+
+										plugin::Command<0x02E1>(pos.x, pos.y, pos.z, droppedMoney);
+										playerInfo->m_nMoney -= droppedMoney;
+										playerInfo->m_nDisplayMoney = playerInfo->m_nMoney;
+
+										CPacketHandler::TrackDroppedPickup(
+											(int16_t)(pos.x * 8.0f),
+											(int16_t)(pos.y * 8.0f),
+											(int16_t)(pos.z * 8.0f));
+
+										if (CNetwork::m_bConnected)
+										{
+											CPackets::ItemDrop packet{};
+											packet.x = pos.x;
+											packet.y = pos.y;
+											packet.z = pos.z;
+											packet.dropType = 1;
+											packet.money = droppedMoney;
+											CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+										}
+
+											CChat::AddMessage("~g~Dropped $%d", droppedMoney);
+										}
+									}
+									else if (CNetwork::m_bConnected && (GetAsyncKeyState('J') & 0x1))
+									{
+										static DWORD lastReviveTryTick = 0;
+										if (now > lastReviveTryTick + 700)
+										{
+											lastReviveTryTick = now;
+
+											if (g_reviveInProgress)
+											{
+												CChat::AddMessage("~r~Revive already in progress");
+											}
+											else if (PlayerHooks::IsLocalPlayerDowned())
+											{
+												CChat::AddMessage("~r~You are downed - you cannot revive others");
+											}
+											else if (!isOnFoot)
+											{
+												CChat::AddMessage("~r~Get out of vehicle to revive");
+											}
+											else
+											{
+												int targetId = -1;
+												CVector deathPos{};
+												if (CPacketHandler::TryGetNearestReviveTarget(localPed->GetPosition(), targetId, deathPos))
+												{
+													g_reviveInProgress = true;
+													g_reviveStartTick = now;
+													g_reviveTargetId = targetId;
+													g_reviveTargetPos = deathPos;
+													g_reviveRescuerStartPos = localPed->GetPosition();
+													g_reviveActionMessageShown = false;
+													CChat::AddMessage("~b~Reviving teammate... any movement cancels");
+												}
+												else
+												{
+													CChat::AddMessage("~r~No teammate to revive nearby (or revive window expired)");
+												}
+											}
+										}
+									}
 								}
 							}
-							else if (GetAsyncKeyState('H') & 0x8000) // drop money
+						}
+
+						if (g_reviveInProgress)
+						{
+							uint32_t reviveNow = GetTickCount();
+
+							if (!CNetwork::m_bConnected || CChat::m_bInputActive || FrontEndMenuManager.m_bMenuActive)
 							{
-								CPlayerInfo* playerInfo = &CWorld::Players[0];
-								if (playerInfo && playerInfo->m_nMoney > 0)
-								{
-									lastDropTick = now;
-
-									int droppedMoney = (std::min)(playerInfo->m_nMoney, kDroppedMoneyAmount);
-
-									plugin::Command<0x02E1>(pos.x, pos.y, pos.z, droppedMoney);
-
-									playerInfo->m_nMoney -= droppedMoney;
-									playerInfo->m_nDisplayMoney = playerInfo->m_nMoney;
-
-									CPacketHandler::TrackDroppedPickup(
-										(int16_t)(pos.x * 8.0f),
-										(int16_t)(pos.y * 8.0f),
-										(int16_t)(pos.z * 8.0f));
-
-									if (CNetwork::m_bConnected)
-									{
-										CPackets::ItemDrop packet{};
-										packet.x = pos.x;
-										packet.y = pos.y;
-										packet.z = pos.z;
-										packet.dropType = 1;
-										packet.money = droppedMoney;
-										CNetwork::SendPacket(CPacketsID::ITEM_DROP, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-									}
-
-									CChat::AddMessage("~g~Dropped $%d", droppedMoney);
-								}
+								CancelRevive();
 							}
-							else if (CNetwork::m_bConnected && (GetAsyncKeyState('J') & 0x1)) // revive teammate (limited)
+							else
 							{
-								static DWORD lastReviveTryTick = 0;
-								if (now > lastReviveTryTick + 700)
+								CPlayerPed* localPed = FindPlayerPed(0);
+								if (!localPed)
 								{
-									lastReviveTryTick = now;
-
-									int targetId = -1;
-									CVector deathPos{};
-									if (CPacketHandler::TryGetNearestReviveTarget(localPed->GetPosition(), targetId, deathPos))
+									CancelRevive();
+								}
+								else
+								{
+									if (PlayerHooks::IsLocalPlayerDowned())
 									{
-										g_reviveInProgress = true;
-										g_reviveStartTick = now;
-										g_reviveTargetId = targetId;
-										g_reviveTargetPos = deathPos;
-										g_reviveRescuerStartPos = localPed->GetPosition();
-										CChat::AddMessage("~b~Reviving teammate... stay still and keep 1m range for 10 seconds");
+										CancelRevive("~r~Revive canceled (you are downed)");
+									}
+									else if (localPed->m_nPedFlags.bInVehicle)
+									{
+										CancelRevive("~r~Revive canceled (in vehicle)");
 									}
 									else
 									{
-										CChat::AddMessage("~r~No teammate to revive nearby (or revive window expired)");
+										// Play one-shot action feedback once per revive start.
+										if (!g_reviveActionMessageShown)
+										{
+											localPed->SetMoveAnim();
+											g_reviveActionMessageShown = true;
+										}
+
+										const CVector pos = localPed->GetPosition();
+										const float moveDx = pos.x - g_reviveRescuerStartPos.x;
+										const float moveDy = pos.y - g_reviveRescuerStartPos.y;
+										const float moveDz = pos.z - g_reviveRescuerStartPos.z;
+										const float movedSq = moveDx * moveDx + moveDy * moveDy + moveDz * moveDz;
+										if (HasReviveMovementInput() || movedSq > (kReviveMoveCancelDistance * kReviveMoveCancelDistance))
+										{
+											CancelRevive("~r~Revive canceled (movement detected)");
+										}
+										else
+										{
+											const float dx = pos.x - g_reviveTargetPos.x;
+											const float dy = pos.y - g_reviveTargetPos.y;
+											const float dz = pos.z - g_reviveTargetPos.z;
+											const float distSq = dx * dx + dy * dy + dz * dz;
+
+											if (distSq > (kReviveDistance * kReviveDistance))
+											{
+												CancelRevive("~r~Revive canceled (too far)");
+											}
+											else if (reviveNow >= g_reviveStartTick + kReviveDurationMs)
+											{
+												CPackets::ReviveRequest revive{};
+												revive.targetPlayerId = g_reviveTargetId;
+												revive.rescuerPos = pos;
+												CNetwork::SendPacket(CPacketsID::REVIVE_REQUEST, &revive, sizeof revive, ENET_PACKET_FLAG_RELIABLE);
+												CancelRevive();
+												CChat::AddMessage("~b~Revive attempt sent");
+											}
+										}
 									}
 								}
 							}
 						}
-					}
-				}
 
-				if (g_reviveInProgress)
-				{
-					uint32_t reviveNow = GetTickCount();
-
-					if (!CNetwork::m_bConnected || CChat::m_bInputActive || FrontEndMenuManager.m_bMenuActive)
-					{
-						g_reviveInProgress = false;
-						g_reviveTargetId = -1;
-					}
-					else
-					{
-						CPlayerPed* localPed = FindPlayerPed(0);
-						if (!localPed)
-						{
-							g_reviveInProgress = false;
-							g_reviveTargetId = -1;
-						}
-						else
-						{
-							const CVector pos = localPed->GetPosition();
-							const float dx = pos.x - g_reviveTargetPos.x;
-							const float dy = pos.y - g_reviveTargetPos.y;
-							const float dz = pos.z - g_reviveTargetPos.z;
-							const float distSq = dx * dx + dy * dy + dz * dz;
-
-							const float mx = pos.x - g_reviveRescuerStartPos.x;
-							const float my = pos.y - g_reviveRescuerStartPos.y;
-							const float mz = pos.z - g_reviveRescuerStartPos.z;
-							const float movedSq = mx * mx + my * my + mz * mz;
-							const bool movementInput =
-								(GetAsyncKeyState('W') & 0x8000) || (GetAsyncKeyState('A') & 0x8000) ||
-								(GetAsyncKeyState('S') & 0x8000) || (GetAsyncKeyState('D') & 0x8000) ||
-								(GetAsyncKeyState(VK_UP) & 0x8000) || (GetAsyncKeyState(VK_DOWN) & 0x8000) ||
-								(GetAsyncKeyState(VK_LEFT) & 0x8000) || (GetAsyncKeyState(VK_RIGHT) & 0x8000) ||
-								(GetAsyncKeyState(VK_SPACE) & 0x8000) || (GetAsyncKeyState(VK_SHIFT) & 0x8000) ||
-								(GetAsyncKeyState(VK_LSHIFT) & 0x8000) || (GetAsyncKeyState(VK_RSHIFT) & 0x8000);
-
-							// Keep the player anchored while reviving.
-							localPed->m_vecMoveSpeed = CVector(0.0f, 0.0f, 0.0f);
-
-							if (distSq > (kReviveDistance * kReviveDistance))
-							{
-								g_reviveInProgress = false;
-								g_reviveTargetId = -1;
-								CChat::AddMessage("~r~Revive canceled (too far)");
-							}
-							else if (movementInput || movedSq > 0.01f)
-							{
-								g_reviveInProgress = false;
-								g_reviveTargetId = -1;
-								CChat::AddMessage("~r~Revive canceled (movement detected)");
-							}
-							else if (reviveNow >= g_reviveStartTick + kReviveDurationMs)
-							{
-								CPackets::ReviveRequest revive{};
-								revive.targetPlayerId = g_reviveTargetId;
-								revive.rescuerPos = pos;
-								CNetwork::SendPacket(CPacketsID::REVIVE_REQUEST, &revive, sizeof revive, ENET_PACKET_FLAG_RELIABLE);
-								g_reviveInProgress = false;
-								g_reviveTargetId = -1;
-								CChat::AddMessage("~b~Revive attempt sent");
-							}
-						}
-					}
-				}
-
-				// Check if any tracked dropped pickups were collected — sync removal
-				CPacketHandler::CheckDroppedPickups();
-				CPacketHandler::ProcessReliableVehicleActions();
-			};
+						CPacketHandler::CheckDroppedPickups();
+					};
 		Events::drawBlipsEvent += []
 			{
 				CNetworkPlayerMapPin::Process();
@@ -505,33 +484,34 @@ public:
 					CNetworkPlayerList::Draw();
 				}
 
-				if (FrontEndMenuManager.m_bPrefsShowHud && CCore::Version.stage != SEMVER_STAGE_RELEASE)
-				{
-					CDXFont::Draw(0, RsGlobal.maximumHeight - CDXFont::m_fFontSize,
-						std::string("CoopAndreas " + std::string(COOPANDREAS_VERSION)).c_str(),
-						D3DCOLOR_ARGB(255, 160, 160, 160));
-				}
+					if (FrontEndMenuManager.m_bPrefsShowHud && CCore::Version.stage != SEMVER_STAGE_RELEASE)
+					{
+						CDXFont::Draw(0, RsGlobal.maximumHeight - CDXFont::m_fFontSize,
+							std::string("CoopAndreas " + std::string(COOPANDREAS_VERSION)).c_str(),
+							D3DCOLOR_ARGB(255, 160, 160, 160));
+					}
 
-				if (g_reviveInProgress && FrontEndMenuManager.m_bPrefsShowHud)
-				{
-					float progress = (GetTickCount() - g_reviveStartTick) / (float)kReviveDurationMs;
-					progress = (std::max)(0.0f, (std::min)(1.0f, progress));
+					if (g_reviveInProgress && FrontEndMenuManager.m_bPrefsShowHud)
+					{
+						float progress = (GetTickCount() - g_reviveStartTick) / (float)kReviveDurationMs;
+						progress = (std::max)(0.0f, (std::min)(1.0f, progress));
 
-					float barW = CUtil::SCREEN_SCALE_X(320.0f);
-					float barH = CUtil::SCREEN_SCALE_Y(18.0f);
-					float x = (RsGlobal.maximumWidth - barW) * 0.5f;
-					float y = CUtil::SCREEN_SCALE_Y(64.0f);
+						float barW = CUtil::SCREEN_SCALE_X(320.0f);
+						float barH = CUtil::SCREEN_SCALE_Y(18.0f);
+						float x = (RsGlobal.maximumWidth - barW) * 0.5f;
+						float y = CUtil::SCREEN_SCALE_Y(64.0f);
 
-					CSprite2d::DrawRect({ x - 2.0f, y - 2.0f, x + barW + 2.0f, y + barH + 2.0f }, { 0, 0, 0, 170 });
-					CSprite2d::DrawRect({ x, y, x + barW, y + barH }, { 40, 40, 40, 220 });
-					CSprite2d::DrawRect({ x, y, x + barW * progress, y + barH }, { 90, 200, 120, 240 });
+						CSprite2d::DrawRect({ x - 2.0f, y - 2.0f, x + barW + 2.0f, y + barH + 2.0f }, { 0, 0, 0, 170 });
+						CSprite2d::DrawRect({ x, y, x + barW, y + barH }, { 40, 40, 40, 220 });
+						CSprite2d::DrawRect({ x, y, x + barW * progress, y + barH }, { 90, 200, 120, 240 });
 
-					char reviveBarText[64];
-					uint32_t elapsed = GetTickCount() - g_reviveStartTick;
-					float remaining = (kReviveDurationMs > elapsed) ? ((kReviveDurationMs - elapsed) / 1000.0f) : 0.0f;
-					sprintf(reviveBarText, "REVIVE %.1fs", remaining);
-					CDXFont::Draw((int)(x + barW * 0.5f - 45.0f), (int)(y - CUtil::SCREEN_SCALE_Y(18.0f)), reviveBarText, D3DCOLOR_ARGB(255, 230, 230, 230));
-				}
+						char reviveBarText[64];
+						uint32_t elapsed = GetTickCount() - g_reviveStartTick;
+						float remaining = (kReviveDurationMs > elapsed) ? ((kReviveDurationMs - elapsed) / 1000.0f) : 0.0f;
+						sprintf(reviveBarText, "REVIVE %.1fs", remaining);
+						CDXFont::Draw((int)(x + barW * 0.5f - 45.0f), (int)(y - CUtil::SCREEN_SCALE_Y(18.0f)), reviveBarText, D3DCOLOR_ARGB(255, 230, 230, 230));
+						CDXFont::Draw((int)(x + barW * 0.5f - 85.0f), (int)(y + barH + CUtil::SCREEN_SCALE_Y(4.0f)), "DO NOT MOVE", D3DCOLOR_ARGB(255, 255, 210, 120));
+					}
 
 				if (CNetwork::m_bConnected && GetAsyncKeyState(VK_F10))
 				{
@@ -543,14 +523,6 @@ public:
 					char buffer[270];
 					sprintf(buffer, "IsHost=%d | Game/Network: Peds %d/%d | Cars %d/%d | Recv %d %.2f KB/S | Sent %d %.2f KB/S | EnEx %d", CLocalPlayer::m_bIsHost, CPools::ms_pPedPool->GetNoOfUsedSpaces(), CNetworkPedManager::m_pPeds.size(), CPools::ms_pVehiclePool->GetNoOfUsedSpaces(), CNetworkVehicleManager::m_pVehicles.size(), CNetwork::m_pClient->totalReceivedPackets, CNetwork::ms_nBytesReceivedThisSecond / 1024.0f, CNetwork::m_pClient->totalSentPackets, CNetwork::ms_nBytesSentThisSecond / 1024.0f, CEntryExitManager::mp_poolEntryExits->GetNoOfUsedSpaces());
 					CDXFont::Draw(100, 10, buffer, D3DCOLOR_ARGB(255, 255, 255, 255));
-
-					uint32_t acked = 0, retried = 0, timedOut = 0;
-					int pending = 0;
-					CPacketHandler::GetReliableVehicleActionStats(acked, retried, timedOut, pending);
-
-					char syncBuffer[180];
-					sprintf(syncBuffer, "VehicleSync reliable: ack=%u retry=%u timeout=%u pending=%d", acked, retried, timedOut, pending);
-					CDXFont::Draw(100, 26, syncBuffer, D3DCOLOR_ARGB(255, 180, 220, 255));
 					/*for (auto enex : CEntryExitManager::mp_poolEntryExits)
 					{
 						CVector posn = CVector(enex->m_recEntrance.left, enex->m_recEntrance.bottom, enex->m_fEntranceZ);

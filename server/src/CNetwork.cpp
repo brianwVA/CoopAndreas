@@ -136,12 +136,11 @@ void CNetwork::InitListeners()
     CNetwork::AddListener(CPacketsID::TELEPORT_PLAYER_SCRIPTED, CPlayerPackets::TeleportPlayerScripted::Handle);
     CNetwork::AddListener(CPacketsID::WANTED_LEVEL_SYNC, CPlayerPackets::WantedLevelSync::Handle);
     CNetwork::AddListener(CPacketsID::MONEY_SYNC, CPlayerPackets::MoneySync::Handle);
-    CNetwork::AddListener(CPacketsID::CHEAT_CODE_SYNC, CPlayerPackets::CheatCodeSync::Handle);
-    CNetwork::AddListener(CPacketsID::FIRE_SYNC, CPlayerPackets::FireSync::Handle);
-    CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPlayerPackets::PickupRemove::Handle);
     CNetwork::AddListener(CPacketsID::DEATH_PICKUPS, CPlayerPackets::DeathPickups::Handle);
-    CNetwork::AddListener(CPacketsID::ITEM_DROP, CPlayerPackets::ItemDrop::Handle);
     CNetwork::AddListener(CPacketsID::REVIVE_REQUEST, CPlayerPackets::ReviveRequest::Handle);
+    CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPlayerPackets::PickupRemove::Handle);
+    CNetwork::AddListener(CPacketsID::ITEM_DROP, CPlayerPackets::ItemDrop::Handle);
+    CNetwork::AddListener(CPacketsID::CHEATS_TOGGLE, CPlayerPackets::CheatsToggle::Handle);
 }
 
 void CNetwork::SendPacket(ENetPeer* peer, unsigned short id, void* data, size_t dataSize, ENetPacketFlag flag)
@@ -198,9 +197,8 @@ void CNetwork::HandlePeerConnected(ENetEvent& event)
         (event.peer->address.host >> 24) & 0xFF,
         event.peer->address.port);
 
-    // Keep dual-instance/local testing stable while one window is unfocused/loading.
-    // Previous 6-10s timeout was too aggressive and could drop the first client on alt-tab.
-    enet_peer_timeout(event.peer, 0, 30000, 120000); // timeoutLimit, timeoutMinimum, timeoutMaximum
+    // set player disconnection timeout
+    enet_peer_timeout(event.peer, 10000, 6000, 10000); //timeoutLimit, timeoutMinimum, timeoutMaximum
 }
 
 void CNetwork::HandlePlayerDisconnected(ENetEvent& event)
@@ -338,7 +336,7 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
         {
             CPlayerPackets::PlayerStats statsPacket{};
             statsPacket.playerid = i->m_iPlayerId;
-            memcpy(&statsPacket.progress, &i->m_progress, sizeof(i->m_progress));
+            statsPacket.progress = i->m_progress;
             CNetwork::SendPacket(peer, CPacketsID::PLAYER_STATS, &statsPacket, sizeof(statsPacket), ENET_PACKET_FLAG_RELIABLE);
         }
 
@@ -401,8 +399,6 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
             vehicleComponentAddPacket.componentid = component;
             CNetwork::SendPacket(peer, CPacketsID::VEHICLE_COMPONENT_ADD, &vehicleComponentAddPacket, sizeof vehicleComponentAddPacket, ENET_PACKET_FLAG_RELIABLE);
         }
-
-        CVehicleManager::SendOccupantsSnapshot(i, peer);
     }
 
     for (auto i : CPedManager::m_pPeds)
@@ -417,8 +413,6 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
         CNetwork::SendPacket(peer, CPacketsID::PED_SPAWN, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
     }
 
-    CPlayerPackets::ReplayLateJoinState(peer);
-
     if (CPlayerPackets::EnExSync::ms_pLastPlayerOwner)
     {
         if (std::find(CPlayerManager::m_pPlayers.begin(), CPlayerManager::m_pPlayers.end(), CPlayerPackets::EnExSync::ms_pLastPlayerOwner)
@@ -430,6 +424,10 @@ void CNetwork::HandlePlayerConnected(ENetPeer* peer, void* data, int size)
 
     CPlayerPackets::PlayerHandshake handshakePacket = { freeId };
     CNetwork::SendPacket(peer, CPacketsID::PLAYER_HANDSHAKE, &handshakePacket, sizeof handshakePacket, ENET_PACKET_FLAG_RELIABLE);
+
+    CPlayerPackets::CheatsToggle cheatsPacket{};
+    cheatsPacket.enabled = CPlayerPackets::ms_bCheatsEnabled ? 1 : 0;
+    CNetwork::SendPacket(peer, CPacketsID::CHEATS_TOGGLE, &cheatsPacket, sizeof(cheatsPacket), ENET_PACKET_FLAG_RELIABLE);
 
     CPlayerManager::AssignHostToFirstPlayer();
 }

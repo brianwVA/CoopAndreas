@@ -3,7 +3,6 @@
 
 :DESERT9
 script_name 'DESERT9'
-Coop.EnableSyncingThisScript()
 gosub @DESERT9_49
 
 :DESERT9_18
@@ -16,19 +15,11 @@ gosub @DESERT9_21846
 gosub @DESERT9_21954
 
 :DESERT9_45
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 terminate_this_script 
 
 :DESERT9_49
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('DSERT9')
 Game.SetWantedMultiplier(0.0)
 Game.SetScriptLimitToGangSize(0)
@@ -720,7 +711,6 @@ Task.PlayAnim(41@, "IDLE_ARMED", "PED", 4.0, True, False, False, False, 0)
 Task.PlayAnim(42@, "IDLE_ARMED", "PED", 4.0, True, False, False, False, 0)
 Char.SetCoordinates($scplayer, 412.6561, 2530.908, 15.617)
 Char.SetHeading($scplayer, 136.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Streaming.MarkModelAsNoLongerNeeded(461)
 Streaming.MarkModelAsNoLongerNeeded(422)
 Streaming.MarkModelAsNoLongerNeeded(165)

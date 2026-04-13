@@ -11,9 +11,7 @@ terminate_this_script
 
 :FINALEC_36
 $onmission = 1
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'FINALEC'
-Coop.EnableSyncingThisScript()
 wait 0
 Text.LoadMissionText('RIOT4')
 97@ = DecisionMakerChar.Load(DecisionMakerType.Empty)
@@ -164,7 +162,6 @@ Hud.SwitchWidescreen(True)
 Player.SetControl($player1, False)
 Char.SetCoordinates($scplayer, 2515.771, -1277.474, 33.728)
 Char.SetHeading($scplayer, 144.159)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Task.PlayAnim($scplayer, "KO_SKID_BACK", "PED", 1000.0, False, False, False, True, -1)
 wait 250
 152@ = Car.Create(544, 2508.649, -1295.866, 33.92)
@@ -7931,13 +7928,6 @@ Game.SetWantedMultiplier(1.0)
 World.SetCarDensityMultiplier(1.0)
 World.SetPedDensityMultiplier(1.0)
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

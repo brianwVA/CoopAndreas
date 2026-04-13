@@ -75,15 +75,12 @@ enum CPacketsID : unsigned short
 	TELEPORT_PLAYER_SCRIPTED,
 	WANTED_LEVEL_SYNC,
 	MONEY_SYNC,
-	CHEAT_CODE_SYNC,
-	FIRE_SYNC,
-	PICKUP_REMOVE,
 	DEATH_PICKUPS,
-	ITEM_DROP,
-	VEHICLE_OCCUPANTS,
 	REVIVE_REQUEST,
 	REVIVE_APPLY,
-	VEHICLE_ACTION_ACK,
+	PICKUP_REMOVE,
+	ITEM_DROP,
+	CHEATS_TOGGLE,
 	PACKET_ID_MAX
 };
 
@@ -144,32 +141,29 @@ public:
 			sizeof(PlayMissionAudio), // PLAY_MISSION_AUDIO,
 			sizeof(UpdateCheckpoint), // UPDATE_CHECKPOINT,
 			sizeof(RemoveCheckpoint), // REMOVE_CHECKPOINT,
-			0, // ENEX_SYNC,
-			sizeof(CreateStaticBlip), // CREATE_STATIC_BLIP,
-			sizeof(SetVehicleCreatedBy), // SET_VEHICLE_CREATED_BY,
-			sizeof(SetPlayerTask), // SET_PLAYER_TASK,
-			sizeof(PedSay), // PED_SAY,
-			sizeof(PedClaimOnRelease), // PED_CLAIM_ON_RELEASE,
-			sizeof(PedCancelClaim), // PED_CANCEL_CLAIM,
-			sizeof(PedResetAllClaims), // PED_RESET_ALL_CLAIMS,
-			sizeof(PedTakeHost), // PED_TAKE_HOST,
-			0, // PERFORM_TASK_SEQUENCE,
-			sizeof(AddProjectile), // ADD_PROJECTILE,
-			sizeof(TagUpdate), // TAG_UPDATE,
-			sizeof(UpdateAllTags), // UPDATE_ALL_TAGS,
-			sizeof(TeleportPlayerScripted), // TELEPORT_PLAYER_SCRIPTED,
-			sizeof(WantedLevelSync), // WANTED_LEVEL_SYNC,
-			sizeof(MoneySync), // MONEY_SYNC,
-			sizeof(CheatCodeSync), // CHEAT_CODE_SYNC,
-			sizeof(FireSync), // FIRE_SYNC,
-			sizeof(PickupRemove), // PICKUP_REMOVE,
-			sizeof(DeathPickups), // DEATH_PICKUPS,
-			sizeof(ItemDrop), // ITEM_DROP,
-			sizeof(VehicleOccupants), // VEHICLE_OCCUPANTS,
-			sizeof(ReviveRequest), // REVIVE_REQUEST,
-			sizeof(ReviveApply), // REVIVE_APPLY,
-			sizeof(VehicleActionAck), // VEHICLE_ACTION_ACK,
-		};
+				0, // ENEX_SYNC,
+				sizeof(CreateStaticBlip), // CREATE_STATIC_BLIP,
+				sizeof(SetVehicleCreatedBy), // SET_VEHICLE_CREATED_BY,
+				sizeof(SetPlayerTask), // SET_PLAYER_TASK,
+				sizeof(PedSay), // PED_SAY,
+				sizeof(PedClaimOnRelease), // PED_CLAIM_ON_RELEASE,
+				sizeof(PedCancelClaim), // PED_CANCEL_CLAIM,
+				sizeof(PedResetAllClaims), // PED_RESET_ALL_CLAIMS,
+				sizeof(PedTakeHost), // PED_TAKE_HOST,
+				0, // PERFORM_TASK_SEQUENCE,
+				sizeof(AddProjectile), // ADD_PROJECTILE,
+				sizeof(TagUpdate), // TAG_UPDATE,
+				sizeof(UpdateAllTags), // UPDATE_ALL_TAGS,
+					sizeof(TeleportPlayerScripted), // TELEPORT_PLAYER_SCRIPTED,
+					sizeof(WantedLevelSync), // WANTED_LEVEL_SYNC,
+					sizeof(MoneySync), // MONEY_SYNC,
+					sizeof(DeathPickups), // DEATH_PICKUPS,
+					sizeof(ReviveRequest), // REVIVE_REQUEST,
+					sizeof(ReviveApply), // REVIVE_APPLY,
+					sizeof(PickupRemove), // PICKUP_REMOVE,
+					sizeof(ItemDrop), // ITEM_DROP,
+					sizeof(CheatsToggle), // CHEATS_TOGGLE,
+				};
 
 		return m_nPacketSize[id];
 	}
@@ -276,8 +270,6 @@ public:
 		char paintjob;
 		float planeGearState;
 		unsigned char locked;
-		short hydraulicSuspension;
-		float wheelOffsetZ[4];
 	};
 
 	struct VehicleDriverUpdate
@@ -300,9 +292,6 @@ public:
 		unsigned short miscComponentAngle; // hydra thrusters
 		float planeGearState;
 		unsigned char locked;
-		unsigned char radioStation;
-		short hydraulicSuspension;
-		float wheelOffsetZ[4];
 	};
 
 	struct VehicleEnter
@@ -312,14 +301,12 @@ public:
 		unsigned char seatid : 3;
 		unsigned char force : 1;
 		unsigned char passenger : 1;
-		uint16_t actionSeq;
 	};
 
 	struct VehicleExit
 	{
 		int playerid;
 		bool force;
-		uint16_t actionSeq;
 	};
 
 	struct VehicleDamage
@@ -406,7 +393,6 @@ public:
 		unsigned char currentHour;
 		unsigned char currentMinute;
 		unsigned int gameTickCount;
-		unsigned char moonSize;
 	};
 
 	struct PedRemoveTask
@@ -454,8 +440,6 @@ public:
 		uint8_t movementFlags;
 		int targetVehicleId;
 		CVector destinationCoors;
-		unsigned short hornCounter;
-		unsigned char sirenOrAlarm;
 	};
 
 	struct PedShotSync
@@ -488,8 +472,6 @@ public:
 		CVector	up;
 		float lookPitch;
 		float orientation;
-		CVector sniperDotPos;
-		unsigned char sniperDotActive;
 	};
 
 	struct VehicleConfirm
@@ -711,27 +693,6 @@ public:
 		int32_t money;
 	};
 
-	struct CheatCodeSync
-	{
-		int playerid;
-		uint16_t cheatId;
-	};
-
-	struct FireSync
-	{
-		int playerid;
-		CVector position;
-		uint32_t timeToBurn;
-		int8_t numGenerations;
-	};
-
-	struct PickupRemove
-	{
-		int16_t pos_x;
-		int16_t pos_y;
-		int16_t pos_z;
-	};
-
 	struct DeathPickups
 	{
 		int playerid;
@@ -743,23 +704,6 @@ public:
 			unsigned int weaponType;
 			unsigned int ammo;
 		} weapons[13];
-	};
-
-	struct ItemDrop
-	{
-		int playerid;
-		float x, y, z;
-		unsigned char dropType; // 0 = weapon, 1 = money
-		unsigned int weaponType;
-		unsigned int ammo;
-		int money;
-	};
-
-	struct VehicleOccupants
-	{
-		int vehicleid;
-		int playerIds[8];
-		uint16_t occupantsVersion;
 	};
 
 	struct ReviveRequest
@@ -776,9 +720,25 @@ public:
 		uint8_t success;
 	};
 
-	struct VehicleActionAck
+	struct PickupRemove
 	{
-		uint16_t actionSeq;
-		uint8_t actionType; // 1 = enter, 2 = exit
+		int16_t pos_x;
+		int16_t pos_y;
+		int16_t pos_z;
+	};
+
+	struct ItemDrop
+	{
+		int playerid;
+		float x, y, z;
+		unsigned char dropType; // 0 = weapon, 1 = money
+		unsigned int weaponType;
+		unsigned int ammo;
+		int money;
+	};
+
+	struct CheatsToggle
+	{
+		uint8_t enabled;
 	};
 };

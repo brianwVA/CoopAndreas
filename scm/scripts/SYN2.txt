@@ -3,7 +3,6 @@
 
 :SYN2
 script_name 'SYN2'
-Coop.EnableSyncingThisScript()
 gosub @SYN2_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :SYN2_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 34@ = 0
 35@ = 0
@@ -435,7 +433,6 @@ goto @SYN2_3046
 Streaming.SetAreaVisible(0)
 Char.SetCoordinates($scplayer, -2031.254, 161.408, 28.0391)
 Char.SetHeading($scplayer, 270.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Camera.DoFade(1, 500)
@@ -555,7 +552,6 @@ World.ClearArea(1, -2623.359, 1410.786, 6.1629, 20.0)
 Char.SetHeading(58@, 192.3576)
 Char.SetCoordinates($scplayer, -2622.546, 1410.95, 6.1702)
 Char.SetHeading($scplayer, 199.6292)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Car.CustomPlateForNextCar(575, "HO_2_HO_")
 59@ = Car.Create(575, -2625.449, 1401.681, 6.0877)
 Car.SetHeading(59@, 188.0679)
@@ -796,13 +792,6 @@ goto_if_false @SYN2_5517
 66@ = 0
 $syn2_timer = 540000
 Text.PrintNow('SYN2_37', 7000, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('SYN2_37', 7000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 TIMERA = 0
 35@ += 1
 
@@ -4763,13 +4752,6 @@ CarGenerator.DontSuppressCarModel(575)
 CarGenerator.DontSuppressCarModel(545)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

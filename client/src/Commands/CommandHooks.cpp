@@ -2,14 +2,19 @@
 #include "CommandHooks.h"
 #include "CCustomCommandMgr.h"
 #include "Commands/CCommandAddChatMessage.h"
+#include <cstdint>
 
 uint16_t nCommand = 0x0;
 CRunningScript* pScript = nullptr;
+static constexpr uint16_t kMaxVanillaOpcode = 2699;
+static constexpr uintptr_t kMinExecutableCodePtr = 0x00400000;
+static constexpr uintptr_t kMaxExecutableCodePtr = 0x02000000;
 
 bool ProcessCustomCommand()
 {
 	// if is in custom command range
 	uint16_t commandNormalised = (nCommand & 0x7FFF);
+
 	if (commandNormalised >= CCustomCommandMgr::MIN_CUSTOM_COMMAND && commandNormalised <= CCustomCommandMgr::MAX_CUSTOM_COMMAND)
 	{
 		pScript->m_pCurrentIP += 2;
@@ -17,6 +22,26 @@ bool ProcessCustomCommand()
 		CCustomCommandMgr::ProcessCommand(commandNormalised, pScript); // process it
 		return true;
 	}
+
+	// Defensive guard for invalid vanilla opcode handlers.
+	// Some opcodes in script streams may map to an invalid handler pointer (e.g. 0x1),
+	// which would crash on call. Skip such opcode safely instead.
+	if (commandNormalised > kMaxVanillaOpcode)
+	{
+		pScript->m_pCurrentIP += 2;
+		pScript->m_bNotFlag = (nCommand & 0x8000) != 0;
+		return true;
+	}
+
+	auto handler = CRunningScript::CommandHandlerTable[commandNormalised / 100];
+	uintptr_t handlerPtr = (uintptr_t)handler;
+	if (handlerPtr < kMinExecutableCodePtr || handlerPtr >= kMaxExecutableCodePtr)
+	{
+		pScript->m_pCurrentIP += 2;
+		pScript->m_bNotFlag = (nCommand & 0x8000) != 0;
+		return true;
+	}
+
 	return false;
 }
 

@@ -28,6 +28,36 @@ static bool IsLowSymbolSurrogate(wchar_t ch)
     return (ch >= 0xDC00 && ch <= 0xDFFF);
 }
 
+static std::wstring ToLowercase(std::wstring value)
+{
+    std::transform(value.begin(), value.end(), value.begin(), [](wchar_t ch) {
+        return (wchar_t)std::towlower(ch);
+        });
+
+    return value;
+}
+
+static bool HandleLocalCommand(const std::wstring& input)
+{
+    const std::wstring cmd = ToLowercase(input);
+
+    if (cmd == L"/cheatsoff" || cmd == L"/cheatson")
+    {
+        if (!CLocalPlayer::m_bIsHost)
+        {
+            CChat::AddMessage("{ff3b3b}Tylko host moze uzyc tej komendy.");
+            return true;
+        }
+
+        CPackets::CheatsToggle packet{};
+        packet.enabled = (cmd == L"/cheatson") ? 1 : 0;
+        CNetwork::SendPacket(CPacketsID::CHEATS_TOGGLE, &packet, sizeof(packet), ENET_PACKET_FLAG_RELIABLE);
+        return true;
+    }
+
+    return false;
+}
+
 void CChat::EraseCharacter(std::wstring& wtext, size_t offCaretPos)
 {
     if (m_nCaretPos < 0 || m_nCaretPos + offCaretPos > wtext.size())
@@ -318,7 +348,7 @@ void CChat::Draw()
             }
         }
 
-        int x = (int)CUtil::SCREEN_SCALE_X(10.0f);
+        int x = 10;
         int y = RsGlobal.maximumHeight / 5 + (MAX_MESSAGES - drawnMessages) * CDXFont::m_fFontSize;
 
         for (auto& seg : message.segments)
@@ -377,7 +407,7 @@ void CChat::DrawInput()
         displayText.insert(m_nCaretPos, 1, caretSymbol);
     }
     
-    CDXFont::Draw((int)CUtil::SCREEN_SCALE_X(10.0f), RsGlobal.maximumHeight / 5 + 16 * CDXFont::m_fFontSize, L": " + displayText, D3DCOLOR_RGBA(255, 255, 255, 255));
+    CDXFont::Draw(10, RsGlobal.maximumHeight / 5 + 16 * CDXFont::m_fFontSize, L": " + displayText, D3DCOLOR_RGBA(255, 255, 255, 255));
 }
 
 void CChat::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -536,6 +566,15 @@ void CChat::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             if (IsInputTextEmpty(m_sInputText))
             {
+                m_sInputText.clear();
+                m_nCaretPos = 0;
+                return;
+            }
+
+            const bool wasCommand = HandleLocalCommand(m_sInputText);
+            if (wasCommand)
+            {
+                AddPreviousMessage(m_sInputText);
                 m_sInputText.clear();
                 m_nCaretPos = 0;
                 return;

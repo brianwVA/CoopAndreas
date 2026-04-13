@@ -24,12 +24,20 @@ static void __cdecl CClock__SetGameClock_Hook(unsigned char h, unsigned char m, 
 }
 
 DWORD ProcessCheat_Hook_Ret = 0x438589;
+static bool g_bCheatsEnabled = true;
+static bool g_bDidProcessCheat = false;
+
 static void __declspec(naked) ProcessCheat_Hook()
 {
     // finally figured out how to hook functions without masturbating RedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCallRedirectCall
     __asm
     {
+        mov byte ptr ds:[g_bDidProcessCheat], 0
+        cmp byte ptr ds:[g_bCheatsEnabled], 0
+        je skipCall
         call eax; call orig code
+        mov byte ptr ds:[g_bDidProcessCheat], 1
+    skipCall:
         pop edi
         pop esi
         mov byte ptr ds : [0x969110] , bl
@@ -37,15 +45,10 @@ static void __declspec(naked) ProcessCheat_Hook()
         pushad; store registers
     }
 
-    // sync time and weather after processing cheat code
-    CPacketHandler::GameWeatherTime__Trigger();
-
-    // broadcast cheat code to other players
-    if (CNetwork::m_bConnected)
+    // sync time and weather only when a cheat was actually processed
+    if (g_bDidProcessCheat)
     {
-        CPackets::CheatCodeSync cheatPacket{};
-        cheatPacket.cheatId = 0; // generic cheat notification
-        CNetwork::SendPacket(CPacketsID::CHEAT_CODE_SYNC, &cheatPacket, sizeof cheatPacket, ENET_PACKET_FLAG_RELIABLE);
+        CPacketHandler::GameWeatherTime__Trigger();
     }
 
     __asm
@@ -54,6 +57,16 @@ static void __declspec(naked) ProcessCheat_Hook()
 
         jmp ProcessCheat_Hook_Ret; jump to function continuation
     }
+}
+
+void GameHooks::SetCheatsEnabled(bool enabled)
+{
+    g_bCheatsEnabled = enabled;
+}
+
+bool GameHooks::AreCheatsEnabled()
+{
+    return g_bCheatsEnabled;
 }
 
 CEntity* pEntity = nullptr;
@@ -105,7 +118,6 @@ static void __cdecl CTheZones__Update_Hook()
         CKeySync::ProcessPlayer(player);
     }
 
-    // sync wanted level and money (checked every tick, only sends on change)
     CPacketHandler::WantedLevelSync__Trigger();
     CPacketHandler::MoneySync__Trigger();
 
@@ -166,8 +178,6 @@ bool CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook()
     return result;
 }
 
-bool s_bIgnoreFireSync = false;
-
 int __purecall_Hook()
 {
     *(char**)0xDEAD  = "This hook is needed for a more detailed crash log when calling an unimplemented virtual function";
@@ -213,13 +223,9 @@ void GameHooks::InjectHooks()
 
     //patch::RedirectCall(0x48072B, CCutsceneMgr__StartCutscene_Hook);
     
-    patch::RedirectCall(0x5B1947, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
-    patch::RedirectCall(0x469F0E, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
-    patch::RedirectCall(0x475459, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
-
-    // Fire sync: receive handler is registered in CNetwork::InitListeners
-    // Fire creation send hook TODO: implement polling-based fire detection
-    // Most fires already sync through explosion sync (ADD_EXPLOSION packet)
+    //patch::RedirectCall(0x5B1947, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
+   // patch::RedirectCall(0x469F0E, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
+   // patch::RedirectCall(0x475459, CCutsceneMgr__IsCutsceneSkipButtonBeingPressed_Hook);
 
     patch::RedirectJump(PURECALL, __purecall_Hook);
 

@@ -3,7 +3,6 @@
 
 :CASINO4
 script_name 'CASINO4'
-Coop.EnableSyncingThisScript()
 gosub @CASINO4_86
 if 
   has_deatharrest_been_executed 
@@ -25,7 +24,6 @@ goto @CASINO4_62
 
 :CASINO4_86
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Weather.Force(WeatherType.SunnyVegas)
 Text.LoadMissionText('CASINO4')
@@ -501,7 +499,6 @@ if
 is_ps2_keyboard_key_pressed 49
 goto_if_false @CASINO4_4082
 Char.SetCoordinates($scplayer, -725.0, 2392.69, 128.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 
 :CASINO4_4082
 if 
@@ -7915,13 +7912,6 @@ Streaming.UnloadSpecialCharacter(1)
 Streaming.UnloadSpecialCharacter(2)
 $onmission = 0
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

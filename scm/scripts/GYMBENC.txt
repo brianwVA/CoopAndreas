@@ -423,7 +423,7 @@ Hud.ClearCounter($powerbar)
 goto @GYMBENC_2830
 
 :GYMBENC_2830
-$upperbodymusclestat_gym = get_player_float_stat 23
+$upperbodymusclestat_gym = Stat.GetFloat(23)
 $upperbodymusclestat_gym /= 30.0
 if 
   0.0 > $upperbodymusclestat_gym
@@ -473,7 +473,7 @@ if and
   $playerexercising_flag == 5
   not Char.IsDead($scplayer)
 goto_if_false @GYMBENC_6956
-$upperbodymusclestat_gym = get_player_float_stat 23
+$upperbodymusclestat_gym = Stat.GetFloat(23)
 $upperbodymusclestat_gym /= 30.0
 if 
   0.0 > $upperbodymusclestat_gym
@@ -655,11 +655,11 @@ $bench_weight = 320
 goto @GYMBENC_4246
 
 :GYMBENC_4246
-$temp_bench_weight = get_player_int_stat 46
+$temp_bench_weight = Stat.GetInt(46)
 if 
   is_int_var_greater_than_int_var $bench_weight > $temp_bench_weight
 goto_if_false @GYMBENC_4279
-set_player_int_stat 46 $bench_weight
+Stat.SetInt(StatId.HeaviestWeightBenchPress, $bench_weight)
 
 :GYMBENC_4279
 Pad.Shake(PadId.Pad1, 200, 200)
@@ -669,7 +669,7 @@ goto_if_false @GYMBENC_4317
 $reps_bpress += 1
 
 :GYMBENC_4317
-$temp_muscle_stat = get_player_float_stat 23
+$temp_muscle_stat = Stat.GetFloat(23)
 if 
   1000.0 > $temp_muscle_stat
 goto_if_false @GYMBENC_4625
@@ -989,12 +989,12 @@ if
   $bench_show_stat == 8
 goto_if_false @GYMBENC_5876
 $bench_show_stat = 0
-add_player_float_stat 23 20@
+Stat.IncrementFloat(20@, 23)
 add_float_lvar_to_float_var $gym_day_fitness += 20@
 goto @GYMBENC_5898
 
 :GYMBENC_5876
-add_player_float_stat 23 20@
+Stat.IncrementFloatNoMessage(StatId.BodyMuscle, 20@)
 $bench_show_stat += 1
 add_float_lvar_to_float_var $gym_day_fitness += 20@
 
@@ -1006,11 +1006,11 @@ $gym_final_day, $gym_final_month = Clock.GetCurrentDate()
 Text.PrintNow('GYM1_1B', 4000, 1)
 
 :GYMBENC_5943
-$fatstat_gym = get_player_float_stat 21
+$fatstat_gym = Stat.GetFloat(21)
 if 
   $fatstat_gym >= 1.0
 goto_if_false @GYMBENC_5980
-add_player_float_stat 21 -1.0
+Stat.DecrementFloat(StatId.Fat, 1.0)
 
 :GYMBENC_5980
 $powerbar = 0
@@ -1212,18 +1212,18 @@ $playerexercising_flag = 0
 18@ = 0.0
 21@ = 1
 $reps_bpress = 0
-$upperbodymusclestat_gym = get_player_float_stat 23
+$upperbodymusclestat_gym = Stat.GetFloat(23)
 if 
   $upperbodymusclestat_gym >= 1000.0
 goto_if_false @GYMBENC_7484
-set_player_float_stat 23 1000.0
+Stat.SetFloat(StatId.BodyMuscle, 1000.0)
 
 :GYMBENC_7484
-$fatstat_gym = get_player_float_stat 21
+$fatstat_gym = Stat.GetFloat(21)
 if 
   0.0 >= $fatstat_gym
 goto_if_false @GYMBENC_7521
-set_player_float_stat 21 0.0
+Stat.SetFloat(StatId.Fat, 0.0)
 
 :GYMBENC_7521
 $animframe_bppickup = 0.0
@@ -1316,5 +1316,4 @@ $are_anims_loaded = 0
 :GYMBENC_8093
 goto @GYMBENC_632
 terminate_this_script 
-
 

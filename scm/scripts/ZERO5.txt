@@ -14,9 +14,7 @@ terminate_this_script
 $onmission = 1
 Text.ClearThisPrintBigNow(TextStyle.Middle)
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'ZERO5'
-Coop.EnableSyncingThisScript()
 Player.SetControl($player1, False)
 wait 0
 48@ = 1
@@ -360,13 +358,6 @@ Hud.ClearTimer($timer_time_limit_zero5)
 Hud.ClearCounter($van_death_counter_zero5)
 $timer_mobile_start = Clock.GetGameTimer()
 Hud.DisplayCarNames(True)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

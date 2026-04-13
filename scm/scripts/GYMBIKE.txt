@@ -363,7 +363,7 @@ Text.ClearHelp
 $bike_txt = 101
 
 :GYMBIKE_2723
-19@ = get_player_float_stat 22
+19@ = Stat.GetFloat(22)
 19@ /= 100.0
 set_lvar_float_to_lvar_float 16@ = 17@
 add_float_lvar_to_float_lvar 16@ += 19@
@@ -416,7 +416,7 @@ if and
   21@ == 2
   not Char.IsDead($scplayer)
 goto_if_false @GYMBIKE_6228
-19@ = get_player_float_stat 22
+19@ = Stat.GetFloat(22)
 19@ /= 200.0
 if 
   0.0 > 19@
@@ -761,10 +761,10 @@ goto_if_false @GYMBIKE_5787
 
 :GYMBIKE_5327
 Pad.Shake(PadId.Pad1, 1, 1)
-add_player_int_stat 29 $distanceon_bike
+Stat.IncrementInt($distanceon_bike, 29)
 set_lvar_int_to_lvar_int 31@ = TIMERB
 31@ /= 1000
-add_player_int_stat 45 31@
+Stat.IncrementInt(31@, 45)
 if 
   not Char.IsDead($scplayer)
 goto_if_false @GYMBIKE_5468
@@ -787,11 +787,11 @@ $distanceon_bikefloat = 0.0
 $distancetoaddbike_gym = 0.0
 $speedbar_bike = 0
 14@ = 0.0
-$fatstat_gym = get_player_float_stat 21
+$fatstat_gym = Stat.GetFloat(21)
 if 
   0.0 >= $fatstat_gym
 goto_if_false @GYMBIKE_5619
-set_player_float_stat 21 0.0
+Stat.SetFloat(StatId.Fat, 0.0)
 
 :GYMBIKE_5619
 if 
@@ -872,23 +872,23 @@ if
   $statbikestamina_ctr >= 400.0
 goto_if_false @GYMBIKE_6146
 $statbikestamina_ctr -= 400.0
-$fatstat_gym = get_player_float_stat 21
+$fatstat_gym = Stat.GetFloat(21)
 if 
   $fatstat_gym >= 1.0
 goto_if_false @GYMBIKE_6069
-add_player_float_stat 21 -8.0
+Stat.DecrementFloat(StatId.Fat, 8.0)
 
 :GYMBIKE_6069
 if 
   $bike_show_stat == 3
 goto_if_false @GYMBIKE_6120
 $bike_show_stat = 0
-add_player_float_stat 22 4.0
+Stat.IncrementFloat(4.0, 22)
 $gym_day_fitness += 4.0
 goto @GYMBIKE_6146
 
 :GYMBIKE_6120
-add_player_float_stat 22 4.0
+Stat.IncrementFloatNoMessage(StatId.Stamina, 4.0)
 $gym_day_fitness += 4.0
 $bike_show_stat += 1
 
@@ -930,5 +930,4 @@ cset_var_int_to_lvar_float $speedbar_bike = float 14@
 :GYMBIKE_6332
 goto @GYMBIKE_960
 terminate_this_script 
-
 

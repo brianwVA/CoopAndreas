@@ -3,7 +3,6 @@
 
 :WUZI2
 script_name 'WUZI2'
-Coop.EnableSyncingThisScript()
 gosub @WUZI2_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :WUZI2_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 257@ = Game.GetMaxWantedLevel()
 Text.LoadMissionText('WUZI2')
@@ -149,17 +147,9 @@ Camera.SetBehindPlayer
 Player.SetControl($player1, True)
 Char.SetCoordinates($scplayer, -2153.611, 645.31, 51.3516)
 Char.SetHeading($scplayer, 270.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.DoFade(1, 1500)
 36@ = Blip.AddForCoord(-1641.995, 1309.217, 6.1764)
 Text.PrintNow('WZI2_1', 8000, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('WZI2_1', 8000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 40@ = 0
 253@ = 0
 if 
@@ -4320,13 +4310,6 @@ Text.PrintNow('WZI2_60', 8000, 1)
 
 :WUZI2_27255
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

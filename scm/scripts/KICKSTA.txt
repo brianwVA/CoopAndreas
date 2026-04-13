@@ -3,7 +3,6 @@
 
 :KICKSTA
 script_name 'KICKSTA'
-Coop.EnableSyncingThisScript()
 gosub @KICKSTA_54
 if 
   has_deatharrest_been_executed 
@@ -28,7 +27,6 @@ if
   $flag_kickstart_passed_1stime == 0
 goto_if_false @KICKSTA_130
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :KICKSTA_130
 $player_checkpoint_kickstart = 0
@@ -1313,13 +1311,6 @@ Hud.DisplayRadar(True)
 Car.MarkAsNoLongerNeeded(34@)
 Game.SetIsInStadium(False)
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

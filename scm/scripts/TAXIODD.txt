@@ -3,7 +3,6 @@
 
 :TAXIODD
 script_name 'TAXIODD'
-Coop.EnableSyncingThisScript()
 34@ = 0
 gosub @TAXIODD_54
 if 
@@ -20,7 +19,6 @@ if
   $done_taxiodd_progress == 0
 goto_if_false @TAXIODD_74
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :TAXIODD_74
 $onmission = 1
@@ -2958,13 +2956,6 @@ $timer_mobile_start = Clock.GetGameTimer()
 $flag_player_on_oddjob = 0
 $onmission = 0
 $flag_taxiodd_mission_launched = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

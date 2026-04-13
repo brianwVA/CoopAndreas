@@ -3,7 +3,6 @@
 
 :CASIN10
 script_name 'CASIN10'
-Coop.EnableSyncingThisScript()
 gosub @CASIN10_294
 if 
   has_deatharrest_been_executed 
@@ -44,7 +43,6 @@ return
 
 :CASIN10_294
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 36@ = 0
 43@ = 0
@@ -207,7 +205,6 @@ goto @CASIN10_1251
 World.ClearArea(1, 2163.589, 1682.247, 9.86, 1.0)
 Char.SetCoordinates($scplayer, 2163.589, 1682.247, 9.86)
 Char.SetHeading($scplayer, 80.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Char.ShutUpForScriptedSpeech($scplayer, True)
 Streaming.LoadScene(2163.589, 1682.247, 9.86)
 Path.SwitchRoadsOff(2095.35, 1734.179, 8.0, 2337.495, 1524.991, 15.0)
@@ -2489,13 +2486,6 @@ Streaming.RemoveCarRecording(603)
 Streaming.RemoveAnimation("SWAT")
 Game.SetAlwaysDraw3DMarkers(False)
 Game.SetIsInStadium(False)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

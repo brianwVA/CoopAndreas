@@ -13,12 +13,11 @@
 #include <CTaskSimpleCarSetPedOut.h>
 #include <CCarEnterExit.h>
 #include <CProjectileInfo.h>
+#include <CPickups.h>
 #include <CAimSync.h>
 #include <game_sa/CTagManager.h>
-#include <CPickups.h>
 #include <Hooks/PlayerHooks.h>
-#include <cstdio>
-#include <cstdarg>
+#include <Hooks/GameHooks.h>
 
 struct ReviveTargetState
 {
@@ -29,111 +28,7 @@ struct ReviveTargetState
 
 static ReviveTargetState s_reviveTargets[MAX_SERVER_PLAYERS] = {};
 static constexpr uint32_t kReviveWindowMs = 60000;
-static constexpr float kReviveDistance = 1.0f;
-
-struct PendingVehicleAction
-{
-	bool active = false;
-	uint8_t actionType = 0; // 1 = enter, 2 = exit
-	uint16_t actionSeq = 0;
-	uint8_t retries = 0;
-	uint32_t lastSentTick = 0;
-	CPackets::VehicleEnter enter{};
-	CPackets::VehicleExit exit{};
-};
-
-static PendingVehicleAction s_pendingVehicleActions[8] = {};
-static uint16_t s_nextVehicleActionSeq = 1;
-static constexpr uint32_t kVehicleActionRetryMs = 250;
-static constexpr uint8_t kVehicleActionMaxRetries = 6;
-static uint32_t s_vehicleActionAcked = 0;
-static uint32_t s_vehicleActionRetried = 0;
-static uint32_t s_vehicleActionTimedOut = 0;
-
-static void LogVehicleSyncEvent(const char* fmt, ...)
-{
-	FILE* f = fopen("sync_debug.log", "a");
-	if (!f)
-	{
-		return;
-	}
-
-	fprintf(f, "[%u] ", GetTickCount());
-
-	va_list args;
-	va_start(args, fmt);
-	vfprintf(f, fmt, args);
-	va_end(args);
-
-	fprintf(f, "\n");
-	fclose(f);
-}
-
-static PendingVehicleAction* AcquirePendingVehicleActionSlot()
-{
-	for (auto& action : s_pendingVehicleActions)
-	{
-		if (!action.active)
-		{
-			return &action;
-		}
-	}
-
-	return &s_pendingVehicleActions[0];
-}
-
-struct PendingVehicleEnter
-{
-	bool active = false;
-	uint32_t queuedTick = 0;
-	CPackets::VehicleEnter enter{};
-};
-
-static PendingVehicleEnter s_pendingVehicleEnters[16] = {};
-static constexpr uint32_t kPendingVehicleEnterTtlMs = 2000;
-static void TryApplyPendingVehicleEnters(int vehicleId);
-
-struct PendingVehicleOccupants
-{
-	bool active = false;
-	uint32_t queuedTick = 0;
-	CPackets::VehicleOccupants occupants{};
-};
-
-static PendingVehicleOccupants s_pendingVehicleOccupants[16] = {};
-static constexpr uint32_t kPendingVehicleOccupantsTtlMs = 3000;
-static bool ApplyVehicleOccupantsPacket(const CPackets::VehicleOccupants& occupants);
-static void TryApplyPendingVehicleOccupants(int vehicleId);
-
-static void QueuePendingVehicleEnter(const CPackets::VehicleEnter& packet)
-{
-	for (auto& pending : s_pendingVehicleEnters)
-	{
-		if (pending.active
-			&& pending.enter.playerid == packet.playerid
-			&& pending.enter.vehicleid == packet.vehicleid)
-		{
-			pending.enter = packet;
-			pending.queuedTick = GetTickCount();
-			return;
-		}
-	}
-
-	for (auto& pending : s_pendingVehicleEnters)
-	{
-		if (!pending.active)
-		{
-			pending.active = true;
-			pending.enter = packet;
-			pending.queuedTick = GetTickCount();
-			return;
-		}
-	}
-
-	s_pendingVehicleEnters[0].active = true;
-	s_pendingVehicleEnters[0].enter = packet;
-	s_pendingVehicleEnters[0].queuedTick = GetTickCount();
-}
+static constexpr float kReviveDistance = 1.5f;
 
 // PlayerConnected
 
@@ -282,22 +177,13 @@ void CPacketHandler::PlayerOnFoot__Handle(void* data, int size)
 
 	/*if (CUtil::IsPositionUpdateNeeded(networkPlayer->m_pPed->m_matrix->pos, packet->position))
 	{*/
-	// Position is now applied via smooth interpolation in CPlayerPed__ProcessControl_Hook.
-	// Only snap on large teleports (e.g. first spawn, cutscene warp).
-	float dx = networkPlayer->m_pPed->m_matrix->pos.x - packet->position.x;
-	float dy = networkPlayer->m_pPed->m_matrix->pos.y - packet->position.y;
-	float dz = networkPlayer->m_pPed->m_matrix->pos.z - packet->position.z;
-	if (dx * dx + dy * dy + dz * dz > 50.0f * 50.0f)
-	{
-		networkPlayer->m_pPed->m_matrix->pos = packet->position;
-	}
+	networkPlayer->m_pPed->m_matrix->pos = packet->position;
 	//}
 
 	CUtil::GiveWeaponByPacket(networkPlayer, packet->weapon, packet->ammo);
 	networkPlayer->m_pPed->m_aWeapons[networkPlayer->m_pPed->m_nActiveWeaponSlot].m_nState = (eWeaponState)packet->weaponState;
 
-	// Rotation is now smoothed in CPlayerPed__ProcessControl_Hook.
-	// Only set aiming rotation directly (needed for weapon targeting).
+	networkPlayer->m_pPed->m_fCurrentRotation = packet->currentRotation;
 	networkPlayer->m_pPed->m_fAimingRotation = packet->aimingRotation;
 
 	CUtil::SetPlayerJetpack(networkPlayer, packet->hasJetpack);
@@ -442,7 +328,6 @@ void CPacketHandler::VehicleSpawn__Handle(void* data, int size)
 	CChat::AddMessage("VEHICLE SPAWN %d %d %.1f %.1f %.1f %.1f", packet->vehicleid, packet->modelid, packet->pos.x, packet->pos.y, packet->pos.z, packet->rot);
 #endif
 
-	CNetworkVehicleManager::m_bCreatingFromNetwork = true;
 	CNetworkVehicle* vehicle = new CNetworkVehicle
 	(
 		packet->vehicleid,
@@ -453,10 +338,7 @@ void CPacketHandler::VehicleSpawn__Handle(void* data, int size)
 		packet->color2,
 		packet->createdBy
 	);
-	CNetworkVehicleManager::m_bCreatingFromNetwork = false;
 	CNetworkVehicleManager::Add(vehicle);
-	TryApplyPendingVehicleEnters(packet->vehicleid);
-	TryApplyPendingVehicleOccupants(packet->vehicleid);
 }
 
 // VehicleRemove
@@ -499,16 +381,6 @@ CPackets::VehicleIdleUpdate* CPacketHandler::VehicleIdleUpdate__Collect(CNetwork
 
 	packet->locked = vehicle->m_pVehicle->m_eDoorLock;
 
-	// Hydraulics
-	packet->hydraulicSuspension = 0;
-	memset(packet->wheelOffsetZ, 0, sizeof(packet->wheelOffsetZ));
-	if (vehicle->m_pVehicle->m_nVehicleSubClass == VEHICLE_AUTOMOBILE)
-	{
-		CAutomobile* automobile = (CAutomobile*)vehicle->m_pVehicle;
-		packet->hydraulicSuspension = automobile->m_wVoodooSuspension;
-		memcpy(packet->wheelOffsetZ, automobile->wheelOffsetZ, sizeof(packet->wheelOffsetZ));
-	}
-
 	return packet;
 }
 
@@ -549,14 +421,6 @@ void CPacketHandler::VehicleIdleUpdate__Handle(void* data, int size)
 	}
 
 	vehicle->m_pVehicle->m_eDoorLock = (eDoorLock)packet->locked;
-
-	// Hydraulics sync
-	if (vehicle->m_pVehicle->m_nVehicleSubClass == VEHICLE_AUTOMOBILE)
-	{
-		CAutomobile* automobile = (CAutomobile*)vehicle->m_pVehicle;
-		automobile->m_wVoodooSuspension = packet->hydraulicSuspension;
-		memcpy(automobile->wheelOffsetZ, packet->wheelOffsetZ, sizeof(automobile->wheelOffsetZ));
-	}
 }
 
 // VehicleDriverUpdate
@@ -607,21 +471,6 @@ CPackets::VehicleDriverUpdate* CPacketHandler::VehicleDriverUpdate__Collect(CNet
 	}
 
 	packet->locked = vehicle->m_pVehicle->m_eDoorLock;
-
-	// Radio station: AudioEngine.GetCurrentRadioStationID() at 0x507040, AudioEngine at 0xB6BC90
-	typedef char(__thiscall* GetCurrentRadioStation_t)(void*);
-	GetCurrentRadioStation_t getRadio = (GetCurrentRadioStation_t)0x507040;
-	packet->radioStation = getRadio((void*)0xB6BC90);
-
-	// Hydraulics
-	packet->hydraulicSuspension = 0;
-	memset(packet->wheelOffsetZ, 0, sizeof(packet->wheelOffsetZ));
-	if (vehicle->m_pVehicle->m_nVehicleSubClass == VEHICLE_AUTOMOBILE)
-	{
-		CAutomobile* automobile = (CAutomobile*)vehicle->m_pVehicle;
-		packet->hydraulicSuspension = automobile->m_wVoodooSuspension;
-		memcpy(packet->wheelOffsetZ, automobile->wheelOffsetZ, sizeof(packet->wheelOffsetZ));
-	}
 
 	return packet;
 }
@@ -696,53 +545,28 @@ void CPacketHandler::VehicleDriverUpdate__Handle(void* data, int size)
 	}
 
 	vehicle->m_pVehicle->m_eDoorLock = (eDoorLock)packet->locked;
-
-	// Radio sync: when local player is passenger in this vehicle, retune to driver's station
-	CPlayerPed* localPlayer = FindPlayerPed(0);
-	if (localPlayer && localPlayer->m_pVehicle == vehicle->m_pVehicle
-		&& localPlayer->m_nPedFlags.bInVehicle && localPlayer != vehicle->m_pVehicle->m_pDriver)
-	{
-		typedef char(__thiscall* GetCurrentRadioStation_t)(void*);
-		GetCurrentRadioStation_t getRadio = (GetCurrentRadioStation_t)0x507040;
-		char currentStation = getRadio((void*)0xB6BC90);
-		if (currentStation != (char)packet->radioStation)
-		{
-			typedef void(__thiscall* RetuneRadio_t)(void*, char);
-			RetuneRadio_t retuneRadio = (RetuneRadio_t)0x507E10;
-			retuneRadio((void*)0xB6BC90, (char)packet->radioStation);
-		}
-	}
-
-	// Hydraulics sync
-	if (vehicle->m_pVehicle->m_nVehicleSubClass == VEHICLE_AUTOMOBILE)
-	{
-		CAutomobile* automobile = (CAutomobile*)vehicle->m_pVehicle;
-		automobile->m_wVoodooSuspension = packet->hydraulicSuspension;
-		memcpy(automobile->wheelOffsetZ, packet->wheelOffsetZ, sizeof(automobile->wheelOffsetZ));
-	}
 }
 
 // VehicleEnter
 
-static bool ApplyVehicleEnterPacket(const CPackets::VehicleEnter& enter)
+void CPacketHandler::VehicleEnter__Handle(void* data, int size)
 {
-	CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(enter.playerid);
-	CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(enter.vehicleid);
+	CPackets::VehicleEnter* packet = (CPackets::VehicleEnter*)data;
+	
+	CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(packet->playerid);
+	CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(packet->vehicleid);
 
-	if (player == nullptr || player->m_pPed == nullptr || vehicle == nullptr || vehicle->m_pVehicle == nullptr)
+	if (player == nullptr || vehicle == nullptr || vehicle->m_pVehicle == nullptr)
 	{
-		return false;
+		return;
 	}
-
+	
 	if (!CUtil::IsValidEntityPtr(vehicle->m_pVehicle) || !CUtil::IsValidEntityPtr(player->m_pPed))
-	{
-		return false;
-	}
+		return;
 
-	// Defensive re-add for streamed-out entities: GTA can remove ambient entities
-	// from the world list while pointers remain valid.
-	CWorld::Add(vehicle->m_pVehicle);
-	CWorld::Add(player->m_pPed);
+#ifdef PACKET_DEBUG_MESSAGES
+	CChat::AddMessage("player %d entered vehicleid %d %s", packet->playerid, packet->vehicleid, packet->seatid != 0 ? "as passenger" : "");
+#endif
 
 	if (auto* task = player->m_pPed->m_pIntelligence->GetTaskJetPack()) // drop the jetpack if present
 	{
@@ -752,9 +576,9 @@ static bool ApplyVehicleEnterPacket(const CPackets::VehicleEnter& enter)
 		task->m_fThrustStrafe = 0.0f;
 	}
 
-	if (enter.passenger == 0) // driver
+	if (packet->passenger == 0) // driver
 	{
-		if (enter.force)
+		if (packet->force)
 		{
 			for (unsigned char i = 0; i < 5; i++)
 			{
@@ -775,51 +599,7 @@ static bool ApplyVehicleEnterPacket(const CPackets::VehicleEnter& enter)
 	}
 	else
 	{
-		player->EnterVehiclePassenger(vehicle->m_pVehicle, enter.seatid);
-	}
-
-	return true;
-}
-
-static void TryApplyPendingVehicleEnters(int vehicleId)
-{
-	uint32_t now = GetTickCount();
-	for (auto& pending : s_pendingVehicleEnters)
-	{
-		if (!pending.active)
-		{
-			continue;
-		}
-
-		if (now - pending.queuedTick > kPendingVehicleEnterTtlMs)
-		{
-			pending.active = false;
-			continue;
-		}
-
-		if (vehicleId >= 0 && pending.enter.vehicleid != vehicleId)
-		{
-			continue;
-		}
-
-		if (ApplyVehicleEnterPacket(pending.enter))
-		{
-			pending.active = false;
-		}
-	}
-}
-
-void CPacketHandler::VehicleEnter__Handle(void* data, int size)
-{
-	CPackets::VehicleEnter* packet = (CPackets::VehicleEnter*)data;
-
-#ifdef PACKET_DEBUG_MESSAGES
-	CChat::AddMessage("player %d entered vehicleid %d %s", packet->playerid, packet->vehicleid, packet->seatid != 0 ? "as passenger" : "");
-#endif
-
-	if (!ApplyVehicleEnterPacket(*packet))
-	{
-		QueuePendingVehicleEnter(*packet);
+		player->EnterVehiclePassenger(vehicle->m_pVehicle, packet->seatid);
 	}
 }
 
@@ -1008,305 +788,6 @@ void CPacketHandler::VehiclePassengerUpdate__Handle(void* data, int size)
 	}
 }
 
-static void QueuePendingVehicleOccupants(const CPackets::VehicleOccupants& packet)
-{
-	for (auto& pending : s_pendingVehicleOccupants)
-	{
-		if (pending.active && pending.occupants.vehicleid == packet.vehicleid)
-		{
-			pending.occupants = packet;
-			pending.queuedTick = GetTickCount();
-			return;
-		}
-	}
-
-	for (auto& pending : s_pendingVehicleOccupants)
-	{
-		if (!pending.active)
-		{
-			pending.active = true;
-			pending.occupants = packet;
-			pending.queuedTick = GetTickCount();
-			return;
-		}
-	}
-
-	s_pendingVehicleOccupants[0].active = true;
-	s_pendingVehicleOccupants[0].occupants = packet;
-	s_pendingVehicleOccupants[0].queuedTick = GetTickCount();
-}
-
-static bool ApplyVehicleOccupantsPacket(const CPackets::VehicleOccupants& packet)
-{
-	CNetworkVehicle* vehicle = CNetworkVehicleManager::GetVehicle(packet.vehicleid);
-	if (vehicle == nullptr || vehicle->m_pVehicle == nullptr)
-		return false;
-
-	if (!CUtil::IsValidEntityPtr(vehicle->m_pVehicle))
-		return false;
-
-	// Keep network vehicle in world when occupancy snapshots arrive after streaming.
-	CWorld::Add(vehicle->m_pVehicle);
-
-	auto isNewerSeq = [](uint16_t incoming, uint16_t current) -> bool
-	{
-		if (incoming == current)
-			return false;
-		return (uint16_t)(incoming - current) < 0x8000;
-	};
-
-	if (vehicle->m_nOccupantsVersion != 0 && !isNewerSeq(packet.occupantsVersion, vehicle->m_nOccupantsVersion))
-	{
-		return true;
-	}
-
-	vehicle->m_nOccupantsVersion = packet.occupantsVersion;
-
-	for (int seat = 0; seat < 8; ++seat)
-	{
-		int playerId = packet.playerIds[seat];
-
-		if (seat == 0)
-		{
-			auto* currentDriver = vehicle->m_pVehicle->m_pDriver;
-			if (playerId < 0)
-			{
-				if (currentDriver)
-				{
-					if (auto* stale = CNetworkPlayerManager::GetPlayer(currentDriver))
-					{
-						stale->RemoveFromVehicle(vehicle->m_pVehicle);
-					}
-				}
-				continue;
-			}
-
-			CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(playerId);
-			if (player == nullptr || player->m_pPed == nullptr || !CUtil::IsValidEntityPtr(player->m_pPed))
-				continue;
-
-			if (currentDriver && currentDriver != player->m_pPed)
-			{
-				if (auto* stale = CNetworkPlayerManager::GetPlayer(currentDriver))
-				{
-					stale->RemoveFromVehicle(vehicle->m_pVehicle);
-				}
-			}
-
-			if (vehicle->m_pVehicle->m_pDriver != player->m_pPed)
-			{
-				player->WarpIntoVehicleDriver(vehicle->m_pVehicle);
-			}
-			continue;
-		}
-
-		auto* currentPassenger = vehicle->m_pVehicle->m_apPassengers[seat - 1];
-
-		if (playerId < 0)
-		{
-			if (currentPassenger)
-			{
-				if (auto* stale = CNetworkPlayerManager::GetPlayer(currentPassenger))
-				{
-					stale->RemoveFromVehicle(vehicle->m_pVehicle);
-				}
-			}
-			continue;
-		}
-
-		CNetworkPlayer* player = CNetworkPlayerManager::GetPlayer(playerId);
-		if (player == nullptr || player->m_pPed == nullptr || !CUtil::IsValidEntityPtr(player->m_pPed))
-			continue;
-
-		if (currentPassenger && currentPassenger != player->m_pPed)
-		{
-			if (auto* stale = CNetworkPlayerManager::GetPlayer(currentPassenger))
-			{
-				stale->RemoveFromVehicle(vehicle->m_pVehicle);
-			}
-		}
-
-		if (vehicle->m_pVehicle->m_apPassengers[seat - 1] != player->m_pPed)
-		{
-			player->WarpIntoVehiclePassenger(vehicle->m_pVehicle, seat - 1);
-		}
-	}
-
-	return true;
-}
-
-static void TryApplyPendingVehicleOccupants(int vehicleId)
-{
-	uint32_t now = GetTickCount();
-	for (auto& pending : s_pendingVehicleOccupants)
-	{
-		if (!pending.active)
-		{
-			continue;
-		}
-
-		if (now - pending.queuedTick > kPendingVehicleOccupantsTtlMs)
-		{
-			pending.active = false;
-			continue;
-		}
-
-		if (vehicleId >= 0 && pending.occupants.vehicleid != vehicleId)
-		{
-			continue;
-		}
-
-		if (ApplyVehicleOccupantsPacket(pending.occupants))
-		{
-			pending.active = false;
-		}
-	}
-}
-
-void CPacketHandler::VehicleOccupants__Handle(void* data, int size)
-{
-	CPackets::VehicleOccupants* packet = (CPackets::VehicleOccupants*)data;
-
-	if (!ApplyVehicleOccupantsPacket(*packet))
-	{
-		QueuePendingVehicleOccupants(*packet);
-	}
-}
-
-void CPacketHandler::VehicleEnter__TriggerReliable(int vehicleid, uint8_t seatid, bool passenger, bool force)
-{
-	CPackets::VehicleEnter packet{};
-	packet.vehicleid = vehicleid;
-	packet.seatid = seatid;
-	packet.passenger = passenger ? 1 : 0;
-	packet.force = force ? 1 : 0;
-	packet.actionSeq = s_nextVehicleActionSeq++;
-
-	CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-
-	auto* slot = AcquirePendingVehicleActionSlot();
-	slot->active = true;
-	slot->actionType = 1;
-	slot->actionSeq = packet.actionSeq;
-	slot->retries = 0;
-	slot->lastSentTick = GetTickCount();
-	slot->enter = packet;
-}
-
-void CPacketHandler::VehicleExit__TriggerReliable(bool force)
-{
-	CPackets::VehicleExit packet{};
-	packet.force = force;
-	packet.actionSeq = s_nextVehicleActionSeq++;
-
-	CNetwork::SendPacket(CPacketsID::VEHICLE_EXIT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-
-	auto* slot = AcquirePendingVehicleActionSlot();
-	slot->active = true;
-	slot->actionType = 2;
-	slot->actionSeq = packet.actionSeq;
-	slot->retries = 0;
-	slot->lastSentTick = GetTickCount();
-	slot->exit = packet;
-}
-
-void CPacketHandler::ProcessReliableVehicleActions()
-{
-	if (!CNetwork::m_bConnected)
-	{
-		for (auto& action : s_pendingVehicleActions)
-		{
-			action.active = false;
-		}
-		for (auto& pending : s_pendingVehicleEnters)
-		{
-			pending.active = false;
-		}
-		for (auto& pending : s_pendingVehicleOccupants)
-		{
-			pending.active = false;
-		}
-		return;
-	}
-
-	// Periodic reconciliation for packets that arrived before entity creation.
-	TryApplyPendingVehicleEnters(-1);
-	TryApplyPendingVehicleOccupants(-1);
-
-	uint32_t now = GetTickCount();
-
-	for (auto& action : s_pendingVehicleActions)
-	{
-		if (!action.active)
-		{
-			continue;
-		}
-
-		if (now <= action.lastSentTick + kVehicleActionRetryMs)
-		{
-			continue;
-		}
-
-		if (action.retries >= kVehicleActionMaxRetries)
-		{
-			LogVehicleSyncEvent("vehicle_action_timeout type=%u seq=%u", action.actionType, action.actionSeq);
-			s_vehicleActionTimedOut++;
-			action.active = false;
-			continue;
-		}
-
-		if (action.actionType == 1)
-		{
-			CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &action.enter, sizeof action.enter, ENET_PACKET_FLAG_RELIABLE);
-		}
-		else if (action.actionType == 2)
-		{
-			CNetwork::SendPacket(CPacketsID::VEHICLE_EXIT, &action.exit, sizeof action.exit, ENET_PACKET_FLAG_RELIABLE);
-		}
-
-		action.retries++;
-		s_vehicleActionRetried++;
-		action.lastSentTick = now;
-	}
-}
-
-void CPacketHandler::VehicleActionAck__Handle(void* data, int size)
-{
-	CPackets::VehicleActionAck* packet = (CPackets::VehicleActionAck*)data;
-
-	for (auto& action : s_pendingVehicleActions)
-	{
-		if (!action.active)
-		{
-			continue;
-		}
-
-		if (action.actionSeq == packet->actionSeq && action.actionType == packet->actionType)
-		{
-			s_vehicleActionAcked++;
-			LogVehicleSyncEvent("vehicle_action_ack type=%u seq=%u retries=%u", packet->actionType, packet->actionSeq, action.retries);
-			action.active = false;
-			return;
-		}
-	}
-}
-
-void CPacketHandler::GetReliableVehicleActionStats(uint32_t& outAcked, uint32_t& outRetried, uint32_t& outTimedOut, int& outPending)
-{
-	outAcked = s_vehicleActionAcked;
-	outRetried = s_vehicleActionRetried;
-	outTimedOut = s_vehicleActionTimedOut;
-	outPending = 0;
-
-	for (const auto& action : s_pendingVehicleActions)
-	{
-		if (action.active)
-		{
-			outPending++;
-		}
-	}
-}
-
 // PlayerChatMessage
 
 void CPacketHandler::PlayerChatMessage__Handle(void* data, int size)
@@ -1321,6 +802,14 @@ void CPacketHandler::PlayerChatMessage__Handle(void* data, int size)
 	}
 }
 
+void CPacketHandler::CheatsToggle__Handle(void* data, int size)
+{
+	CPackets::CheatsToggle* packet = (CPackets::CheatsToggle*)data;
+	const bool enabled = packet->enabled != 0;
+	GameHooks::SetCheatsEnabled(enabled);
+	CChat::AddMessage(enabled ? "{cecedb}[Host] {00ff00}Cheaty wlaczone." : "{cecedb}[Host] {ff3b3b}Cheaty wylaczone.");
+}
+
 // PedSpawn
 
 void CPacketHandler::PedSpawn__Handle(void* data, int size)
@@ -1331,9 +820,7 @@ void CPacketHandler::PedSpawn__Handle(void* data, int size)
 	CChat::AddMessage("PED SPAWN %d %d %.1f %.1f %.1f %d %d", packet->pedid, packet->modelId, packet->pos.x, packet->pos.y, packet->pos.z, packet->pedType, packet->createdBy);
 #endif
 
-	CNetworkPedManager::m_bCreatingFromNetwork = true;
 	CNetworkPed* ped = new CNetworkPed(packet->pedid, (int)packet->modelId, (ePedType)packet->pedType, packet->pos, packet->createdBy, packet->specialModelName);
-	CNetworkPedManager::m_bCreatingFromNetwork = false;
 
 	CNetworkPedManager::Add(ped);
 }
@@ -1467,7 +954,6 @@ CPackets::GameWeatherTime* CPacketHandler::GameWeatherTime__Collect()
 	packet->currentHour = CClock::ms_nGameClockHours;
 	packet->currentMinute = CClock::ms_nGameClockMinutes;
 	packet->gameTickCount = CClock::ms_nMillisecondsPerGameMinute;
-	packet->moonSize = *(unsigned char*)0x8D4B60; // CCoronas::MoonSize
 	return packet;
 }
 
@@ -1483,7 +969,6 @@ void CPacketHandler::GameWeatherTime__Handle(void* data, int size)
 	CClock::ms_nGameClockHours = packet->currentHour;
 	CClock::ms_nGameClockMinutes = packet->currentMinute;
 	CClock::ms_nMillisecondsPerGameMinute = packet->gameTickCount;
-	*(unsigned char*)0x8D4B60 = packet->moonSize; // CCoronas::MoonSize
 }
 
 void CPacketHandler::GameWeatherTime__Trigger()
@@ -1579,9 +1064,6 @@ CPackets::PedDriverUpdate* CPacketHandler::PedDriverUpdate__Collect(CNetworkVehi
 	}
 
 	packet->destinationCoors = vehicle->m_pVehicle->m_autoPilot.m_vecDestinationCoors;
-
-	packet->hornCounter = (unsigned short)vehicle->m_pVehicle->m_nHornCounter;
-	packet->sirenOrAlarm = vehicle->m_pVehicle->m_nVehicleFlags.bSirenOrAlarm ? 1 : 0;
 
 	return packet;
 }
@@ -1687,9 +1169,6 @@ void CPacketHandler::PedDriverUpdate__Handle(void* data, int size)
 
 	vehicle->m_pVehicle->m_autoPilot.m_vecDestinationCoors = packet->destinationCoors;
 
-	vehicle->m_pVehicle->m_nHornCounter = packet->hornCounter;
-	vehicle->m_pVehicle->m_nVehicleFlags.bSirenOrAlarm = packet->sirenOrAlarm;
-
 }
 
 // PedShotSync
@@ -1785,14 +1264,6 @@ CPackets::PlayerAimSync CPacketHandler::PlayerAimSync__Collect()
 	packet.lookPitch = FindPlayerPed(0)->m_pPlayerData->m_fLookPitch;
 	packet.orientation = TheCamera.m_fOrientation;
 
-	// Sniper laser dot
-	bool crossHairActive = *(bool*)0xC8A838; // gCrossHair[0].m_bActive
-	packet.sniperDotActive = crossHairActive ? 1 : 0;
-	if (crossHairActive)
-	{
-		packet.sniperDotPos = *(CVector*)(0xC8A838 + 8); // gCrossHair[0].m_vecPosn
-	}
-
 	return packet;
 }
 
@@ -1812,20 +1283,6 @@ void CPacketHandler::PlayerAimSync__Handle(void* data, int size)
 			{
 				ped->m_pPlayerData->m_fLookPitch = packet->lookPitch;
 			}
-		}
-
-		// Sniper laser dot for remote player (render on crosshair slot 1)
-		if (packet->sniperDotActive)
-		{
-			typedef void(__cdecl* MarkTarget_t)(int, CVector, unsigned char, unsigned char, unsigned char, unsigned char, float, unsigned char);
-			auto MarkTarget = (MarkTarget_t)0x742BF0;
-			MarkTarget(1, packet->sniperDotPos, 255, 0, 0, 200, 0.3f, 0);
-		}
-		else
-		{
-			typedef void(__cdecl* ClearCrossHair_t)(int);
-			auto ClearCrossHair = (ClearCrossHair_t)0x742C60;
-			ClearCrossHair(1);
 		}
 	}
 }
@@ -1849,50 +1306,8 @@ void CPacketHandler::VehicleConfirm__Handle(void* data, int size)
 		if (tempVehicles[tempId])
 		{
 			tempVehicles[tempId]->m_nVehicleId = packet->vehicleid;
-
-			// Vehicle is already in m_pVehicles (added by CreateHosted).
-			// Don't call Add again.
-
-			// If local player is already in this vehicle (entered before
-			// CONFIRM arrived), send VehicleEnter now so the guest catches up.
-				CPlayerPed* localPlayer = FindPlayerPed(0);
-				if (localPlayer && localPlayer->m_nPedFlags.bInVehicle
-					&& localPlayer->m_pVehicle == tempVehicles[tempId]->m_pVehicle)
-				{
-					CPackets::VehicleEnter enterPacket{};
-					enterPacket.vehicleid = packet->vehicleid;
-					enterPacket.force = 1;
-					enterPacket.seatid = 0;
-
-						if (localPlayer->m_pVehicle->m_pDriver == localPlayer)
-						{
-							enterPacket.passenger = 0;
-							CPacketHandler::VehicleEnter__TriggerReliable(enterPacket.vehicleid, 0, false, true);
-						}
-						else
-						{
-						bool foundSeat = false;
-						for (int i = 0; i < localPlayer->m_pVehicle->m_nMaxPassengers; i++)
-						{
-							if (localPlayer->m_pVehicle->m_apPassengers[i] == localPlayer)
-							{
-								enterPacket.passenger = 1;
-								enterPacket.seatid = i;
-								foundSeat = true;
-								break;
-							}
-						}
-
-						if (foundSeat)
-						{
-							CPacketHandler::VehicleEnter__TriggerReliable(enterPacket.vehicleid, enterPacket.seatid, true, true);
-						}
-					}
-				}
-
+			CNetworkVehicleManager::Add(tempVehicles[tempId]);
 			tempVehicles[tempId] = nullptr;
-			TryApplyPendingVehicleEnters(packet->vehicleid);
-			TryApplyPendingVehicleOccupants(packet->vehicleid);
 		}
 	}
 }
@@ -1927,12 +1342,12 @@ void CPacketHandler::PedConfirm__Handle(void* data, int size)
 void CPacketHandler::PlayerStats__Handle(void* data, int size)
 {
 	CPackets::PlayerStats* packet = (CPackets::PlayerStats*)data;
-	
+
 	if (packet->playerid == CNetworkPlayerManager::m_nMyId)
 	{
 		CStatsSync::ApplyProgressSnapshot(packet->progress);
 	}
-
+	
 	if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(packet->playerid))
 	{
 		memcpy(networkPlayer->m_stats.m_aStatsFloat.data(), packet->progress.floatStats, sizeof(packet->progress.floatStats));
@@ -2574,9 +1989,8 @@ void CPacketHandler::TeleportPlayerScripted__Handle(void* data, int size)
 	playerPed->UpdateRwMatrix();
 }
 
-// WantedLevelSync
-
 static uint8_t s_nLastSentWantedLevel = 0;
+static int32_t s_nLastSentMoney = 0;
 
 void CPacketHandler::WantedLevelSync__Handle(void* data, int size)
 {
@@ -2584,11 +1998,9 @@ void CPacketHandler::WantedLevelSync__Handle(void* data, int size)
 
 	if (packet->playerid == CNetworkPlayerManager::m_nMyId)
 	{
-		CPlayerPed* localPlayer = FindPlayerPed(0);
-		if (localPlayer)
+		if (auto localPlayer = FindPlayerPed(0))
 		{
-			CWanted* wanted = localPlayer->GetWanted();
-			if (wanted)
+			if (auto wanted = localPlayer->GetWanted())
 			{
 				wanted->SetWantedLevelNoDrop(packet->wantedLevel);
 				s_nLastSentWantedLevel = packet->wantedLevel;
@@ -2605,14 +2017,17 @@ void CPacketHandler::WantedLevelSync__Handle(void* data, int size)
 
 void CPacketHandler::WantedLevelSync__Trigger()
 {
-	CPlayerPed* localPlayer = FindPlayerPed(0);
-	if (!localPlayer) return;
+	auto localPlayer = FindPlayerPed(0);
+	if (!localPlayer)
+		return;
 
-	CWanted* wanted = localPlayer->GetWanted();
-	if (!wanted) return;
+	auto wanted = localPlayer->GetWanted();
+	if (!wanted)
+		return;
 
 	uint8_t currentLevel = (uint8_t)wanted->m_nWantedLevel;
-	if (currentLevel == s_nLastSentWantedLevel) return;
+	if (currentLevel == s_nLastSentWantedLevel)
+		return;
 
 	s_nLastSentWantedLevel = currentLevel;
 
@@ -2621,10 +2036,6 @@ void CPacketHandler::WantedLevelSync__Trigger()
 	CNetwork::SendPacket(CPacketsID::WANTED_LEVEL_SYNC, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
 }
 
-// MoneySync
-
-static int32_t s_nLastSentMoney = 0;
-
 void CPacketHandler::MoneySync__Handle(void* data, int size)
 {
 	CPackets::MoneySync* packet = (CPackets::MoneySync*)data;
@@ -2632,12 +2043,9 @@ void CPacketHandler::MoneySync__Handle(void* data, int size)
 	if (packet->playerid == CNetworkPlayerManager::m_nMyId)
 	{
 		CPlayerInfo* playerInfo = &CWorld::Players[0];
-		if (playerInfo)
-		{
-			playerInfo->m_nMoney = packet->money;
-			playerInfo->m_nDisplayMoney = packet->money;
-			s_nLastSentMoney = packet->money;
-		}
+		playerInfo->m_nMoney = packet->money;
+		playerInfo->m_nDisplayMoney = packet->money;
+		s_nLastSentMoney = packet->money;
 		return;
 	}
 
@@ -2650,65 +2058,16 @@ void CPacketHandler::MoneySync__Handle(void* data, int size)
 void CPacketHandler::MoneySync__Trigger()
 {
 	CPlayerInfo* playerInfo = &CWorld::Players[0];
-	if (!playerInfo) return;
-
 	int32_t currentMoney = playerInfo->m_nMoney;
-	if (currentMoney == s_nLastSentMoney) return;
+
+	if (currentMoney == s_nLastSentMoney)
+		return;
 
 	s_nLastSentMoney = currentMoney;
 
 	CPackets::MoneySync packet{};
 	packet.money = currentMoney;
 	CNetwork::SendPacket(CPacketsID::MONEY_SYNC, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
-}
-
-// CheatCodeSync
-
-void CPacketHandler::CheatCodeSync__Handle(void* data, int size)
-{
-	CPackets::CheatCodeSync* packet = (CPackets::CheatCodeSync*)data;
-
-	// Apply the cheat locally (the cheat function address table at 0x438500-area)
-	// We sync time/weather after cheat, which is what the original ProcessCheat_Hook does
-	CPacketHandler::GameWeatherTime__Trigger();
-}
-
-// FireSync
-
-extern bool s_bIgnoreFireSync;
-
-void CPacketHandler::FireSync__Handle(void* data, int size)
-{
-	CPackets::FireSync* packet = (CPackets::FireSync*)data;
-
-	s_bIgnoreFireSync = true;
-	// CFireManager::StartFire(CVector, float, uchar, CEntity*, uint, schar, uchar) at 0x539F00
-	// gFireManager at 0xB71F80 - use raw function pointer to avoid linking CVector.obj from plugin.lib
-	typedef void*(__thiscall* StartFire_t)(void*, CVector, float, unsigned char, CEntity*, unsigned int, signed char, unsigned char);
-	StartFire_t startFire = (StartFire_t)0x539F00;
-	startFire((void*)0xB71F80, packet->position, 1.8f, 0, nullptr, packet->timeToBurn, packet->numGenerations, 1);
-	s_bIgnoreFireSync = false;
-}
-
-// PickupRemove
-
-void CPacketHandler::PickupRemove__Handle(void* data, int size)
-{
-	CPackets::PickupRemove* packet = (CPackets::PickupRemove*)data;
-
-	// Find pickup at matching compressed position and remove it
-	for (int i = 0; i < 620; i++)
-	{
-		if (CPickups::aPickUps[i].m_nPickupType == 0) continue;
-
-		if (CPickups::aPickUps[i].m_vecPos.x == packet->pos_x
-			&& CPickups::aPickUps[i].m_vecPos.y == packet->pos_y
-			&& CPickups::aPickUps[i].m_vecPos.z == packet->pos_z)
-		{
-			CPickups::aPickUps[i].Remove();
-			break;
-		}
-	}
 }
 
 void CPacketHandler::DeathPickups__Handle(void* data, int size)
@@ -2721,46 +2080,21 @@ void CPacketHandler::DeathPickups__Handle(void* data, int size)
 		s_reviveTargets[packet->playerid].deathTick = GetTickCount();
 		s_reviveTargets[packet->playerid].deathPos = CVector(packet->x, packet->y, packet->z);
 	}
-
-	CVector pos;
-	pos.x = packet->x;
-	pos.y = packet->y;
-	pos.z = packet->z;
-
-	// Create weapon pickups
-	// GenerateNewOne_WeaponType(CVector coors, eWeaponType, uchar pickupType, uint ammo, bool isEmpty, char* message) @ 0x457380
-	typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
-	auto GenerateNewOne_WeaponType = (GenerateNewOne_WeaponType_t)0x457380;
-
-	for (int i = 0; i < packet->weaponCount && i < 13; i++)
-	{
-		GenerateNewOne_WeaponType(pos, packet->weapons[i].weaponType, 3 /*PICKUP_ONCE*/, packet->weapons[i].ammo, false, nullptr);
-	}
-
-	// Create money pickup
-	if (packet->money > 0)
-	{
-		plugin::Command<0x02E1>(pos.x, pos.y, pos.z, packet->money);
-	}
 }
 
 bool CPacketHandler::TryGetNearestReviveTarget(const CVector& from, int& outPlayerId, CVector& outDeathPos)
 {
 	outPlayerId = -1;
-	outDeathPos = CVector();
-
-	const uint32_t now = GetTickCount();
+	outDeathPos = CVector{};
+	uint32_t now = GetTickCount();
 	float bestDistSq = FLT_MAX;
 
 	for (int i = 0; i < MAX_SERVER_PLAYERS; i++)
 	{
 		if (i == CNetworkPlayerManager::m_nMyId)
-		{
 			continue;
-		}
 
-		auto* player = CNetworkPlayerManager::GetPlayer(i);
-		if (!player)
+		if (!CNetworkPlayerManager::GetPlayer(i))
 		{
 			s_reviveTargets[i].active = false;
 			continue;
@@ -2768,9 +2102,7 @@ bool CPacketHandler::TryGetNearestReviveTarget(const CVector& from, int& outPlay
 
 		auto& state = s_reviveTargets[i];
 		if (!state.active)
-		{
 			continue;
-		}
 
 		if ((now - state.deathTick) > kReviveWindowMs)
 		{
@@ -2783,9 +2115,7 @@ bool CPacketHandler::TryGetNearestReviveTarget(const CVector& from, int& outPlay
 		float dz = from.z - state.deathPos.z;
 		float distSq = dx * dx + dy * dy + dz * dz;
 		if (distSq > (kReviveDistance * kReviveDistance))
-		{
 			continue;
-		}
 
 		if (distSq < bestDistSq)
 		{
@@ -2809,9 +2139,12 @@ void CPacketHandler::ClearReviveTarget(int playerId)
 void CPacketHandler::ReviveApply__Handle(void* data, int size)
 {
 	CPackets::ReviveApply* packet = (CPackets::ReviveApply*)data;
-
 	if (!packet->success)
 	{
+		if (packet->rescuerPlayerId == CNetworkPlayerManager::m_nMyId)
+		{
+			CChat::AddMessage("~r~Revive failed (target invalid, too far, or you are downed)");
+		}
 		return;
 	}
 
@@ -2845,43 +2178,60 @@ void CPacketHandler::ReviveApply__Handle(void* data, int size)
 	}
 }
 
+void CPacketHandler::PickupRemove__Handle(void* data, int size)
+{
+	CPackets::PickupRemove* packet = (CPackets::PickupRemove*)data;
+
+	for (int i = 0; i < 620; i++)
+	{
+		if (CPickups::aPickUps[i].m_nPickupType == 0)
+		{
+			continue;
+		}
+
+		if (CPickups::aPickUps[i].m_vecPos.x == packet->pos_x
+			&& CPickups::aPickUps[i].m_vecPos.y == packet->pos_y
+			&& CPickups::aPickUps[i].m_vecPos.z == packet->pos_z)
+		{
+			CPickups::aPickUps[i].Remove();
+			break;
+		}
+	}
+}
+
 void CPacketHandler::ItemDrop__Handle(void* data, int size)
 {
 	CPackets::ItemDrop* packet = (CPackets::ItemDrop*)data;
 
-	CVector pos;
+	CVector pos{};
 	pos.x = packet->x;
 	pos.y = packet->y;
 	pos.z = packet->z;
 
-	if (packet->dropType == 0) // weapon
+	if (packet->dropType == 0)
 	{
 		typedef int(__cdecl* GenerateNewOne_WeaponType_t)(CVector, int, unsigned char, unsigned int, bool, char*);
 		auto GenerateNewOne_WeaponType = (GenerateNewOne_WeaponType_t)0x457380;
 		GenerateNewOne_WeaponType(pos, packet->weaponType, 3 /*PICKUP_ONCE*/, packet->ammo, false, nullptr);
-
-		// Track by compressed position (don't rely on return value)
-		TrackDroppedPickup(
-			(int16_t)(pos.x * 8.0f),
-			(int16_t)(pos.y * 8.0f),
-			(int16_t)(pos.z * 8.0f));
 	}
-	else if (packet->dropType == 1) // money
+	else if (packet->dropType == 1)
 	{
 		plugin::Command<0x02E1>(pos.x, pos.y, pos.z, packet->money);
-
-		TrackDroppedPickup(
-			(int16_t)(pos.x * 8.0f),
-			(int16_t)(pos.y * 8.0f),
-			(int16_t)(pos.z * 8.0f));
 	}
+
+	TrackDroppedPickup(
+		(int16_t)(pos.x * 8.0f),
+		(int16_t)(pos.y * 8.0f),
+		(int16_t)(pos.z * 8.0f));
 }
 
-// Dropped pickup tracking — detect when a dropped pickup is collected and broadcast removal
-
-struct TrackedPickup {
-	int16_t cx, cy, cz;
+struct TrackedPickup
+{
+	int16_t cx;
+	int16_t cy;
+	int16_t cz;
 };
+
 static TrackedPickup s_trackedPickups[32] = {};
 static int s_trackedPickupCount = 0;
 
@@ -2889,11 +2239,13 @@ void CPacketHandler::TrackDroppedPickup(int16_t cx, int16_t cy, int16_t cz)
 {
 	if (s_trackedPickupCount >= 32)
 	{
-		// Drop oldest
 		for (int i = 0; i < 31; i++)
+		{
 			s_trackedPickups[i] = s_trackedPickups[i + 1];
+		}
 		s_trackedPickupCount = 31;
 	}
+
 	s_trackedPickups[s_trackedPickupCount++] = { cx, cy, cz };
 }
 
@@ -2904,7 +2256,11 @@ void CPacketHandler::CheckDroppedPickups()
 		bool found = false;
 		for (int i = 0; i < 620; i++)
 		{
-			if (CPickups::aPickUps[i].m_nPickupType == 0) continue;
+			if (CPickups::aPickUps[i].m_nPickupType == 0)
+			{
+				continue;
+			}
+
 			if (CPickups::aPickUps[i].m_vecPos.x == s_trackedPickups[t].cx
 				&& CPickups::aPickUps[i].m_vecPos.y == s_trackedPickups[t].cy
 				&& CPickups::aPickUps[i].m_vecPos.z == s_trackedPickups[t].cz)
@@ -2916,19 +2272,19 @@ void CPacketHandler::CheckDroppedPickups()
 
 		if (!found)
 		{
-			// Pickup was collected — sync removal to other players
 			if (CNetwork::m_bConnected)
 			{
-				CPackets::PickupRemove pkt;
-				pkt.pos_x = s_trackedPickups[t].cx;
-				pkt.pos_y = s_trackedPickups[t].cy;
-				pkt.pos_z = s_trackedPickups[t].cz;
-				CNetwork::SendPacket(CPacketsID::PICKUP_REMOVE, &pkt, sizeof pkt, ENET_PACKET_FLAG_RELIABLE);
+				CPackets::PickupRemove packet{};
+				packet.pos_x = s_trackedPickups[t].cx;
+				packet.pos_y = s_trackedPickups[t].cy;
+				packet.pos_z = s_trackedPickups[t].cz;
+				CNetwork::SendPacket(CPacketsID::PICKUP_REMOVE, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
 			}
 
-			// Remove from tracking by shifting
 			for (int i = t; i < s_trackedPickupCount - 1; i++)
+			{
 				s_trackedPickups[i] = s_trackedPickups[i + 1];
+			}
 			s_trackedPickupCount--;
 		}
 	}

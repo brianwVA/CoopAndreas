@@ -3,7 +3,6 @@
 
 :MUSIC3
 script_name 'MUSIC3'
-Coop.EnableSyncingThisScript()
 gosub @MUSIC3_47
 if 
   has_deatharrest_been_executed 
@@ -15,7 +14,6 @@ gosub @MUSIC3_15596
 terminate_this_script 
 
 :MUSIC3_47
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Stat.RegisterMissionGiven
 Text.LoadMissionText('STRAP3')
@@ -226,19 +224,11 @@ Path.MarkRoadNodeAsDontWander(794.8, -1033.6, 23.7)
 Path.MarkRoadNodeAsDontWander(1311.1, -701.7, 91.7)
 Path.MarkRoadNodeAsDontWander(2838.7, -1024.2, 21.5)
 Text.PrintNow('STP3_01', 7000, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('STP3_01', 7000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 Text.Print('STP3_02', 7000, 1)
 World.ClearArea(1, 794.6, -1597.1, 12.5, 1.0)
 Streaming.LoadScene(794.6, -1597.1, 12.5)
 Char.SetCoordinates($scplayer, 794.6, -1597.1, 12.5)
 Char.SetHeading($scplayer, 45.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Clock.SetTimeOfDay(16, 0)
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
@@ -2495,13 +2485,6 @@ Path.SwitchRoadsBackToOriginal(1072.8, -1135.0, 10.0, 1092.4, -1045.5, 50.0)
 Path.SwitchPedRoadsBackToOriginal(1072.8, -1135.0, 10.0, 1092.4, -1045.5, 50.0)
 Game.EnableAmbientCrime(True)
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 $onmission = 0
 Mission.Finish
 return 

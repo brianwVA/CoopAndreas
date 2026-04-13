@@ -3,7 +3,6 @@
 
 :MANSIO3
 script_name 'MANSIO3'
-Coop.EnableSyncingThisScript()
 gosub @MANSIO3_47
 if 
   has_deatharrest_been_executed 
@@ -20,7 +19,6 @@ Player.SetGroupToFollowAlways($player1, True)
 Game.CanTriggerGangWarWhenOnAMission(True)
 Camera.SetFadingColor(0, 0, 0)
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 82@ = 2
 wait 0
@@ -131,7 +129,6 @@ Car.SetHeading(60@, 181.4888)
 Car.SetTraction(60@, 2.0)
 Char.SetCoordinates($scplayer, 1251.541, -808.7633, 83.1484)
 Char.SetHeading($scplayer, 109.0044)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 79@ = Blip.AddForCoord(2485.527, -1668.528, 12.3438)
 Blip.ChangeDisplay(79@, BlipDisplay.Neither)
 Camera.SetBehindPlayer
@@ -1251,13 +1248,6 @@ Blip.Remove(58@)
 :MANSIO3_7272
 Camera.RestoreJumpcut
 Camera.SetBehindPlayer
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

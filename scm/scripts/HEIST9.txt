@@ -3,7 +3,6 @@
 
 :HEIST9
 script_name 'HEIST9'
-Coop.EnableSyncingThisScript()
 gosub @HEIST9_47
 if 
   has_deatharrest_been_executed 
@@ -44,7 +43,6 @@ $h9_TIMERC = 0
 $h9_can_see = 0
 Camera.SetFadingColor(0, 0, 0)
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 $iSetCasinoPanic = 0
 231@ = 2
@@ -7262,13 +7260,6 @@ Streaming.UnloadSpecialCharacter(3)
 Streaming.RemoveAnimation("HEIST9")
 Streaming.RemoveAnimation("BOMBER")
 Streaming.RemoveAnimation("FIGHT_B")
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 World.SetPedDensityMultiplier(1.0)
 World.SetCarDensityMultiplier(1.0)

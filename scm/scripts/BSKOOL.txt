@@ -3,7 +3,6 @@
 
 :BSKOOL
 script_name 'BSKOOL'
-Coop.EnableSyncingThisScript()
 gosub @BSKOOL_47
 if 
   has_deatharrest_been_executed 
@@ -20,7 +19,6 @@ if
   $flag_bikeschool_passed_1stime == 0
 goto_if_false @BSKOOL_78
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :BSKOOL_78
 $onmission = 1
@@ -2197,7 +2195,6 @@ goto_if_false @BSKOOL_11965
 Stat.RegisterOddjobMissionPassed
 Stat.PlayerMadeProgress(1)
 $flag_bikeschool_passed_1stime = 1
-set_player_school_progress 2 1
 Stat.IncrementFloat(50.0, 229)
 
 :BSKOOL_11965
@@ -2333,34 +2330,7 @@ CarGenerator.Switch($bs_bronze_generator, 101)
 $bs_bronze_rewardgiven = 2
 
 :BSKOOL_12663
-if 
-  $bs_gold_rewardgiven > 0
-goto_if_false @BSKOOL_12663_PERPLAYER_SILVER
-set_player_school_medal 2 3
-goto @BSKOOL_12663_PERPLAYER_DONE
-
-:BSKOOL_12663_PERPLAYER_SILVER
-if 
-  $bs_silver_rewardgiven > 0
-goto_if_false @BSKOOL_12663_PERPLAYER_BRONZE
-set_player_school_medal 2 2
-goto @BSKOOL_12663_PERPLAYER_DONE
-
-:BSKOOL_12663_PERPLAYER_BRONZE
-if 
-  $bs_bronze_rewardgiven > 0
-goto_if_false @BSKOOL_12663_PERPLAYER_DONE
-set_player_school_medal 2 1
-
-:BSKOOL_12663_PERPLAYER_DONE
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

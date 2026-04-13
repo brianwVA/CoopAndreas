@@ -15,7 +15,29 @@ static constexpr float kDownedMinHealth = 5.0f;
 static CVector s_downedFreezePos{};
 static uint32_t s_downedAnimTick = 0;
 static bool s_remoteDownedAnimApplied[MAX_SERVER_PLAYERS] = {};
-static uint32_t s_remoteDownedAnimTick[MAX_SERVER_PLAYERS] = {};
+static void SendReviveWindowMarker(CPlayerPed* ped);
+
+static void ActivateDownedState(CPlayerPed* ped)
+{
+    if (!ped)
+    {
+        return;
+    }
+
+    s_downedActive = true;
+    s_downedStartTick = GetTickCount();
+    s_downedFreezePos = ped->GetPosition();
+    s_downedAnimTick = 0;
+    s_downedTimedOutPendingDeath = false;
+
+    if (!s_downedAnnounced)
+    {
+        CChat::AddMessage("~b~Downed: you are immobilized for 60s, teammate can revive (J)");
+        s_downedAnnounced = true;
+    }
+
+    SendReviveWindowMarker(ped);
+}
 
 static void ResetDownedInputLocks()
 {
@@ -43,11 +65,12 @@ static void ApplyDownedAnimation(CPed* ped, bool alternate)
         return;
     }
 
-    const char* animName = alternate ? "GNSTWALL_INJURD_L" : "GNSTWALL_INJURD";
+    // Use prone hit animations from PED so downed players look actually collapsed on the ground.
+    const char* animName = alternate ? "KO_shot_stom" : "KO_shot_front";
     plugin::Command<Commands::TASK_PLAY_ANIM_NON_INTERRUPTABLE>(
         pedRef,
         animName,
-        "SWAT",
+        "PED",
         4.0f,
         1,
         1,
@@ -79,6 +102,12 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 
     if (This == localPlayer)
     {
+        if (CNetwork::m_bConnected && !s_downedActive && !s_downedTimedOutPendingDeath && This->m_fHealth <= kDownedMinHealth)
+        {
+            ActivateDownedState(This);
+            This->m_fHealth = kDownedMinHealth;
+        }
+
         if (CNetwork::m_bConnected && s_downedActive)
         {
             if (GetTickCount() - s_downedStartTick >= kDownedDurationMs)
@@ -127,9 +156,9 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
             }
 
             uint32_t now = GetTickCount();
-            if (now > s_downedAnimTick + 1200)
+            if (s_downedAnimTick == 0)
             {
-                ApplyDownedAnimation(This, ((now / 1200) & 1u) != 0u);
+                ApplyDownedAnimation(This, false);
                 s_downedAnimTick = now;
             }
         }
@@ -255,14 +284,12 @@ static void __fastcall CPlayerPed__ProcessControl_Hook(CPlayerPed* This)
 
         if (remoteId >= 0 && remoteId < MAX_SERVER_PLAYERS)
         {
-            uint32_t now = GetTickCount();
             if (remoteDowned)
             {
-                if (!s_remoteDownedAnimApplied[remoteId] || now > s_remoteDownedAnimTick[remoteId] + 1200)
+                if (!s_remoteDownedAnimApplied[remoteId])
                 {
-                    ApplyDownedAnimation(player->m_pPed, ((now / 1200) & 1u) != 0u);
+                    ApplyDownedAnimation(player->m_pPed, false);
                     s_remoteDownedAnimApplied[remoteId] = true;
-                    s_remoteDownedAnimTick[remoteId] = now;
                 }
             }
             else
@@ -435,17 +462,7 @@ void __fastcall CPedDamageResponseCalculator__ComputeWillKillPed_Hook(uintptr_t 
 
             if (shouldEnterDowned)
             {
-                s_downedActive = true;
-                s_downedStartTick = GetTickCount();
-                s_downedFreezePos = ped->GetPosition();
-                s_downedAnimTick = 0;
-                s_downedTimedOutPendingDeath = false;
-                if (!s_downedAnnounced)
-                {
-                    CChat::AddMessage("~b~Downed: you are immobilized for 60s, teammate can revive (J)");
-                    s_downedAnnounced = true;
-                }
-                SendReviveWindowMarker((CPlayerPed*)ped);
+                ActivateDownedState((CPlayerPed*)ped);
             }
 
             if (s_downedActive && projectedHealth <= kDownedMinHealth)
@@ -547,6 +564,17 @@ void __fastcall CRunningScript__DoDeatharrestCheck_Hook(CRunningScript* This, SK
         return;
     }
 
+    if (CNetwork::m_bConnected)
+    {
+        CPlayerPed* localPed = FindPlayerPed(0);
+        if (s_downedActive || (localPed && localPed->m_fHealth <= kDownedMinHealth && !s_downedTimedOutPendingDeath))
+        {
+            // While downed, suppress mission wasted flow and let revive/timeout logic decide.
+            This->m_bWastedOrBusted = false;
+            return;
+        }
+    }
+
     bool wastedOrBusted = false;
     
     auto* playerInfo = &CWorld::Players[CWorld::PlayerInFocus];
@@ -639,5 +667,22 @@ void PlayerHooks::NotifyLocalRevived()
     s_downedActive = false;
     s_downedAnnounced = false;
     s_downedTimedOutPendingDeath = false;
+    s_downedAnimTick = 0;
     ResetDownedInputLocks();
+}
+
+bool PlayerHooks::IsLocalPlayerDowned()
+{
+    if (s_downedActive)
+    {
+        return true;
+    }
+
+    CPlayerPed* localPed = FindPlayerPed(0);
+    if (!localPed)
+    {
+        return false;
+    }
+
+    return (localPed->m_fHealth <= kDownedMinHealth) && !s_downedTimedOutPendingDeath;
 }

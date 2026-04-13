@@ -149,7 +149,7 @@ void CNetwork::InitListeners()
 	CNetwork::AddListener(CPacketsID::ASSIGN_PED, CPacketHandler::AssignPedSyncer__Handle);
 	CNetwork::AddListener(CPacketsID::MASS_PACKET_SEQUENCE, CPacketHandler::MassPacketSequence__Handle);
 	//CNetwork::AddListener(CPacketsID::START_CUTSCENE, CPacketHandler::StartCutscene__Handle);
-	CNetwork::AddListener(CPacketsID::SKIP_CUTSCENE, CPacketHandler::SkipCutscene__Handle);
+	//CNetwork::AddListener(CPacketsID::SKIP_CUTSCENE, CPacketHandler::SkipCutscene__Handle);
 	CNetwork::AddListener(CPacketsID::OPCODE_SYNC, CPacketHandler::OpCodeSync__Handle);
 	CNetwork::AddListener(CPacketsID::ON_MISSION_FLAG_SYNC, CPacketHandler::OnMissionFlagSync__Handle);
 	CNetwork::AddListener(CPacketsID::UPDATE_ENTITY_BLIP, CPacketHandler::UpdateEntityBlip__Handle);
@@ -173,27 +173,40 @@ void CNetwork::InitListeners()
 	CNetwork::AddListener(CPacketsID::TELEPORT_PLAYER_SCRIPTED, CPacketHandler::TeleportPlayerScripted__Handle);
 	CNetwork::AddListener(CPacketsID::WANTED_LEVEL_SYNC, CPacketHandler::WantedLevelSync__Handle);
 	CNetwork::AddListener(CPacketsID::MONEY_SYNC, CPacketHandler::MoneySync__Handle);
-	CNetwork::AddListener(CPacketsID::CHEAT_CODE_SYNC, CPacketHandler::CheatCodeSync__Handle);
-	CNetwork::AddListener(CPacketsID::FIRE_SYNC, CPacketHandler::FireSync__Handle);
-	CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPacketHandler::PickupRemove__Handle);
 	CNetwork::AddListener(CPacketsID::DEATH_PICKUPS, CPacketHandler::DeathPickups__Handle);
-	CNetwork::AddListener(CPacketsID::ITEM_DROP, CPacketHandler::ItemDrop__Handle);
-	CNetwork::AddListener(CPacketsID::VEHICLE_OCCUPANTS, CPacketHandler::VehicleOccupants__Handle);
 	CNetwork::AddListener(CPacketsID::REVIVE_APPLY, CPacketHandler::ReviveApply__Handle);
-	CNetwork::AddListener(CPacketsID::VEHICLE_ACTION_ACK, CPacketHandler::VehicleActionAck__Handle);
+	CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPacketHandler::PickupRemove__Handle);
+	CNetwork::AddListener(CPacketsID::ITEM_DROP, CPacketHandler::ItemDrop__Handle);
+	CNetwork::AddListener(CPacketsID::CHEATS_TOGGLE, CPacketHandler::CheatsToggle__Handle);
 }
 
 void CNetwork::HandlePacketReceive(ENetEvent& event)
 {
+	if (!event.packet || event.packet->dataLength < sizeof(uint16_t))
+	{
+		return;
+	}
+
 	uint16_t packetid;
 	memcpy(&packetid, event.packet->data, sizeof(uint16_t));
 
 	auto it = m_packetListeners.find(packetid);
 	if (it != m_packetListeners.end())
 	{
+		if (!it->second)
+		{
+			return;
+		}
+
 		uint8_t* pData = event.packet->data + sizeof(uint16_t);
 		int32_t nLength = event.packet->dataLength - sizeof(uint16_t);
-		it->second->m_callback(pData, nLength);
+		auto callback = it->second->m_callback;
+		if ((uintptr_t)callback < 0x10000)
+		{
+			return;
+		}
+
+		callback(pData, nLength);
 	}
 }
 

@@ -12,9 +12,7 @@ terminate_this_script
 :VCRASH1_36
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'VCRASH1'
-Coop.EnableSyncingThisScript()
 wait 0
 Text.LoadMissionText('VCR1')
 Player.MakeGangDisappear
@@ -65,7 +63,6 @@ World.ClearArea(0, 1599.09, 2667.725, 9.8203, 0.5)
 Streaming.LoadScene(1599.09, 2667.725, 9.8203)
 Char.SetCoordinates($scplayer, 1599.09, 2667.725, 9.8203)
 Char.SetHeading($scplayer, 90.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Weather.Release
 Player.MakeGangReappear
@@ -1168,13 +1165,6 @@ Char.ClearRelationship($scplayer, RelationshipType.Hate, PedType.Mission1)
 :VCRASH1_8218
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

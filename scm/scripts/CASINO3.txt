@@ -3,7 +3,6 @@
 
 :CASINO3
 script_name 'CASINO3'
-Coop.EnableSyncingThisScript()
 gosub @CASINO3_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :CASINO3_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('CASINO3')
 $onmission = 1
 wait 0
@@ -469,7 +467,6 @@ if
 is_ps2_keyboard_key_pressed 87
 goto_if_false @CASINO3_3642
 Char.SetCoordinates($scplayer, 1002.171, 2079.443, 9.8203)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Char.GiveWeapon($scplayer, WeaponType.Spas12, 2000)
 
@@ -2223,13 +2220,6 @@ Streaming.MarkModelAsNoLongerNeeded(401)
 Streaming.MarkModelAsNoLongerNeeded(530)
 World.RemoveAllScriptFires
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

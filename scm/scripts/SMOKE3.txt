@@ -3,7 +3,6 @@
 
 :SMOKE3
 script_name 'SMOKE3'
-Coop.EnableSyncingThisScript()
 gosub @SMOKE3_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :SMOKE3_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 Text.LoadMissionText('SMOKE3')
@@ -557,7 +555,6 @@ Camera.SetFixedPosition(1778.61, -1938.675, 12.9064, 0.0, 0.0, 0.0)
 Camera.PointAtPoint(1779.275, -1937.944, 13.0581, SwitchType.JumpCut)
 Char.SetCoordinates($scplayer, 1783.92, -1936.33, 12.6)
 Char.SetHeading($scplayer, 117.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Task.GoStraightToCoord($big_smoke, 1775.3, -1939.23, 12.9, MoveState.Walk, -1)
 64@ = Sequence.Open()
 Task.LookAtChar(-1, $big_smoke, 10000)
@@ -3159,13 +3156,6 @@ Car.SetCanBurstTires(78@, True)
 Car.MarkAsNoLongerNeeded(54@)
 Car.MarkAsNoLongerNeeded(78@)
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

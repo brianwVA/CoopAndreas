@@ -29,6 +29,11 @@ static void __cdecl CWeather__SetWeatherToAppropriateTypeNow_Hook()
 static CdeclEvent	 <AddressList<0x5775D2, H_CALL>, PRIORITY_AFTER, ArgPick5N<eBlipType, 0, CVector, 1, eBlipColour, 2, eBlipDisplay, 3, char*, 4>, void(eBlipType, CVector, eBlipColour, eBlipDisplay, char*)> waypointPlaceEvent;
 static void PlaceWaypointHook(eBlipType type, CVector posn, eBlipColour color, eBlipDisplay blipDisplay, char* scriptName)
 {
+    if (!CNetwork::m_bConnected)
+    {
+        return;
+    }
+
     CPackets::PlayerPlaceWaypoint packet = { 0, true, posn };
     CNetwork::SendPacket(CPacketsID::PLAYER_PLACE_WAYPOINT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
 }
@@ -36,8 +41,21 @@ static void PlaceWaypointHook(eBlipType type, CVector posn, eBlipColour color, e
 // hide waypoint
 static void __fastcall CRadar__ClearBlip_Hook(int blipIndex, SKIP_EDX)
 {
-    CPackets::PlayerPlaceWaypoint packet = { 0, false, CVector(0, 0, 0) };
-    CNetwork::SendPacket(CPacketsID::PLAYER_PLACE_WAYPOINT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+    bool isWaypointBlip = false;
+    if (blipIndex >= 0)
+    {
+        if (const auto index = CRadar::GetActualBlipArrayIndex(blipIndex); index != -1)
+        {
+            isWaypointBlip = static_cast<eRadarSprite>(CRadar::ms_RadarTrace[index].m_nRadarSprite) == eRadarSprite::RADAR_SPRITE_WAYPOINT;
+        }
+    }
+
+    if (CNetwork::m_bConnected && isWaypointBlip)
+    {
+        CPackets::PlayerPlaceWaypoint packet = { 0, false, CVector(0, 0, 0) };
+        CNetwork::SendPacket(CPacketsID::PLAYER_PLACE_WAYPOINT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+    }
+
     CRadar::ClearBlip(blipIndex);
 }
 
@@ -63,61 +81,16 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
 {
     if (CNetwork::m_bConnected)
     {
+        bool dontCreateEntity = false;
+
         if (entity->m_nType == eEntityType::ENTITY_TYPE_VEHICLE)
         {
             CVehicle* vehicle = (CVehicle*)entity;
-
-            // Keep ambient/world vehicle hosting authoritative on host side.
-            // Guests should only host on-demand (e.g. when actually entering).
-            if (!CLocalPlayer::m_bIsHost)
+            if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr) // fixes a strange bug
             {
-                if (CUtil::IsValidEntityPtr(entity))
-                    CWorld::Add(entity);
                 return;
             }
-
-            if (CNetworkVehicleManager::GetVehicle(vehicle) != nullptr)
-            {
-                // Already tracked in the network pool. Re-add to world if needed,
-                // but do not attempt to host again.
-                if (CUtil::IsValidEntityPtr(entity))
-                    CWorld::Add(entity);
-                return;
-            }
-
-            if (CNetworkVehicleManager::m_bCreatingFromNetwork)
-            {
-                // Vehicle is being created from a network packet. Allow original add,
-                // but do not host it again (would create a spawn loop).
-                CWorld::Add(entity);
-                return;
-            }
-
-            // Avoid syncing every ambient/NPC vehicle from host world generation.
-            // Those are non-deterministic between clients and quickly exhaust server vehicle IDs.
-            // We host vehicles on-demand (enter/driver/passenger flows) instead.
-            bool hasPlayerOccupant = false;
-            if (vehicle->m_pDriver && vehicle->m_pDriver->IsPlayer())
-            {
-                hasPlayerOccupant = true;
-            }
-            if (!hasPlayerOccupant)
-            {
-                for (int i = 0; i < vehicle->m_nMaxPassengers; ++i)
-                {
-                    if (vehicle->m_apPassengers[i] && vehicle->m_apPassengers[i]->IsPlayer())
-                    {
-                        hasPlayerOccupant = true;
-                        break;
-                    }
-                }
-            }
-
-            const bool missionLikeVehicle = vehicle->m_nCreatedBy == MISSION_VEHICLE;
-            if (hasPlayerOccupant || missionLikeVehicle)
-            {
-                CNetworkVehicle::CreateHosted(vehicle);
-            }
+            CNetworkVehicle* networkVehicle = CNetworkVehicle::CreateHosted(vehicle);
         }
         else if (entity->m_nType == eEntityType::ENTITY_TYPE_PED)
         {
@@ -125,10 +98,7 @@ static void __cdecl CWorld__Add_Hook(CEntity* entity)
 
             if (ped->m_nPedType > 1)
             {
-                if (!CNetworkPedManager::m_bCreatingFromNetwork)
-                {
-                    CNetworkPed* networkPed = CNetworkPed::CreateHosted(ped);
-                }
+                CNetworkPed* networkPed = CNetworkPed::CreateHosted(ped);
             }
         }
     }

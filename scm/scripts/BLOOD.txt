@@ -3,7 +3,6 @@
 
 :BLOOD
 script_name 'BLOOD'
-Coop.EnableSyncingThisScript()
 gosub @BLOOD_47
 if 
   has_deatharrest_been_executed 
@@ -20,7 +19,6 @@ if
   $blood_passed_once == 0
 goto_if_false @BLOOD_74
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :BLOOD_74
 Text.LoadMissionText('BLOOD')
@@ -2029,13 +2027,6 @@ Game.ForceAllVehicleLightsOff(False)
 Game.HideAllFrontendBlips(False)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

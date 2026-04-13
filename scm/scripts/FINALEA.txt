@@ -12,9 +12,7 @@ terminate_this_script
 :FINALEA_36
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'FINALEA'
-Coop.EnableSyncingThisScript()
 wait 0
 Text.LoadMissionText('RIOT4')
 Streaming.SetAreaVisible(1)
@@ -83,7 +81,6 @@ goto @FINALEA_276
 :FINALEA_317
 Char.SetCoordinates($scplayer, 2514.745, -1673.838, 12.8)
 Char.SetHeading($scplayer, 60.891)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 47@ = DecisionMakerChar.Load(DecisionMakerType.Empty)
 49@ = DecisionMakerChar.Load(DecisionMakerType.Tough)
 48@ = DecisionMakerChar.Load(DecisionMakerType.Weak)
@@ -492,7 +489,6 @@ Char.SetCoordinates($scplayer, 2509.781, -1308.965, 34.7125)
 
 :FINALEA_3132
 Char.SetHeading($scplayer, 352.414)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 World.ClearArea(0, 2372.01, -1306.609, 300.0, 300.0)
 wait 2000
 Camera.SetFixedPosition(35@, 36@, 37@, 0.0, 0.0, 0.0)
@@ -3915,7 +3911,6 @@ Hud.DisplayCounterWithString($smokehealth_fa, CounterDisplay.Bar, 'RM4_39')
 Char.SetUsesUpperbodyDamageAnimsOnly($big_smoke, True)
 Char.SetCoordinates($scplayer, 2564.447, -1292.822, 1060.016)
 Char.SetHeading($scplayer, 58.5)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Pickup.Remove(133@)
 Pickup.Remove(134@)
 Pickup.Remove(135@)
@@ -4838,13 +4833,6 @@ Car.SetProofs($sweet_car, False, False, False, False, False)
 
 :FINALEA_33251
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 if 
   201@ == 1

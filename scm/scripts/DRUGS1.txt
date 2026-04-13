@@ -3,7 +3,6 @@
 
 :DRUGS1
 script_name 'DRUGS1'
-Coop.EnableSyncingThisScript()
 gosub @DRUGS1_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :DRUGS1_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 wait 0
 Text.LoadMissionText('SMOKE4')
@@ -206,7 +204,6 @@ Char.SetCantBeDraggedOut($big_smoke, True)
 Char.SetStayInCarWhenJacked($big_smoke, True)
 Game.SetMaxFireGenerations(1)
 Char.WarpIntoCar($scplayer, 34@)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Game.SetWantedMultiplier(0.0)
 Game.SwitchEmergencyServices(False)
 Camera.DoFade(1, 1500)
@@ -216,13 +213,6 @@ Hud.SwitchWidescreen(False)
 Char.ShutUp($scplayer, True)
 Path.SwitchRoadsOff(1694.12, -1604.33, 5.0, 1805.94, -1593.12, 15.0)
 Text.PrintNow('DGS1_1', 6000, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('DGS1_1', 6000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 TIMERB = 0
 Player.SetGroupRecruitment($player1, False)
 Game.SetScriptLimitToGangSize(0)
@@ -1283,13 +1273,6 @@ Text.ClearPrints
 
 :DRUGS1_9050
 Char.GiveWeapon($scplayer, WeaponType.MicroUzi, 120)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.MicroUzi, 120)
-    end
-end
 Camera.RestoreJumpcut
 Camera.SetBehindPlayer
 Char.ClearTasksImmediately($scplayer)
@@ -8113,13 +8096,6 @@ Char.DetachFromCar($scplayer)
 Char.SetProofs($scplayer, False, False, False, False, False)
 Game.SwitchEmergencyServices(True)
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 if 
   Player.IsPlaying($player1)

@@ -3,7 +3,6 @@
 
 :GROVE1
 script_name 'GROVE1'
-Coop.EnableSyncingThisScript()
 gosub @GROVE1_608
 if 
   has_deatharrest_been_executed 
@@ -78,7 +77,6 @@ return
 
 :GROVE1_608
 $onmission = 1
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 77@ = 50
 78@ = 50
 79@ = 50
@@ -215,7 +213,6 @@ goto @GROVE1_1312
 :GROVE1_1360
 Char.SetCoordinates($scplayer, 2497.324, -1684.744, 12.44)
 Char.SetHeading($scplayer, 0.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Streaming.LoadScene(2497.324, -1684.744, 12.44)
@@ -3395,13 +3392,6 @@ Sequence.Clear(69@)
 DecisionMaker.Remove(35@)
 DecisionMaker.Remove(34@)
 Game.CanTriggerGangWarWhenOnAMission(False)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

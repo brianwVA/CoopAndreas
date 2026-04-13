@@ -3,7 +3,6 @@
 
 :WUZI1
 script_name 'WUZI1'
-Coop.EnableSyncingThisScript()
 gosub @WUZI1_47
 if 
   has_deatharrest_been_executed 
@@ -27,7 +26,6 @@ Text.LoadMissionText('WUZI1')
 Text.ClearThisPrint('M_FAIL')
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 if 
   71@ == 99
 goto_if_false @WUZI1_231
@@ -1210,7 +1208,6 @@ Char.ClearTasksImmediately(35@)
 Char.SetCoordinates(35@, -2176.33, 654.2678, 48.4453)
 Char.SetCoordinates($scplayer, -2175.33, 653.2678, 48.4453)
 Char.SetHeading($scplayer, 280.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Char.SetHeading(35@, 270.0)
 Task.GoStraightToCoord($scplayer, -2173.952, 657.6135, 49.8762, MoveState.Walk, -2)
 132@ = Sequence.Open()
@@ -4122,13 +4119,6 @@ Game.SwitchEmergencyServices(True)
 $onmission = 0
 World.SetUsesCollisionOfClosestObjectOfType(-2175.213, 662.718, 50.8582, 10.5, #CT_GATEXR, True)
 World.SetUsesCollisionOfClosestObjectOfType(-2175.213, 662.718, 50.8582, 10.5, #CHINA_TOWN_GATEB, True)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

@@ -3,7 +3,6 @@
 
 :WUZI5
 script_name 'WUZI5'
-Coop.EnableSyncingThisScript()
 gosub @WUZI5_47
 if 
   has_deatharrest_been_executed 
@@ -17,7 +16,6 @@ terminate_this_script
 :WUZI5_47
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('WUZI4')
 if 
   $onmission == 0
@@ -132,7 +130,6 @@ Char.SetDecisionMaker(35@, 158@)
 World.ClearArea(1, -2168.4, 639.0, 69.9, 1.0)
 Char.SetCoordinates($scplayer, -2168.4, 639.0, 69.9)
 Char.SetHeading($scplayer, 189.4)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Streaming.LoadScene(-2168.4, 639.0, 69.9)
 
 :WUZI5_975
@@ -566,13 +563,6 @@ Streaming.RequestModel(349)
 Streaming.LoadAllModelsNow
 Char.RemoveAllWeapons($scplayer)
 Char.GiveWeapon($scplayer, WeaponType.Knife, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.Knife, 1)
-    end
-end
 Char.SetCurrentWeapon($scplayer, WeaponType.Knife)
 Char.ClearTasksImmediately($scplayer)
 World.ClearArea(1, -2351.7, 1487.4, 0.0, 1.0)
@@ -698,13 +688,6 @@ if
   113@ == 0
 goto_if_false @WUZI5_4355
 Text.PrintNow('WUZ4_02', 7000, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('WUZ4_02', 7000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 114@ = 1
 
 :WUZI5_4355
@@ -3067,13 +3050,6 @@ Pickup.Remove(72@)
 Pickup.Remove(73@)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

@@ -12,9 +12,7 @@ terminate_this_script
 :CATALIN_36
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'CATALIN'
-Coop.EnableSyncingThisScript()
 wait 0
 Text.LoadMissionText('CAT')
 52@ = 0
@@ -75,7 +73,6 @@ World.ClearArea(0, 681.1634, -478.1859, 15.3281, 0.5)
 Streaming.LoadScene(681.1634, -478.1859, 15.3281)
 Char.SetCoordinates($scplayer, 681.1634, -478.1859, 15.3281)
 Char.SetHeading($scplayer, 177.0008)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 $catalina = Char.Create(23, 294, 682.8292, -477.8332, 15.3359)
 Char.SetHeading($catalina, 149.5317)
@@ -1115,13 +1112,6 @@ Streaming.UnloadSpecialCharacter(5)
 Streaming.MarkModelAsNoLongerNeeded(514)
 Streaming.MarkModelAsNoLongerNeeded(584)
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 if 
   $load_and_launch_catalina_mission > -1

@@ -4,7 +4,6 @@ class CNetworkVehicleManager
 public:
     static std::vector<CNetworkVehicle*> m_pVehicles;
     static CNetworkVehicle* m_apTempVehicles[255];
-    static bool m_bCreatingFromNetwork;
 
     static CNetworkVehicle* GetVehicle(int vehicleid);
     static CNetworkVehicle* GetVehicle(CVehicle* vehicle);

@@ -3,7 +3,6 @@
 
 :MAF4
 script_name 'MAF4'
-Coop.EnableSyncingThisScript()
 gosub @MAF4_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :MAF4_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 wait 0
 Text.LoadMissionText('DSERT8')
 Weather.ForceNow(WeatherType.SunnyDesert)
@@ -62,7 +60,6 @@ World.ClearArea(0, 419.4488, 2529.914, 15.6219, 0.5)
 Streaming.LoadScene(419.4488, 2529.914, 15.6219)
 Char.SetCoordinates($scplayer, 419.4488, 2529.914, 15.6219)
 Char.SetHeading($scplayer, 180.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.DoFade(1, 1500)
 Player.SetControl($player1, True)
@@ -3655,13 +3652,6 @@ Game.SetArea51SamSite(True)
 Game.SetWantedMultiplier(1.0)
 Weather.Release
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

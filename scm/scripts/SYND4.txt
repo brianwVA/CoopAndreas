@@ -3,7 +3,6 @@
 
 :SYND4
 script_name 'SYND4'
-Coop.EnableSyncingThisScript()
 gosub @SYND4_47
 if 
   has_deatharrest_been_executed 
@@ -85,7 +84,6 @@ if
 goto_if_false @SYND4_428
 Char.SetCoordinatesDontWarpGang($scplayer, -2031.197, 161.1839, 27.8516)
 Char.SetHeading($scplayer, 268.0468)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 
 :SYND4_428
@@ -672,7 +670,6 @@ Char.SetAreaVisible(102@(40@,10i), 3)
 goto_if_false @SYND4_4417
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 54@ = Blip.AddForCoord(-2655.075, 1431.789, 912.4016)
 Blip.SetEntryExit(54@, -2661.74, 1423.483, 100.0)
 Blip.ChangeDisplay(54@, BlipDisplay.Neither)
@@ -2053,13 +2050,6 @@ Streaming.RemoveAnimation("SWAT")
 Streaming.UnloadSpecialCharacter(1)
 $onmission = 0
 Weather.Release
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

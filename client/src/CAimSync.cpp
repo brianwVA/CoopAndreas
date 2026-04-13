@@ -21,7 +21,7 @@ void CAimSync::ApplyNetworkPlayerContext(CNetworkPlayer* player)
 	storedAimData = CPacketHandler::PlayerAimSync__Collect();
 
 	ApplyPacketToGame(player->m_aimSyncData);
-	if (TheCamera.m_PlayerWeaponMode.m_nMode == MODE_FOLLOWPED || TheCamera.m_PlayerWeaponMode.m_nMode == MODE_SNIPER)
+	if (TheCamera.m_PlayerWeaponMode.m_nMode == MODE_FOLLOWPED/* || TheCamera.m_PlayerWeaponMode.m_nMode == MODE_SNIPER*/)
 	{
 		TheCamera.m_PlayerWeaponMode.m_nMode = MODE_NONE;
 	}

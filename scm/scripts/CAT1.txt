@@ -3,7 +3,6 @@
 
 :CAT1
 script_name 'CAT1'
-Coop.EnableSyncingThisScript()
 gosub @CAT1_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :CAT1_47
 $onmission = 1
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Camera.DoFade(0, Fade.Out)
 34@ = 0
 35@ = 0
@@ -5004,13 +5002,6 @@ World.SetPedDensityMultiplier(1.0)
 World.SetCarDensityMultiplier(1.0)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

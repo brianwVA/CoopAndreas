@@ -3,7 +3,6 @@
 
 :FARLIE4
 script_name 'FARLIE4'
-Coop.EnableSyncingThisScript()
 gosub @FARLIE4_47
 if 
   has_deatharrest_been_executed 
@@ -69,7 +68,6 @@ goto_if_false @FARLIE4_286
 Streaming.LoadScene(-2154.998, 645.5436, 51.3516)
 Char.SetCoordinates($scplayer, -2154.998, 645.5436, 51.3516)
 Char.SetHeading($scplayer, 271.113)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 
 :FARLIE4_286
@@ -77,7 +75,6 @@ Hud.SwitchWidescreen(False)
 Camera.SetFadingColor(0, 0, 0)
 Camera.DoFade(1, 1000)
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Path.SwitchRoadsOff(-1478.294, -65.4014, 0.0, -1395.423, 2.7054, 10.0)
 Game.SetRelationship(RelationshipType.Hate, PedType.Mission1, PedType.Player1)
@@ -105,26 +102,12 @@ if and
   not Char.HasGotWeapon($scplayer, WeaponType.Mp5)
 goto_if_false @FARLIE4_578
 Char.GiveWeapon($scplayer, WeaponType.MicroUzi, 150)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Char.GiveWeapon($NETWORK_PLAYER[$temp_int], WeaponType.MicroUzi, 150)
-    end
-end
 Char.SetCurrentWeapon($scplayer, WeaponType.MicroUzi)
 
 :FARLIE4_578
 TIMERA = 0
 140@ = 2
 Text.PrintNow('F4_T0', 9000, 1)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.PrintNowForNetworkPlayer('F4_T0', 9000, 1, $NETWORK_PLAYER[$temp_int])
-    end
-end
 
 :FARLIE4_608
 if 
@@ -1344,13 +1327,6 @@ goto_if_false @FARLIE4_8740
 Garage.Close('FDORSFE')
 
 :FARLIE4_8740
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

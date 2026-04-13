@@ -26,7 +26,6 @@ public:
 	static void VehicleComponentRemove__Handle(void* data, int size);
 	static CPackets::VehiclePassengerUpdate* VehiclePassengerUpdate__Collect(CNetworkVehicle* vehicle, CPlayerPed* localPlayer);
 	static void VehiclePassengerUpdate__Handle(void* data, int size);
-	static void VehicleOccupants__Handle(void* data, int size);
 	static void PlayerChatMessage__Handle(void* data, int size);
 	static void PedSpawn__Handle(void* data, int size);
 	static void PedRemove__Handle(void* data, int size);
@@ -84,25 +83,13 @@ public:
 	static void WantedLevelSync__Trigger();
 	static void MoneySync__Handle(void* data, int size);
 	static void MoneySync__Trigger();
-	static void CheatCodeSync__Handle(void* data, int size);
-	static void FireSync__Handle(void* data, int size);
-	static void PickupRemove__Handle(void* data, int size);
 	static void DeathPickups__Handle(void* data, int size);
-	static void ItemDrop__Handle(void* data, int size);
-	static void ReviveApply__Handle(void* data, int size);
-	static void VehicleActionAck__Handle(void* data, int size);
-
-	// Dropped pickup tracking for removal sync
-	static void TrackDroppedPickup(int16_t cx, int16_t cy, int16_t cz);
-	static void CheckDroppedPickups();
-
-	// Revive helpers
 	static bool TryGetNearestReviveTarget(const CVector& from, int& outPlayerId, CVector& outDeathPos);
 	static void ClearReviveTarget(int playerId);
-
-	// Reliable vehicle actions (enter/exit)
-	static void VehicleEnter__TriggerReliable(int vehicleid, uint8_t seatid, bool passenger, bool force);
-	static void VehicleExit__TriggerReliable(bool force);
-	static void ProcessReliableVehicleActions();
-	static void GetReliableVehicleActionStats(uint32_t& outAcked, uint32_t& outRetried, uint32_t& outTimedOut, int& outPending);
+	static void ReviveApply__Handle(void* data, int size);
+	static void PickupRemove__Handle(void* data, int size);
+	static void ItemDrop__Handle(void* data, int size);
+	static void CheatsToggle__Handle(void* data, int size);
+	static void TrackDroppedPickup(int16_t cx, int16_t cy, int16_t cz);
+	static void CheckDroppedPickups();
 };

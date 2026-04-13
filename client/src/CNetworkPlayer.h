@@ -47,4 +47,3 @@ public:
 	void EnterVehiclePassenger(CVehicle* vehicle, int seatid);
 	void HandleTask(CPackets::SetPlayerTask& packet);
 };
-

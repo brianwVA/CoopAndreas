@@ -3,7 +3,6 @@
 
 :TORENO2
 script_name 'TORENO2'
-Coop.EnableSyncingThisScript()
 gosub @TORENO2_47
 if 
   has_deatharrest_been_executed 
@@ -17,7 +16,6 @@ terminate_this_script
 :TORENO2_47
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 Text.LoadMissionText('TORENO2')
 Text.ClearPrints
 wait 0
@@ -177,7 +175,6 @@ CarGenerator.SuppressCarModel(586)
 World.ClearArea(1, -693.6, 924.5, 11.3, 1.0)
 Char.SetCoordinates($scplayer, -693.6, 924.5, 11.3)
 Char.SetHeading($scplayer, 71.2)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 World.ClearArea(1, -685.1, 922.0, 10.9, 180.0)
 World.ClearArea(1, -692.2, 948.0, 11.2, 100.0)
 Car.CustomPlateForNextCar(461, "PREACHER")
@@ -1651,13 +1648,6 @@ Streaming.RemoveAnimation("POLICE")
 Blip.Remove(40@)
 $timer_mobile_start = Clock.GetGameTimer()
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

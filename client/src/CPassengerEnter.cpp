@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "CNetworkVehicle.h"
-#include "CPacketHandler.h"
 
 #include <CCarEnterExit.h>
 #include <CTaskComplexEnterCarAsPassenger.h>
@@ -71,8 +70,7 @@ void CPassengerEnter::Process()
                 packet.force = false;
                 packet.passenger = true;
 
-                if (packet.vehicleid != -1)
-                    CPacketHandler::VehicleEnter__TriggerReliable(packet.vehicleid, packet.seatid, true, false);
+                CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
             }
         }
     }

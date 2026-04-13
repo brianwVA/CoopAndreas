@@ -3,7 +3,6 @@
 
 :CRASH1
 script_name 'CRASH1'
-Coop.EnableSyncingThisScript()
 gosub @CRASH1_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :CRASH1_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 34@ = 0
 35@ = 0
@@ -6005,7 +6003,6 @@ World.ClearArea(0, 1038.17, -1335.221, 12.5493, 0.5)
 Streaming.LoadScene(1038.17, -1335.221, 12.5493)
 Char.SetCoordinates($scplayer, 1038.17, -1335.221, 12.5493)
 Char.SetHeading($scplayer, 0.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 100@ = Car.Create(596, 1032.438, -1330.931, 12.3864)
 Car.SetHeading(100@, 270.0)
@@ -6433,13 +6430,6 @@ Object.SetCollisionDamageEffect($g_BD_DOOR, False)
 Object.SetProofs($g_BD_DOOR, True, True, True, True, True)
 Object.DontRemove($g_BD_DOOR)
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 $onmission = 0
 Mission.Finish
 return 

@@ -27,10 +27,8 @@ terminate_this_script
 
 :CPRACE_112
 $onmission = 1
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $disable_mod_garage = 1
 script_name 'CPRACE'
-Coop.EnableSyncingThisScript()
 wait 0
 World.DisableAllEntryExits(True)
 Text.LoadMissionText('RACETOR')
@@ -6555,13 +6553,6 @@ Char.SetAreaVisible($scplayer, 0)
 $disable_all_cranes = 0
 $disable_mod_garage = 0
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

@@ -4,36 +4,25 @@
 #include "CNetworkVehicle.h"
 #include "CNetworkPed.h"
 #include "CAimSync.h"
-#include "CPacketHandler.h"
 
 // when local player enters any vehicle
 static void __fastcall CTaskComplexEnterCarAsDriver__Ctor_Hook(CTaskComplexEnterCarAsDriver* This, SKIP_EDX, CVehicle* vehicle)
 {
-    if (!CNetwork::m_bConnected)
-    {
-        plugin::CallMethod<0x6402F0, CTaskComplexEnterCarAsDriver*, CVehicle*>(This, vehicle);
-        return;
-    }
-
     CNetworkVehicle* networkVehicle = CNetworkVehicleManager::GetVehicle(vehicle);
 
     if (networkVehicle == nullptr)
     {
-        // World/NPC vehicle entered for the first time by this client.
-        // Host it immediately so confirm->enter flow can assign a network id.
-        networkVehicle = CNetworkVehicle::CreateHosted(vehicle);
+        CChat::AddMessage("ERROR: this vehicle is not synced");
+        plugin::CallMethod<0x6402F0, CTaskComplexEnterCarAsDriver*, CVehicle*>(This, vehicle);
+        return;
     }
 
-    if (networkVehicle != nullptr)
-    {
-        // If vehicleid is still -1 (waiting for VEHICLE_CONFIRM), skip sending
-        // VehicleEnter here. VehicleConfirm__Handle will send it once the id
-        // is assigned, if the player is already inside by then.
-        if (networkVehicle->m_nVehicleId != -1)
-        {
-            CPacketHandler::VehicleEnter__TriggerReliable(networkVehicle->m_nVehicleId, 0, false, false);
-        }
-    }
+    CPackets::VehicleEnter packet{};
+
+    packet.seatid = 0;
+    packet.vehicleid = networkVehicle->m_nVehicleId;
+
+    CNetwork::SendPacket(CPacketsID::VEHICLE_ENTER, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
 
     plugin::CallMethod<0x6402F0, CTaskComplexEnterCarAsDriver*, CVehicle*>(This, vehicle);
 }
@@ -42,7 +31,8 @@ static void __fastcall CTaskComplexLeaveCar__Ctor_Hook(CTaskComplexLeaveCar* Thi
 {
     if (CNetwork::m_bConnected)
     {
-        CPacketHandler::VehicleExit__TriggerReliable(false);
+        CPackets::VehicleExit packet{};
+        CNetwork::SendPacket(CPacketsID::VEHICLE_EXIT, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
     }
 
     plugin::CallMethod<0x63B8C0, CTaskComplexLeaveCar*, CVehicle*, int, int, bool, bool>(This, vehicle, targetDoor, delayTime, sensibleLeaveCar, forceGetOut);

@@ -12,9 +12,7 @@ terminate_this_script
 :DES10_36
 $onmission = 1
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 script_name 'DES10'
-Coop.EnableSyncingThisScript()
 wait 0
 Text.LoadMissionText('DSERT10')
 Weather.ForceNow(WeatherType.ExtraSunnyDesert)
@@ -61,7 +59,6 @@ World.ClearArea(0, 419.4488, 2529.914, 15.6219, 0.5)
 Streaming.LoadScene(419.4488, 2529.914, 15.6219)
 Char.SetCoordinates($scplayer, 419.4488, 2529.914, 15.6219)
 Char.SetHeading($scplayer, 180.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.DoFade(1, 1500)
 Player.SetControl($player1, True)
@@ -558,13 +555,6 @@ Streaming.MarkModelAsNoLongerNeeded(287)
 Streaming.MarkModelAsNoLongerNeeded(370)
 Game.SwitchRandomTrains(True)
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

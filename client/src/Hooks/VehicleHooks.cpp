@@ -70,15 +70,6 @@ void __fastcall CVehicle__ProcessControl_Hook()
         return;
     }
 
-    // Process audio WITHOUT PlayerInFocus switch — prevents the game from
-    // thinking a "player" is in this vehicle and playing radio for the
-    // local player who is on foot.
-    player->m_pPed->m_nPedType = PED_TYPE_CIVMALE;
-    plugin::CallMethod<0x502280, CAEVehicleAudioEntity*>(&vehicle->m_vehicleAudio);
-    player->m_pPed->m_nPedType = PED_TYPE_PLAYER1;
-
-    // Now switch PlayerInFocus for ProcessControl so the vehicle uses the
-    // remote player's controller input.
     CWorld::PlayerInFocus = playerNum;
 
     CKeySync::ApplyNetworkPlayerContext(player);
@@ -87,6 +78,13 @@ void __fastcall CVehicle__ProcessControl_Hook()
 
     player->m_pPed->m_fHealth = player->m_playerOnFoot.health;
     player->m_pPed->m_fArmour = player->m_playerOnFoot.armour;
+
+    player->m_pPed->m_nPedType = PED_TYPE_CIVMALE;
+
+    plugin::CallMethod<0x502280, CAEVehicleAudioEntity*>(&vehicle->m_vehicleAudio);
+
+    player->m_pPed->m_nPedType = PED_TYPE_PLAYER1;
+
 
     bool savedLookingLeft = *(bool*)0xB6F1A4;
     bool savedLookingRight = *(bool*)0xB6F1A5;

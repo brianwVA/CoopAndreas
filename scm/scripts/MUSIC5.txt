@@ -3,7 +3,6 @@
 
 :MUSIC5
 script_name 'MUSIC5'
-Coop.EnableSyncingThisScript()
 gosub @MUSIC5_47
 if 
   has_deatharrest_been_executed 
@@ -15,7 +14,6 @@ gosub @MUSIC5_16040
 terminate_this_script 
 
 :MUSIC5_47
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 Stat.RegisterMissionGiven
 Text.LoadMissionText('STRAP4')
@@ -943,7 +941,6 @@ Streaming.LoadScene(2487.3, -1650.7, 12.5)
 World.ClearArea(1, 2469.7, -1657.0, 12.3, 1.0)
 Char.SetCoordinatesDontWarpGang($scplayer, 2469.7, -1657.0, 12.3)
 Char.SetHeading($scplayer, 90.0)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 62@ = Pickup.CreateWithAmmo(372, 2, 120, 2466.0, -1656.1, 13.3)
 DecisionMakerChar.AddEventResponse(145@, 13, 917, 0.0, 100.0, 0.0, 0.0, False, True)
 Char.Delete($ryder)
@@ -2392,13 +2389,6 @@ CarGenerator.Switch($gen_car10, 101)
 Pickup.Remove(62@)
 Game.EnableAmbientCrime(True)
 $timer_mobile_start = Clock.GetGameTimer()
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 $onmission = 0
 Mission.Finish
 return 

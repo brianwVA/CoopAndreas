@@ -16,11 +16,9 @@ if
   $flag_mtbike_passed_1stime == 0
 goto_if_false @MTBIKER_67
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :MTBIKER_67
 script_name 'MTBIKER'
-Coop.EnableSyncingThisScript()
 Text.LoadMissionText('RACETOR')
 Text.SetMessageFormatting(True, 355, 370)
 wait 0
@@ -1926,13 +1924,6 @@ Blip.Remove(755@)
 $timer_mobile_start = Clock.GetGameTimer()
 Text.SetMessageFormatting(False, 380, 464)
 Text.UseCommands(False)
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

@@ -7,12 +7,10 @@ terminate_this_script
 $onmission = 1
 $flag_player_on_ambulance_mission = 1
 script_name 'AMBULAN'
-Coop.EnableSyncingThisScript()
 if 
   $done_ambulance_progress == 0
 goto_if_false @AMBULAN_61
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 
 :AMBULAN_61
 wait 0
@@ -2292,13 +2290,6 @@ goto @AMBULAN_13808
 :AMBULAN_13938
 $onmission = 0
 $flag_player_on_ambulance_mission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 if 
   $done_ambulance_progress == 1

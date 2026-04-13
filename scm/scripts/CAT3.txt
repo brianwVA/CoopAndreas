@@ -3,7 +3,6 @@
 
 :CAT3
 script_name 'CAT3'
-Coop.EnableSyncingThisScript()
 gosub @CAT3_1452
 if 
   has_deatharrest_been_executed 
@@ -228,7 +227,6 @@ return
 
 :CAT3_1452
 $onmission = 1
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 wait 0
 Text.LoadMissionText('CAT')
 34@ = 5000
@@ -2802,13 +2800,6 @@ wait 0
 goto @CAT3_17424
 
 :CAT3_17448
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

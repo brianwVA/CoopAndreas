@@ -3,7 +3,6 @@
 
 :DES3
 script_name 'DES3'
-Coop.EnableSyncingThisScript()
 gosub @DES3_47
 if 
   has_deatharrest_been_executed 
@@ -16,7 +15,6 @@ terminate_this_script
 
 :DES3_47
 Stat.RegisterMissionGiven
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $onmission = 1
 34@ = 0
 35@ = 0
@@ -430,7 +428,6 @@ Skip.SetUp(-426.8536, 2213.783, 41.4297, 9.9101)
 :DES3_3173
 Char.SetCoordinates($scplayer, -688.7614, 946.5271, 12.0312)
 Char.SetHeading($scplayer, 94.6779)
-Coop.TeleportPlayersToHostSafely($NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2])
 Camera.SetBehindPlayer
 Camera.RestoreJumpcut
 Weather.Force(WeatherType.ExtraSunnyDesert)
@@ -4368,13 +4365,6 @@ Game.SetWantedMultiplier(1.0)
 $timer_mobile_start = Clock.GetGameTimer()
 Game.SwitchPoliceHelis(True)
 $onmission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 Mission.Finish
 return 
 

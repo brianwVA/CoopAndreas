@@ -3,10 +3,8 @@
 
 :SHRANGE
 script_name 'SHRANGE'
-Coop.EnableSyncingThisScript()
 set_deatharrest_state 0
 $onmission = 1
-$NETWORK_PLAYER[0], $NETWORK_PLAYER[1], $NETWORK_PLAYER[2] = Coop.CollectNetworkPlayersForTheMission()
 $flag_shooting_range_mission = 1
 $Schallenge_X = 286.1649
 $Schallenge_Y = -30.9591
@@ -2786,13 +2784,6 @@ goto @SHRANGE_17123
 
 :SHRANGE_17184
 $flag_shooting_range_mission = 0
-for $temp_int = 0 to 2
-    if 
-        Coop.IsNetworkPlayerActorValid($NETWORK_PLAYER[$temp_int])
-    then
-        Coop.ClearAllEntityBlipsForNetworkPlayer($NETWORK_PLAYER[$temp_int])
-    end
-end
 $onmission = 0
 if 
   not Char.IsDead($scplayer)
