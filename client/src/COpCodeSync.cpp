@@ -376,11 +376,6 @@ void BuildAndSendOpcode()
         break;
     }
 
-    // Temporary stability block: opcode 0x04BB is causing invalid call crashes
-    // during SWEET2 mission flow on old branch. Skip syncing it to avoid hard crash.
-    if (lastOpCodeProcessed == 0x04BB)
-        return;
-
     int idx = 0;
     if (!COpCodeSync::IsOpcodeSyncable(lastOpCodeProcessed, &idx))
         return;
@@ -419,13 +414,6 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     OpcodeSyncHeader header;
     memcpy(&header, current, sizeof(header));
     current += sizeof(header);
-
-    // Temporary stability block for old branch (see BuildAndSendOpcode above).
-    if (header.opcode == 0x04BB)
-    {
-        return;
-    }
-
 
     if (bufferSize < sizeof(header) + header.intParamCount * sizeof(int))
     {
