@@ -74,10 +74,10 @@ try {
     $gtaDir = Resolve-GtaDir -startDir $scriptDir
 
     if (-not $Force) {
-        Write-Host "To usunie CoopAndreas, fix rozdzielczosci i pliki launcherow z: $gtaDir" -ForegroundColor Yellow
+        Write-Host "To odinstaluje CoopAndreas, fix rozdzielczosci i pliki launcherow z: $gtaDir" -ForegroundColor Yellow
         $confirm = Read-Host "Kontynuowac? [tak/N]"
         if ($confirm -notin @("tak", "TAK", "t", "T", "yes", "y", "Y")) {
-            throw "Czyszczenie przerwane przez uzytkownika."
+            throw "Odinstalowanie przerwane przez uzytkownika."
         }
     }
 
@@ -92,6 +92,7 @@ try {
         "CoopAndreas_SAMP_INFO.txt",
         "Uruchom CoopAndreas.bat",
         "Uruchom CoopAndreas Server.bat",
+        "Odinstaluj CoopAndreas.bat",
         "Wyczysc CoopAndreas.bat",
         "Przelacz na CoopAndreas.bat",
         "Przelacz na SA-MP.bat",
@@ -113,7 +114,7 @@ try {
         Write-Ok "Usunieto backup: $($dir.Name)"
     }
 
-    Write-Ok "Czyszczenie zakonczone. Instalacja GTA jest gotowa do testu na swiezo."
+    Write-Ok "Odinstalowanie zakonczone. Instalacja GTA jest gotowa do testu na swiezo."
     Write-Info "Jesli chcesz, uruchom teraz 'Aktualizuj CoopAndreas.bat' aby zainstalowac wszystko od zera."
     exit 0
 }

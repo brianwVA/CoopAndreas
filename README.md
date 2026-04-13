@@ -7,6 +7,30 @@ Videos, pictures, news, suggestions, and communication can be found here:
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@CoopAndreas)
 [![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/CoopAndreas)
 [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/coopandreas)
+
+## Najprostsza instalacja (Windows, bez budowania)
+
+Ta instrukcja jest dla gotowej paczki launchera (branch `old-0.2.2`).
+
+1. Pobierz folder `release/launcher` z brancha `old-0.2.2`.
+2. Skopiuj jego zawartosc do:
+   `C:\GTA San Andreas\CoopAndreas\Launcher`
+3. Uruchom:
+   `Aktualizuj CoopAndreas.bat`
+4. Po aktualizacji uruchom:
+   `Uruchom CoopAndreas.bat` (w katalogu GTA) lub odpal `gta_sa.exe` recznie.
+
+Co robi updater:
+- sprawdza wersje lokalna i GitHub (nie pobiera, jesli juz masz najnowsza),
+- podmienia pliki moda (`CoopAndreasSA.dll`, `server.exe`, `proxy.dll`, `VERSION.txt`),
+- doinstalowuje `dinput8.dll` (ASI Loader), jesli brakuje,
+- doinstalowuje `GTASA.WidescreenFix.asi` (fix rozdzielczosci), jesli brakuje,
+- wykrywa SA:MP i pokazuje bezpieczne opcje przelaczenia.
+
+Odinstalowanie:
+- uruchom `Odinstaluj CoopAndreas.bat` z:
+  `C:\GTA San Andreas\CoopAndreas\Launcher`
+
 ## Disclaimer
 This mod is an unofficial modification for **Grand Theft Auto: San Andreas** and requires a legitimate copy of the game to function. No original game files or assets from Rockstar Games are included in this repository, and all content provided is independently developed. The project is not affiliated with Rockstar Games or Take-Two Interactive. All rights to the original game, its assets, and intellectual property belong to Rockstar Games and Take-Two Interactive. This mod is created solely for educational and non-commercial purposes. Users must comply with the terms of service and license agreements of Rockstar Games.
 

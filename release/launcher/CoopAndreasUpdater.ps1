@@ -378,7 +378,7 @@ function Ensure-WidescreenFix([string]$gameDir) {
 function Write-LocalLaunchers([string]$gameDir) {
     $runServerBat = Join-Path $gameDir "Uruchom CoopAndreas Server.bat"
     $runCoopBat = Join-Path $gameDir "Uruchom CoopAndreas.bat"
-    $cleanBat = Join-Path $gameDir "Wyczysc CoopAndreas.bat"
+    $cleanBat = Join-Path $gameDir "Odinstaluj CoopAndreas.bat"
 
     $serverBatContent = @"
 @echo off
@@ -424,12 +424,12 @@ set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
 "%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0CoopAndreasCleaner.ps1"
 if errorlevel 1 (
   echo.
-  echo [BLAD] Czyszczenie nieudane.
+  echo [BLAD] Odinstalowanie nieudane.
   pause
   exit /b 1
 )
 echo.
-echo [OK] Czyszczenie zakonczone.
+echo [OK] Odinstalowanie zakonczone.
 pause
 exit /b 0
 "@

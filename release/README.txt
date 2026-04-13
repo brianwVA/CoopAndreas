@@ -5,7 +5,7 @@ Zawartosc:
 - launcher/Aktualizuj CoopAndreas.bat
 - launcher/Aktualizuj i Uruchom CoopAndreas.bat
 - launcher/CoopAndreasCleaner.ps1
-- launcher/Wyczysc CoopAndreas.bat
+- launcher/Odinstaluj CoopAndreas.bat
 - old-X.Y.Z/* (paczki binarne)
 
 Szybki start (dla gracza):
@@ -40,9 +40,9 @@ Walidacja i bezpieczenstwo:
 - tworzy launchery:
   - `Uruchom CoopAndreas.bat`
   - `Uruchom CoopAndreas Server.bat`
-  - `Wyczysc CoopAndreas.bat`
+  - `Odinstaluj CoopAndreas.bat`
 
-Pelne czyszczenie (test "na swiezo"):
-- uruchom `Wyczysc CoopAndreas.bat`,
+Pelna odinstalacja (test "na swiezo"):
+- uruchom `Odinstaluj CoopAndreas.bat`,
 - skrypt usunie pliki CoopAndreas, fix rozdzielczosci i pliki launcherow,
 - przywroci pliki SA:MP jesli byly tymczasowo wylaczone.
