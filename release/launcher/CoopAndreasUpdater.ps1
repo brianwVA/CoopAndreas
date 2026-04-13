@@ -5,7 +5,8 @@ param(
     [string]$PackagePath = "",
     [switch]$CloseRunningProcesses = $true,
     [switch]$AllowSamp,
-    [switch]$RunAfterUpdate
+    [switch]$RunAfterUpdate,
+    [switch]$NoResolutionFix
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +17,13 @@ $zipPath = Join-Path $tempRoot "repo.zip"
 function Write-Info([string]$m) { Write-Host "[INFO] $m" -ForegroundColor Cyan }
 function Write-Ok([string]$m) { Write-Host "[OK]   $m" -ForegroundColor Green }
 function Write-Err([string]$m) { Write-Host "[ERR]  $m" -ForegroundColor Red }
+
+function Get-GitHubHeaders() {
+    return @{
+        "User-Agent" = "CoopAndreas-Updater"
+        "Accept" = "application/vnd.github+json"
+    }
+}
 
 function Resolve-GtaDir([string]$startDir) {
     $current = Resolve-Path $startDir
@@ -199,10 +207,7 @@ function Get-LocalInstalledChannel([string]$gameDir) {
 
 function Get-LatestRemotePackageName([string]$owner, [string]$repo, [string]$branch) {
     $apiUrl = "https://api.github.com/repos/$owner/$repo/contents/release?ref=$branch"
-    $headers = @{
-        "User-Agent" = "CoopAndreas-Updater"
-        "Accept" = "application/vnd.github+json"
-    }
+    $headers = Get-GitHubHeaders
 
     $items = Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Get
     $dirs = @($items | Where-Object { $_.type -eq "dir" -and $_.name -like "old-*" })
@@ -223,6 +228,40 @@ function Get-LatestRemotePackageName([string]$owner, [string]$repo, [string]$bra
         Select-Object -First 1
 
     return $latest.name
+}
+
+function Get-GitHubReleaseAssetUrl(
+    [string]$owner,
+    [string]$repo,
+    [string]$tag,
+    [string[]]$namePatterns
+) {
+    $headers = Get-GitHubHeaders
+    $releaseUrl = if ([string]::IsNullOrWhiteSpace($tag)) {
+        "https://api.github.com/repos/$owner/$repo/releases/latest"
+    } else {
+        "https://api.github.com/repos/$owner/$repo/releases/tags/$tag"
+    }
+
+    try {
+        $release = Invoke-RestMethod -Uri $releaseUrl -Headers $headers -Method Get
+    }
+    catch {
+        return $null
+    }
+
+    if (-not $release.assets) {
+        return $null
+    }
+
+    foreach ($pattern in $namePatterns) {
+        $asset = $release.assets | Where-Object { $_.name -like $pattern } | Select-Object -First 1
+        if ($asset -and -not [string]::IsNullOrWhiteSpace($asset.browser_download_url)) {
+            return $asset.browser_download_url
+        }
+    }
+
+    return $null
 }
 
 function Stop-IfRunning([string[]]$processNames) {
@@ -259,12 +298,87 @@ function Ensure-AsiLoader([string]$pkgDir, [string]$gameDir) {
         return
     }
 
-    throw "Brak dinput8.dll (ASI Loader). Zainstaluj Ultimate ASI Loader albo dodaj dinput8.dll do paczki release."
+    Write-Info "Brak lokalnego dinput8.dll - probuje pobrac Ultimate ASI Loader..."
+    $asiUrl = Get-GitHubReleaseAssetUrl -owner "ThirteenAG" -repo "Ultimate-ASI-Loader" -tag "" -namePatterns @("*x86*.zip", "*.zip")
+    if ([string]::IsNullOrWhiteSpace($asiUrl)) {
+        throw "Brak dinput8.dll i nie udalo sie pobrac Ultimate ASI Loader z GitHub."
+    }
+
+    $asiTemp = Join-Path $tempRoot "asi_loader"
+    $asiZip = Join-Path $asiTemp "asi_loader.zip"
+    New-Item -ItemType Directory -Path $asiTemp -Force | Out-Null
+
+    Invoke-WebRequest -Uri $asiUrl -OutFile $asiZip -UseBasicParsing
+    Expand-Archive -Path $asiZip -DestinationPath $asiTemp -Force
+
+    $dllFiles = Get-ChildItem -Path $asiTemp -Recurse -File -Filter "dinput8.dll"
+    if (-not $dllFiles -or $dllFiles.Count -eq 0) {
+        throw "Pobrano Ultimate ASI Loader, ale nie znaleziono dinput8.dll."
+    }
+
+    $bestDll = $dllFiles |
+        Sort-Object -Property @{
+            Expression = {
+                if ($_.FullName -match '(?i)(\\|/)(x86|win32)(\\|/)') { return 0 }
+                return 1
+            }
+        } |
+        Select-Object -First 1
+
+    Copy-Item -LiteralPath $bestDll.FullName -Destination $loaderDst -Force
+    Write-Ok "Pobrano i zainstalowano ASI Loader (dinput8.dll)."
+}
+
+function Ensure-WidescreenFix([string]$gameDir) {
+    $scriptsDir = Join-Path $gameDir "scripts"
+    if (-not (Test-Path $scriptsDir)) {
+        New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
+    }
+
+    $asiDst = Join-Path $scriptsDir "GTASA.WidescreenFix.asi"
+    $iniDst = Join-Path $scriptsDir "GTASA.WidescreenFix.ini"
+    if (Test-Path $asiDst) {
+        Write-Ok "WidescreenFix juz zainstalowany."
+        return
+    }
+
+    Write-Info "Brak WidescreenFix - probuje pobrac z GitHub..."
+    $wsUrl = Get-GitHubReleaseAssetUrl -owner "ThirteenAG" -repo "WidescreenFixesPack" -tag "gtasa" -namePatterns @("GTASA.WidescreenFix*.zip", "*.zip")
+    if ([string]::IsNullOrWhiteSpace($wsUrl)) {
+        $wsUrl = Get-GitHubReleaseAssetUrl -owner "ThirteenAG" -repo "WidescreenFixesPack" -tag "" -namePatterns @("GTASA.WidescreenFix*.zip", "*.zip")
+    }
+    if ([string]::IsNullOrWhiteSpace($wsUrl)) {
+        Write-Info "Nie udalo sie pobrac WidescreenFix automatycznie. Pomijam fix rozdzielczosci."
+        return
+    }
+
+    $wsTemp = Join-Path $tempRoot "widescreen_fix"
+    $wsZip = Join-Path $wsTemp "widescreen_fix.zip"
+    New-Item -ItemType Directory -Path $wsTemp -Force | Out-Null
+
+    Invoke-WebRequest -Uri $wsUrl -OutFile $wsZip -UseBasicParsing
+    Expand-Archive -Path $wsZip -DestinationPath $wsTemp -Force
+
+    $asiSrc = Get-ChildItem -Path $wsTemp -Recurse -File -Filter "GTASA.WidescreenFix.asi" | Select-Object -First 1
+    if (-not $asiSrc) {
+        Write-Info "Pobrano paczke WidescreenFix, ale brak GTASA.WidescreenFix.asi. Pomijam."
+        return
+    }
+
+    Copy-Item -LiteralPath $asiSrc.FullName -Destination $asiDst -Force
+    Write-Ok "Zainstalowano scripts\\GTASA.WidescreenFix.asi"
+
+    $iniSrc = Get-ChildItem -Path $wsTemp -Recurse -File -Filter "GTASA.WidescreenFix.ini" | Select-Object -First 1
+    if ($iniSrc) {
+        Copy-Item -LiteralPath $iniSrc.FullName -Destination $iniDst -Force
+        Write-Ok "Zainstalowano scripts\\GTASA.WidescreenFix.ini"
+    }
 }
 
 function Write-LocalLaunchers([string]$gameDir) {
     $runServerBat = Join-Path $gameDir "Uruchom CoopAndreas Server.bat"
     $runCoopBat = Join-Path $gameDir "Uruchom CoopAndreas.bat"
+    $cleanBat = Join-Path $gameDir "Wyczysc CoopAndreas.bat"
 
     $serverBatContent = @"
 @echo off
@@ -303,8 +417,26 @@ call "%~dp0Aktualizuj i Uruchom CoopAndreas.bat"
 exit /b %errorlevel%
 "@
 
+    $cleanContent = @"
+@echo off
+setlocal
+set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0CoopAndreasCleaner.ps1"
+if errorlevel 1 (
+  echo.
+  echo [BLAD] Czyszczenie nieudane.
+  pause
+  exit /b 1
+)
+echo.
+echo [OK] Czyszczenie zakonczone.
+pause
+exit /b 0
+"@
+
     Set-Content -LiteralPath $runServerBat -Value $serverBatContent -Encoding ASCII
     Set-Content -LiteralPath $runCoopBat -Value $runCoopContent -Encoding ASCII
+    Set-Content -LiteralPath $cleanBat -Value $cleanContent -Encoding ASCII
     Write-Ok "Odswiezono launchery BAT w folderze GTA."
 }
 
@@ -424,6 +556,11 @@ try {
     }
 
     Ensure-AsiLoader -pkgDir $pkg -gameDir $gtaDir
+    if (-not $NoResolutionFix) {
+        Ensure-WidescreenFix -gameDir $gtaDir
+    } else {
+        Write-Info "Pominieto fix rozdzielczosci na prosbe uzytkownika (-NoResolutionFix)."
+    }
 
     if ($needsUpdate) {
         $backupDir = Join-Path $gtaDir ("CoopAndreas_backup_" + (Get-Date -Format "yyyyMMdd_HHmmss"))

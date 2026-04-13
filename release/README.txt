@@ -4,6 +4,8 @@ Zawartosc:
 - launcher/CoopAndreasUpdater.ps1
 - launcher/Aktualizuj CoopAndreas.bat
 - launcher/Aktualizuj i Uruchom CoopAndreas.bat
+- launcher/CoopAndreasCleaner.ps1
+- launcher/Wyczysc CoopAndreas.bat
 - old-X.Y.Z/* (paczki binarne)
 
 Szybki start (dla gracza):
@@ -11,12 +13,19 @@ Szybki start (dla gracza):
 2. Uruchom `Aktualizuj CoopAndreas.bat`.
 3. Gotowe.
 
+Instalacja na czystym GTA:
+- updater sam dociagnie brakujacy ASI Loader (`dinput8.dll`) z oficjalnego GitHuba,
+- updater sam dociagnie fix rozdzielczosci (`GTASA.WidescreenFix.asi`) i wrzuci do `scripts`.
+- jesli chcesz pominac fix rozdzielczosci, uruchom:
+  `CoopAndreasUpdater.ps1 -NoResolutionFix`
+
 Co robi updater:
 - pobiera branch `old-0.2.2` z GitHuba,
 - wybiera najnowsza paczke z `release/old-*`,
 - podmienia: `CoopAndreasSA.dll`, `server.exe`, `proxy.dll`, `VERSION.txt`,
 - robi backup do `CoopAndreas_backup_YYYYMMDD_HHMMSS`,
 - przed podmiana zamyka `server.exe` i `gta_sa.exe`.
+- porownuje wersje lokalna i z GitHub i nie pobiera paczki, jesli wersja jest juz najnowsza.
 
 Walidacja i bezpieczenstwo:
 - wykrywa folder gry po `gta_sa.exe` (moze byc uruchomiony takze z podkatalogu),
@@ -28,6 +37,12 @@ Walidacja i bezpieczenstwo:
 - tworzy przelaczniki:
   - `Przelacz na CoopAndreas.bat`
   - `Przelacz na SA-MP.bat`
+- tworzy launchery:
+  - `Uruchom CoopAndreas.bat`
+  - `Uruchom CoopAndreas Server.bat`
+  - `Wyczysc CoopAndreas.bat`
 
-Wymaganie:
-- potrzebny `dinput8.dll` (ASI Loader). Jesli jest w paczce - skrypt go skopiuje.
+Pelne czyszczenie (test "na swiezo"):
+- uruchom `Wyczysc CoopAndreas.bat`,
+- skrypt usunie pliki CoopAndreas, fix rozdzielczosci i pliki launcherow,
+- przywroci pliki SA:MP jesli byly tymczasowo wylaczone.
