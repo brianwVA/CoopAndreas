@@ -182,15 +182,31 @@ void CNetwork::InitListeners()
 
 void CNetwork::HandlePacketReceive(ENetEvent& event)
 {
+	if (!event.packet || event.packet->dataLength < sizeof(uint16_t))
+	{
+		return;
+	}
+
 	uint16_t packetid;
 	memcpy(&packetid, event.packet->data, sizeof(uint16_t));
 
 	auto it = m_packetListeners.find(packetid);
 	if (it != m_packetListeners.end())
 	{
+		if (!it->second)
+		{
+			return;
+		}
+
 		uint8_t* pData = event.packet->data + sizeof(uint16_t);
 		int32_t nLength = event.packet->dataLength - sizeof(uint16_t);
-		it->second->m_callback(pData, nLength);
+		auto callback = it->second->m_callback;
+		if ((uintptr_t)callback < 0x10000)
+		{
+			return;
+		}
+
+		callback(pData, nLength);
 	}
 }
 
