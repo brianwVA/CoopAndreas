@@ -38,6 +38,7 @@
 #include "CEntryExitMarkerSync.h"
 #include <CTaskSequenceSync.h>
 #include <CNetworkAnimQueue.h>
+#include <cstdint>
 
 // Keep sorted!
 const SSyncedOpCode syncedOpcodes[] =
@@ -719,13 +720,18 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     patch::RedirectJump(0x463D50, CRunningScript__ReadTextLabelFromScript_Hook_SwitchParametersContext, false);
 
 
-    if ((header.opcode & 0x7FFF) < CCustomCommandMgr::MIN_CUSTOM_COMMAND)
+    const uint16_t opcode = (header.opcode & 0x7FFF);
+    if (opcode < CCustomCommandMgr::MIN_CUSTOM_COMMAND)
     {
-        CRunningScript::CommandHandlerTable[(header.opcode & 0x7FFF) / 100](&script, header.opcode & 0x7FFF);
+        auto handler = CRunningScript::CommandHandlerTable[opcode / 100];
+        if ((uintptr_t)handler >= 0x10000)
+        {
+            handler(&script, opcode);
+        }
     }
     else
     {
-        CCustomCommandMgr::ProcessCommand((header.opcode & 0x7FFF), &script);
+        CCustomCommandMgr::ProcessCommand(opcode, &script);
     }
 
     patch::SetRaw(0x464080, (void*)"\x66\x8B\x44\x24\x04", 5, false);
@@ -740,8 +746,20 @@ void __declspec(naked) OpcodeProcessingWellDone_Hook()
         mov lastOpCodeProcessed, ecx
         mov lastProcessedScript, esi
 
+        // Avoid executing an invalid function pointer (e.g. 0x00000001).
+        test edx, edx
+        jz invalid_handler
+        cmp edx, 10000h
+        jb invalid_handler
+
         mov ecx, esi
         call edx
+        jmp after_call
+
+    invalid_handler:
+        xor eax, eax
+
+    after_call:
 
         push eax
         call BuildAndSendOpcode
