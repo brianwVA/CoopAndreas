@@ -117,11 +117,11 @@ LANGUAGE LANG_NEUTRAL, 0x8
 
 1 VERSIONINFO
 <<<<<<< HEAD
- FILEVERSION 0,2,6,0
- PRODUCTVERSION 0,2,6,0
+ FILEVERSION 0,2,7,0
+ PRODUCTVERSION 0,2,7,0
 =======
- FILEVERSION 0,2,6,0
- PRODUCTVERSION 0,2,6,0
+ FILEVERSION 0,2,7,0
+ PRODUCTVERSION 0,2,7,0
 >>>>>>> b6d5473 (Bump to 0.2.5-bewu and publish old-0.2.5 release package)
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
@@ -139,18 +139,18 @@ BEGIN
         BEGIN
             VALUE "FileDescription", "Cooperative Multiplayer for GTA:SA"
 <<<<<<< HEAD
-            VALUE "FileVersion", "0.2.6-bewu"
+            VALUE "FileVersion", "0.2.7-bewu"
 =======
-            VALUE "FileVersion", "0.2.6-bewu"
+            VALUE "FileVersion", "0.2.7-bewu"
 >>>>>>> b6d5473 (Bump to 0.2.5-bewu and publish old-0.2.5 release package)
             VALUE "InternalName", "CoopAndreas"
             VALUE "LegalCopyright", "Tornamic (C) 2025"
             VALUE "OriginalFilename", "CoopAndreasSA.dll"
             VALUE "ProductName", "CoopAndreas"
 <<<<<<< HEAD
-            VALUE "ProductVersion", "0.2.6-bewu"
+            VALUE "ProductVersion", "0.2.7-bewu"
 =======
-            VALUE "ProductVersion", "0.2.6-bewu"
+            VALUE "ProductVersion", "0.2.7-bewu"
 >>>>>>> b6d5473 (Bump to 0.2.5-bewu and publish old-0.2.5 release package)
         END
     END
