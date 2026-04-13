@@ -161,6 +161,7 @@ static char textParamBuffer[NUM_SYNCED_PARAMS][256];
 
 static uint16_t scriptParamCount = 0;
 static uint16_t textParamCount = 0;
+static bool g_syncParamOverflow = false;
 
 static uint32_t lastOpCodeProcessed;
 static CRunningScript* lastProcessedScript;
@@ -170,7 +171,14 @@ static uint8_t currentStringIdx = 0;
 static uint16_t argCount = 0;
 void __fastcall CRunningScript__CollectParameters_Hook_SwitchParametersContext(CRunningScript* script, SKIP_EDX, uint16_t count)
 {
-    for (uint8_t i = argCount; i < count + argCount; i++)
+    uint16_t start = argCount;
+    uint16_t end = start + count;
+    if (end > scriptParamCount)
+    {
+        end = scriptParamCount;
+    }
+
+    for (uint16_t i = start; i < end; i++)
     {
         ScriptParams[i - argCount] = COpCodeSync::scriptParamsBuffer[i].value;
     }
@@ -375,6 +383,16 @@ std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize)
 
 void BuildAndSendOpcode()
 {
+    if (g_syncParamOverflow)
+    {
+        g_syncParamOverflow = false;
+        memset(textParamBuffer, 0, sizeof textParamBuffer);
+        memset(textLengthBuffer, 0, sizeof textLengthBuffer);
+        scriptParamCount = 0;
+        textParamCount = 0;
+        return;
+    }
+
     // Some mission/cutscene opcodes are unstable in network replay during SWEET2/Nines and AKs.
     // Keep them local-only to prevent remote script-crash chains (EIP=0x00000001).
     if (lastOpCodeProcessed == 0x04BB   // set_area_visible
@@ -426,6 +444,7 @@ void BuildAndSendOpcode()
     memset(textLengthBuffer, 0, sizeof textLengthBuffer);
     scriptParamCount = 0;
     textParamCount = 0;
+    g_syncParamOverflow = false;
 }
 
 
@@ -823,12 +842,25 @@ void __declspec(naked) OpcodeProcessingWellDone_Hook()
 static uint16_t argParamCount = 0;
 static void CollectParamsProperly()
 {
-    for (uint8_t i = scriptParamCount; i < scriptParamCount + argParamCount; i++)
+    if (scriptParamCount >= NUM_SYNCED_PARAMS)
     {
-        COpCodeSync::scriptParamsBuffer[i].value = ScriptParams[i - scriptParamCount];
+        g_syncParamOverflow = true;
+        return;
     }
 
-    scriptParamCount += argParamCount;
+    uint16_t freeSlots = NUM_SYNCED_PARAMS - scriptParamCount;
+    uint16_t writeCount = (argParamCount < freeSlots) ? argParamCount : freeSlots;
+
+    for (uint16_t i = 0; i < writeCount; i++)
+    {
+        COpCodeSync::scriptParamsBuffer[scriptParamCount + i].value = ScriptParams[i];
+    }
+
+    scriptParamCount += writeCount;
+    if (writeCount < argParamCount)
+    {
+        g_syncParamOverflow = true;
+    }
 }
 
 void __declspec(naked) CRunningScript__CollectParameters_Hook_GetSyncingParams()
@@ -859,6 +891,7 @@ void __declspec(naked) CRunningScript__CollectParameters_Hook_GetSyncingParams()
     {
         scriptParamCount = 0;
         argParamCount = 0;
+        g_syncParamOverflow = false;
     }
 
     __asm
@@ -876,6 +909,12 @@ void CollectTextParameters()
         && lastProcessedScript
         && (COpCodeSync::IsOpcodeSyncable(lastOpCodeProcessed) || CTaskSequenceSync::IsNeededToCollectParametes((eScriptCommands)lastOpCodeProcessed)))
     {
+        if (textParamCount >= NUM_SYNCED_PARAMS)
+        {
+            g_syncParamOverflow = true;
+            return;
+        }
+
         textLengthBuffer[textParamCount] = min(textLength, strlen(textPointer));
         strncpy_s(textParamBuffer[textParamCount], textPointer, textLengthBuffer[textParamCount]);
         textParamCount++;
