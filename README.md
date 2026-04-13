@@ -2,11 +2,12 @@
 
 ## Quick Install (Windows, easiest)
 
-If you just want to **play** (not build from source), use the ready updater from branch `old-0.2.2`.
+If you just want to **play** (not build from source), use the ready launcher package from this branch.
 
-1. Open: [old-0.2.2 / release / launcher](https://github.com/brianwVA/CoopAndreas/tree/old-0.2.2/release/launcher)
-2. Download all files from that folder into your GTA San Andreas root directory (where `gta_sa.exe` is).
-3. Run `Aktualizuj CoopAndreas.bat`.
+1. Open: [main / release / launcher](https://github.com/brianwVA/CoopAndreas/tree/main/release/launcher)
+2. Download all files from that folder into:
+   `C:\GTA San Andreas\CoopAndreas\Launcher`
+3. Run `Aktualizuj CoopAndreas.bat` (from that `Launcher` folder).
 4. After update, run `Uruchom CoopAndreas.bat`.
 
 What this installer does automatically:
@@ -17,7 +18,7 @@ What this installer does automatically:
 - detects SA:MP and offers a safe switch mode to avoid conflicts.
 
 Fresh reinstall / cleanup:
-- run `Wyczysc CoopAndreas.bat` from the same launcher package to remove CoopAndreas files and install again from scratch.
+- run `Odinstaluj CoopAndreas.bat` from the same launcher package to remove CoopAndreas files and install again from scratch.
 
 ## Disclaimer
 This mod is an unofficial modification for **Grand Theft Auto: San Andreas** and requires a legitimate copy of the game to function. No original game files or assets from Rockstar Games are included in this repository, and all content provided is independently developed. The project is not affiliated with Rockstar Games or Take-Two Interactive. All rights to the original game, its assets, and intellectual property belong to Rockstar Games and Take-Two Interactive. This mod is created solely for educational and non-commercial purposes. Users must comply with the terms of service and license agreements of Rockstar Games.
