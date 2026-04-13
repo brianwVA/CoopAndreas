@@ -220,6 +220,52 @@ function Ensure-AsiLoader([string]$pkgDir, [string]$gameDir) {
     throw "Brak dinput8.dll (ASI Loader). Zainstaluj Ultimate ASI Loader albo dodaj dinput8.dll do paczki release."
 }
 
+function Write-LocalLaunchers([string]$gameDir) {
+    $runServerBat = Join-Path $gameDir "Uruchom CoopAndreas Server.bat"
+    $runCoopBat = Join-Path $gameDir "Uruchom CoopAndreas.bat"
+
+    $serverBatContent = @"
+@echo off
+setlocal
+set "GTA_DIR=%~dp0"
+set "SERVER_EXE=%GTA_DIR%server.exe"
+
+if not exist "%SERVER_EXE%" (
+  echo [BLAD] Nie znaleziono pliku: "%SERVER_EXE%"
+  pause
+  exit /b 1
+)
+
+set "PID="
+for /f "tokens=5" %%A in ('netstat -ano -p udp ^| findstr /r /c:":6767[ ]"') do (
+  set "PID=%%A"
+  goto :port_in_use
+)
+
+cd /d "%GTA_DIR%"
+echo [INFO] Uruchamiam lokalny serwer CoopAndreas...
+start "CoopAndreas Server" cmd /k ""%SERVER_EXE%""
+exit /b 0
+
+:port_in_use
+echo [INFO] Port 6767 jest juz zajety (PID: %PID%).
+echo [INFO] Najpewniej serwer CoopAndreas juz dziala.
+pause
+exit /b 0
+"@
+
+    $runCoopContent = @"
+@echo off
+setlocal
+call "%~dp0Aktualizuj i Uruchom CoopAndreas.bat"
+exit /b %errorlevel%
+"@
+
+    Set-Content -LiteralPath $runServerBat -Value $serverBatContent -Encoding ASCII
+    Set-Content -LiteralPath $runCoopBat -Value $runCoopContent -Encoding ASCII
+    Write-Ok "Odswiezono launchery BAT w folderze GTA."
+}
+
 try {
     $gtaDir = Resolve-GtaDir -startDir $scriptDir
     Test-GtaSanAndreasInstall -gameDir $gtaDir
@@ -302,6 +348,8 @@ try {
         Copy-Item -LiteralPath $src -Destination $dst -Force
         Write-Ok "Podmieniono: $f"
     }
+
+    Write-LocalLaunchers -gameDir $gtaDir
 
     Write-Ok "Aktualizacja zakonczona pomyslnie."
 
