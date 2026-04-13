@@ -197,6 +197,34 @@ function Get-LocalInstalledChannel([string]$gameDir) {
     return ($line -replace '^channel=', '').Trim()
 }
 
+function Get-LatestRemotePackageName([string]$owner, [string]$repo, [string]$branch) {
+    $apiUrl = "https://api.github.com/repos/$owner/$repo/contents/release?ref=$branch"
+    $headers = @{
+        "User-Agent" = "CoopAndreas-Updater"
+        "Accept" = "application/vnd.github+json"
+    }
+
+    $items = Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Get
+    $dirs = @($items | Where-Object { $_.type -eq "dir" -and $_.name -like "old-*" })
+    if (-not $dirs -or $dirs.Count -eq 0) {
+        throw "Nie znaleziono katalogow old-* przez GitHub API."
+    }
+
+    $latest = $dirs |
+        Sort-Object -Descending -Property @{
+            Expression = {
+                $versionPart = ($_.name -replace '^old-', '')
+                if ($versionPart -match '^\d+(\.\d+){1,3}$') {
+                    return [version]$versionPart
+                }
+                return [version]'0.0.0.0'
+            }
+        } |
+        Select-Object -First 1
+
+    return $latest.name
+}
+
 function Stop-IfRunning([string[]]$processNames) {
     foreach ($procName in $processNames) {
         $running = Get-Process -Name $procName -ErrorAction SilentlyContinue
@@ -317,6 +345,49 @@ try {
         }
     }
 
+    $localChannelRaw = Get-LocalInstalledChannel -gameDir $gtaDir
+    $localChannelDisplay = $localChannelRaw
+    if ([string]::IsNullOrWhiteSpace($localChannelDisplay)) {
+        $localChannelDisplay = "brak/nieznana"
+    }
+
+    $remotePackageName = $null
+    try {
+        $remotePackageName = Get-LatestRemotePackageName -owner $RepoOwner -repo $RepoName -branch $Branch
+        Write-Info "Zainstalowana wersja: $localChannelDisplay"
+        Write-Info "Najnowsza wersja na GitHub: $remotePackageName"
+
+        if (-not [string]::IsNullOrWhiteSpace($localChannelRaw) -and $localChannelRaw -eq $remotePackageName) {
+            Write-Ok "Masz juz najnowsza wersje: $remotePackageName"
+            Write-Info "Pomijam pobieranie paczki ZIP (brak zmian)."
+            Write-LocalLaunchers -gameDir $gtaDir
+
+            if ($RunAfterUpdate) {
+                $serverExe = Join-Path $gtaDir "server.exe"
+                $gtaExe = Join-Path $gtaDir "gta_sa.exe"
+
+                if (Test-Path $serverExe) {
+                    Start-Process -FilePath $serverExe -WorkingDirectory $gtaDir -WindowStyle Normal
+                    Start-Sleep -Seconds 1
+                }
+
+                if (Test-Path $gtaExe) {
+                    Start-Process -FilePath $gtaExe -WorkingDirectory $gtaDir -WindowStyle Normal
+                } else {
+                    Write-Err "Nie znaleziono gta_sa.exe w: $gtaDir"
+                }
+            }
+
+            Write-Ok "Brak aktualizacji - wersja juz najnowsza."
+            exit 0
+        } elseif (-not [string]::IsNullOrWhiteSpace($remotePackageName)) {
+            Write-Info "Wykryto nowa wersje: $remotePackageName (aktualna lokalna: $localChannelDisplay)"
+        }
+    }
+    catch {
+        Write-Info "Nie udalo sie sprawdzic wersji przez GitHub API. Przechodze do standardowej aktualizacji."
+    }
+
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
     $zipUrl = "https://codeload.github.com/$RepoOwner/$RepoName/zip/refs/heads/$Branch"
@@ -330,7 +401,11 @@ try {
     if (-not $repoRoot) { throw "Nie znaleziono katalogu repo po rozpakowaniu." }
 
     if ([string]::IsNullOrWhiteSpace($PackagePath)) {
-        $PackagePath = Get-LatestPackagePath -repoRootPath $repoRoot.FullName
+        if (-not [string]::IsNullOrWhiteSpace($remotePackageName)) {
+            $PackagePath = "release/$remotePackageName"
+        } else {
+            $PackagePath = Get-LatestPackagePath -repoRootPath $repoRoot.FullName
+        }
         Write-Info "Wybrano najnowsza paczke: $PackagePath"
     }
 
@@ -340,20 +415,7 @@ try {
     }
 
     $remoteChannel = Split-Path -Leaf ($PackagePath -replace '/', '\')
-    $localChannel = Get-LocalInstalledChannel -gameDir $gtaDir
-    if ([string]::IsNullOrWhiteSpace($localChannel)) {
-        $localChannel = "brak/nieznana"
-    }
-
-    Write-Info "Zainstalowana wersja: $localChannel"
-    Write-Info "Najnowsza wersja na GitHub: $remoteChannel"
-
-    $needsUpdate = ($localChannel -ne $remoteChannel)
-    if ($needsUpdate) {
-        Write-Info "Wykryto nowa wersje: $remoteChannel (aktualna lokalna: $localChannel)"
-    } else {
-        Write-Ok "Masz juz najnowsza wersje: $remoteChannel"
-    }
+    $needsUpdate = ($localChannelRaw -ne $remoteChannel)
 
     $files = @("CoopAndreasSA.dll", "server.exe", "proxy.dll", "VERSION.txt")
 
