@@ -2,9 +2,9 @@
 
 ## Quick Install (Windows, easiest)
 
-If you just want to **play** (not build from source), use the ready launcher package from this branch.
+If you just want to **play** (not build from source), use the stable launcher package from branch `old-0.2.2`.
 
-1. Open: [main / release / launcher](https://github.com/brianwVA/CoopAndreas/tree/main/release/launcher)
+1. Open: [old-0.2.2 / release / launcher](https://github.com/brianwVA/CoopAndreas/tree/old-0.2.2/release/launcher)
 2. Download all files from that folder into:
    `C:\GTA San Andreas\CoopAndreas\Launcher`
 3. Run `Aktualizuj CoopAndreas.bat` (from that `Launcher` folder).

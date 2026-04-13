@@ -1,7 +1,7 @@
 param(
     [string]$RepoOwner = "brianwVA",
     [string]$RepoName = "CoopAndreas",
-    [string]$Branch = "main",
+    [string]$Branch = "old-0.2.2",
     [string]$PackagePath = "",
     [switch]$CloseRunningProcesses = $true,
     [switch]$AllowSamp,
