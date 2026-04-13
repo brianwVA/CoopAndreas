@@ -180,8 +180,29 @@ void __fastcall CRunningScript__CollectParameters_Hook_SwitchParametersContext(C
 
 void __fastcall CRunningScript__ReadTextLabelFromScript_Hook_SwitchParametersContext(CRunningScript* script, SKIP_EDX, char* ptr, uint8_t len)
 {
+    if (!ptr || len == 0)
+    {
+        return;
+    }
+
     memset(ptr, 0, len);
-    strncpy(ptr, textParamBuffer[currentStringIdx], textLengthBuffer[currentStringIdx]);
+
+    if (currentStringIdx >= textParamCount)
+    {
+        return;
+    }
+
+    size_t copyLen = textLengthBuffer[currentStringIdx];
+    if (copyLen >= len)
+    {
+        copyLen = len - 1;
+    }
+
+    if (copyLen > 0)
+    {
+        memcpy(ptr, textParamBuffer[currentStringIdx], copyLen);
+    }
+
     currentStringIdx++;
 }
 
