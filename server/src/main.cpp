@@ -62,10 +62,8 @@ int main(int argc, char* argv[])
     std::error_code ec;
     std::filesystem::current_path(exeDir, ec);
 
-    printf("[!] : Support:\n");
-    printf("- https://github.com/Tornamic/CoopAndreas\n");
-    printf("- https://discord.gg/TwQsR4qxVx\n");
-    printf("- coopandreasmod@gmail.com\n\n");
+    printf("[!] : Project:\n");
+    printf("- https://github.com/brianwVA/CoopAndreas\n\n");
 
     printf("[!] : CoopAndreas Server \n");
 #ifdef _DEBUG

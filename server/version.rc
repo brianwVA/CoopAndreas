@@ -1,6 +1,11 @@
 1 VERSIONINFO
-	FILEVERSION 0, 2, 23
-	PRODUCTVERSION 0, 2, 23
+<<<<<<< HEAD
+	FILEVERSION 0, 2, 5
+	PRODUCTVERSION 0, 2, 5
+=======
+	FILEVERSION 0, 2, 5
+	PRODUCTVERSION 0, 2, 5
+>>>>>>> b6d5473 (Bump to 0.2.5-bewu and publish old-0.2.5 release package)
 	FILEFLAGSMASK 0x17L
 	#ifdef _DEBUG
 		FILEFLAGS 0x1L
@@ -16,12 +21,20 @@ BEGIN
 		BLOCK "040904b0"
 		BEGIN
 			VALUE "FileDescription", "Cooperative Multiplayer for GTA:SA"
-			VALUE "FileVersion", "0.2.23"
+<<<<<<< HEAD
+			VALUE "FileVersion", "0.2.5-bewu"
+=======
+			VALUE "FileVersion", "0.2.5-bewu"
+>>>>>>> b6d5473 (Bump to 0.2.5-bewu and publish old-0.2.5 release package)
 			VALUE "InternalName", "CoopAndreas"
 			VALUE "LegalCopyright", "Tornamic (C) 2025"
 			VALUE "OriginalFilename", "server.exe"
 			VALUE "ProductName", "CoopAndreas"
-			VALUE "ProductVersion", "0.2.23"
+<<<<<<< HEAD
+			VALUE "ProductVersion", "0.2.5-bewu"
+=======
+			VALUE "ProductVersion", "0.2.5-bewu"
+>>>>>>> b6d5473 (Bump to 0.2.5-bewu and publish old-0.2.5 release package)
 		END
 	END
 	BLOCK "VarFileInfo"

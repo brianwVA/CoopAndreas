@@ -19,7 +19,7 @@ def load_version() -> dict[str, object]:
         data = json.load(handle)
 
     stage = str(data.get("stage", "release"))
-    if stage not in {"release", "alpha", "beta"}:
+    if stage not in {"release", "alpha", "beta", "bewu"}:
         raise ValueError(f"Unsupported stage: {stage}")
 
     return {

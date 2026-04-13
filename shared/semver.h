@@ -17,6 +17,7 @@
 #define SEMVER_STAGE_ALPHA   1
 #define SEMVER_STAGE_BETA    2
 #define SEMVER_STAGE_RC      3
+#define SEMVER_STAGE_BEWU    3
 
 // Struct for semver representation
 typedef struct {
@@ -51,6 +52,7 @@ static inline uint8_t semver_parse_stage(const char* stage_str)
 {
     if (strcmp(stage_str, "alpha") == 0) return SEMVER_STAGE_ALPHA;
     if (strcmp(stage_str, "beta") == 0) return SEMVER_STAGE_BETA;
+    if (strcmp(stage_str, "bewu") == 0) return SEMVER_STAGE_BEWU;
     if (strcmp(stage_str, "release") == 0 || stage_str[0] == '\0') return SEMVER_STAGE_RELEASE;
     return SEMVER_STAGE_RC;
 }
@@ -62,7 +64,7 @@ static inline const char* semver_stage_to_string(uint8_t stage)
     case SEMVER_STAGE_ALPHA: return "alpha";
     case SEMVER_STAGE_BETA: return "beta";
     case SEMVER_STAGE_RELEASE: return "release";
-    default: return "rc";
+    default: return "bewu";
     }
 }
 
