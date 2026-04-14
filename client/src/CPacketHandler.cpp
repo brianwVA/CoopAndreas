@@ -1350,10 +1350,12 @@ void CPacketHandler::PlayerStats__Handle(void* data, int size)
 	
 	if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(packet->playerid))
 	{
+		// Store remote player's full stats for display purposes
 		memcpy(networkPlayer->m_stats.m_aStatsFloat.data(), packet->progress.floatStats, sizeof(packet->progress.floatStats));
 		memcpy(networkPlayer->m_stats.m_aStatsInt.data(), packet->progress.intStats, sizeof(packet->progress.intStats));
 		networkPlayer->m_nMoney = packet->progress.money;
 		networkPlayer->m_nWantedLevel = packet->progress.wantedLevel;
+		// v0.2.11: Properties are separate — still store on network player for reference
 		memcpy(networkPlayer->m_ownedProperties.data(), packet->progress.ownedProperties, sizeof(packet->progress.ownedProperties));
 		memcpy(networkPlayer->m_schoolProgress.data(), packet->progress.schoolProgress, sizeof(packet->progress.schoolProgress));
 		memcpy(networkPlayer->m_schoolMedals.data(), packet->progress.schoolMedals, sizeof(packet->progress.schoolMedals));
@@ -1998,12 +2000,19 @@ void CPacketHandler::WantedLevelSync__Handle(void* data, int size)
 
 	if (packet->playerid == CNetworkPlayerManager::m_nMyId)
 	{
+		// v0.2.11: MAX wanted level — if remote is higher, apply it
 		if (auto localPlayer = FindPlayerPed(0))
 		{
 			if (auto wanted = localPlayer->GetWanted())
 			{
-				wanted->SetWantedLevelNoDrop(packet->wantedLevel);
-				s_nLastSentWantedLevel = packet->wantedLevel;
+				uint8_t localLevel = static_cast<uint8_t>(wanted->m_nWantedLevel);
+				uint8_t remoteLevel = packet->wantedLevel;
+				uint8_t maxLevel = (remoteLevel > localLevel) ? remoteLevel : localLevel;
+				if (maxLevel != localLevel)
+				{
+					wanted->SetWantedLevelNoDrop(maxLevel);
+					s_nLastSentWantedLevel = maxLevel;
+				}
 			}
 		}
 		return;
@@ -2040,14 +2049,9 @@ void CPacketHandler::MoneySync__Handle(void* data, int size)
 {
 	CPackets::MoneySync* packet = (CPackets::MoneySync*)data;
 
+	// v0.2.11: Money is SEPARATE — don't overwrite local player's money
 	if (packet->playerid == CNetworkPlayerManager::m_nMyId)
-	{
-		CPlayerInfo* playerInfo = &CWorld::Players[0];
-		playerInfo->m_nMoney = packet->money;
-		playerInfo->m_nDisplayMoney = packet->money;
-		s_nLastSentMoney = packet->money;
 		return;
-	}
 
 	if (auto networkPlayer = CNetworkPlayerManager::GetPlayer(packet->playerid))
 	{

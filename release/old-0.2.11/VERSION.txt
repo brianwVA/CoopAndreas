@@ -1,0 +1,3 @@
+﻿channel=old-0.2.11
+commit=pending
+source_branch=main

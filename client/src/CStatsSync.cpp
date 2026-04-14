@@ -2,6 +2,7 @@
 #include "../../shared/player_progress.h"
 #include <array>
 #include <algorithm>
+#include <cmath>
 
 int m_anStoredIntStats[COOPANDREAS_INT_STATS_COUNT];
 float m_afStoredFloatStats[COOPANDREAS_FLOAT_STATS_COUNT];
@@ -12,6 +13,68 @@ static constexpr std::size_t kScmAlreadyBoughtHouseBase = 728;
 
 constexpr int MAX_INT_STATS = sizeof(m_anStoredIntStats) / sizeof(int);
 constexpr int MAX_FLOAT_STATS = sizeof(m_afStoredFloatStats) / sizeof(float);
+
+// ── Stat categorization for v0.2.11 ──
+// PERSONAL float stats: body, weapon skills — each player keeps their own
+static constexpr int kPersonalFloatStats[] = {
+	21,  // STAT_FAT
+	22,  // STAT_STAMINA
+	23,  // STAT_MUSCLE
+	24,  // STAT_MAX_HEALTH
+	25,  // STAT_SEX_APPEAL
+	69,  // STAT_SKILL_PISTOL
+	70,  // STAT_SKILL_PISTOL_SILENCED
+	71,  // STAT_SKILL_DESERT_EAGLE
+	72,  // STAT_SKILL_SHOTGUN
+	73,  // STAT_SKILL_SAWNOFF_SHOTGUN
+	74,  // STAT_SKILL_COMBAT_SHOTGUN
+	75,  // STAT_SKILL_UZI
+	76,  // STAT_SKILL_MP5
+	77,  // STAT_SKILL_AK47
+	78,  // STAT_SKILL_M4
+	79,  // STAT_SKILL_SNIPER
+	80,  // STAT_SEX_APPEAL_CLOTHES
+	81,  // STAT_GAMBLING
+};
+
+// PERSONAL int stats (array offset = stat_id - 120): driving, flying, etc.
+static constexpr int kPersonalIntStatOffsets[] = {
+	40,   // STAT_DRIVING_SKILL (160-120)
+	103,  // STAT_FLYING_SKILL (223-120)
+	105,  // STAT_LUNG_CAPACITY (225-120)
+	109,  // STAT_BIKE_SKILL (229-120)
+	110,  // STAT_CYCLE_SKILL (230-120)
+};
+
+// SHARED int stats (MAX-merged): side mission progress
+static constexpr int kSharedMaxIntStatOffsets[] = {
+	29,   // STAT_TAXI_MONEY_MADE (149-120)
+	32,   // STAT_TOTAL_FIRES_EXTINGUISHED (152-120)
+	37,   // STAT_HIGHEST_VIGILANTE_MISSION_LEVEL (157-120)
+	38,   // STAT_HIGHEST_PARAMEDIC_MISSION_LEVEL (158-120)
+	39,   // STAT_HIGHEST_FIREFIGHTER_MISSION_LEVEL (159-120)
+};
+
+static bool IsPersonalFloatStat(int index)
+{
+	for (int s : kPersonalFloatStats)
+		if (s == index) return true;
+	return false;
+}
+
+static bool IsPersonalIntStat(int offset)
+{
+	for (int s : kPersonalIntStatOffsets)
+		if (s == offset) return true;
+	return false;
+}
+
+static bool IsSharedMaxIntStat(int offset)
+{
+	for (int s : kSharedMaxIntStatOffsets)
+		if (s == offset) return true;
+	return false;
+}
 
 static void SyncLocalNetworkPlayerProgressCache()
 {
@@ -125,27 +188,52 @@ bool CStatsSync::IsSupportedStat(eStats stat)
 
 void CStatsSync::ApplyProgressSnapshot(const PlayerProgressState& progress)
 {
-	memcpy(CStats::StatTypesFloat, progress.floatStats, sizeof(progress.floatStats));
-	memcpy(CStats::StatTypesInt, progress.intStats, sizeof(progress.intStats));
-
-	if (auto playerInfo = &CWorld::Players[0])
+	// v0.2.11: Selective stat application
+	// FLOAT STATS: only apply non-personal stats
+	for (int i = 0; i < MAX_FLOAT_STATS; ++i)
 	{
-		playerInfo->m_nMoney = progress.money;
-		playerInfo->m_nDisplayMoney = progress.money;
+		if (!IsPersonalFloatStat(i))
+			CStats::StatTypesFloat[i] = progress.floatStats[i];
 	}
 
+	// INT STATS: personal stats stay local, shared MAX stats use max, rest overwrite
+	for (int i = 0; i < MAX_INT_STATS; ++i)
+	{
+		if (IsPersonalIntStat(i))
+			continue; // keep local value
+
+		if (IsSharedMaxIntStat(i))
+		{
+			// MAX-merge: side mission progress — take the higher value
+			if (progress.intStats[i] > CStats::StatTypesInt[i])
+				CStats::StatTypesInt[i] = progress.intStats[i];
+		}
+		else
+		{
+			CStats::StatTypesInt[i] = progress.intStats[i];
+		}
+	}
+
+	// v0.2.11: Money is SEPARATE — don't overwrite local money
+
+	// v0.2.11: Wanted level uses MAX of both players
 	if (auto localPlayer = FindPlayerPed(0))
 	{
 		if (auto wanted = localPlayer->GetWanted())
 		{
-			wanted->SetWantedLevelNoDrop(progress.wantedLevel);
+			uint8_t localLevel = static_cast<uint8_t>(wanted->m_nWantedLevel);
+			uint8_t remoteLevel = progress.wantedLevel;
+			uint8_t maxLevel = (remoteLevel > localLevel) ? remoteLevel : localLevel;
+			if (maxLevel != localLevel)
+				wanted->SetWantedLevelNoDrop(maxLevel);
 		}
 	}
 
-	memcpy(g_ownedProperties.data(), progress.ownedProperties, sizeof(progress.ownedProperties));
+	// v0.2.11: Properties are SEPARATE — don't overwrite local properties
+
+	// Schools still shared
 	memcpy(g_schoolProgress.data(), progress.schoolProgress, sizeof(progress.schoolProgress));
 	memcpy(g_schoolMedals.data(), progress.schoolMedals, sizeof(progress.schoolMedals));
-	PushOwnedPropertiesToScm();
 	SyncLocalNetworkPlayerProgressCache();
 }
 
