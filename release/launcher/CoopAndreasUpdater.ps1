@@ -2,7 +2,6 @@ param(
     [string]$RepoOwner = "brianwVA",
     [string]$RepoName = "CoopAndreas",
     [string]$Branch = "main",
-    [string]$PackagePath = "",
     [switch]$CloseRunningProcesses = $true,
     [switch]$AllowSamp,
     [switch]$RunAfterUpdate,
@@ -32,14 +31,10 @@ function Resolve-GtaDir([string]$startDir) {
         if (Test-Path $candidate) {
             return $current
         }
-
         $parent = Split-Path -Parent $current
-        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) {
-            break
-        }
+        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) { break }
         $current = $parent
     }
-
     throw "Nie znaleziono gta_sa.exe. Umiesc launcher w katalogu GTA (lub podkatalogu) i uruchom ponownie."
 }
 
@@ -48,7 +43,6 @@ function Test-GtaSanAndreasInstall([string]$gameDir) {
     if (-not (Test-Path $gtaExe)) {
         throw "Brak gta_sa.exe. Skopiuj launcher do glownego folderu GTA San Andreas i uruchom ponownie."
     }
-
     $ver = (Get-Item $gtaExe).VersionInfo.FileVersion
     if (-not [string]::IsNullOrWhiteSpace($ver) -and $ver -ne "1.0.0.0") {
         Write-Info "Wykryta wersja gta_sa.exe: $ver (zalecana: 1.0.0.0 US)."
@@ -56,18 +50,9 @@ function Test-GtaSanAndreasInstall([string]$gameDir) {
 }
 
 function Test-SampInstalled([string]$gameDir) {
-    $sampMarkers = @(
-        "samp.dll",
-        "samp.exe",
-        "samp.saa",
-        "SAMP\\samp.dll",
-        "SAMP\\samp.exe"
-    )
-
+    $sampMarkers = @("samp.dll", "samp.exe", "samp.saa", "SAMP\samp.dll", "SAMP\samp.exe")
     foreach ($m in $sampMarkers) {
-        if (Test-Path (Join-Path $gameDir $m)) {
-            return $true
-        }
+        if (Test-Path (Join-Path $gameDir $m)) { return $true }
     }
     return $false
 }
@@ -77,8 +62,8 @@ function Get-SampPaths([string]$gameDir) {
         (Join-Path $gameDir "samp.dll"),
         (Join-Path $gameDir "samp.exe"),
         (Join-Path $gameDir "samp.saa"),
-        (Join-Path $gameDir "SAMP\\samp.dll"),
-        (Join-Path $gameDir "SAMP\\samp.exe")
+        (Join-Path $gameDir "SAMP\samp.dll"),
+        (Join-Path $gameDir "SAMP\samp.exe")
     )
 }
 
@@ -95,14 +80,6 @@ Masz 3 opcje:
    - potem uruchom updater.
 3) Przywroc SA:MP:
    - uruchom: Przelacz na SA-MP.bat
-
-Co robi przelacznik:
-- zmienia nazwy plikow SA:MP (np. samp.dll -> samp.dll.coop_disabled),
-- przy przywroceniu cofa nazwy.
-
-Uwaga:
-- zawsze zamknij GTA i server.exe przed przelaczaniem,
-- dziala w folderze gry: $gameDir
 "@
     Set-Content -LiteralPath $txtPath -Value $content -Encoding UTF8
     return $txtPath
@@ -165,105 +142,6 @@ function Disable-SampFiles([string]$gameDir) {
     return $changed
 }
 
-function Get-LatestPackagePath([string]$repoRootPath) {
-    $releaseDir = Join-Path $repoRootPath "release"
-    if (-not (Test-Path $releaseDir)) {
-        throw "Brak katalogu 'release' w pobranej paczce."
-    }
-
-    $dirs = Get-ChildItem -Path $releaseDir -Directory | Where-Object { $_.Name -like "old-*" }
-    if (-not $dirs -or $dirs.Count -eq 0) {
-        throw "Nie znaleziono katalogow paczek (np. old-0.2.x) w 'release'."
-    }
-
-    $latest = $dirs |
-        Sort-Object -Descending -Property @{
-            Expression = {
-                $name = $_.Name
-                $versionPart = $name -replace '^old-', ''
-                if ($versionPart -match '^\d+(\.\d+){1,3}$') {
-                    return [version]$versionPart
-                }
-                return [version]'0.0.0.0'
-            }
-        } |
-        Select-Object -First 1
-    return (Join-Path "release" $latest.Name)
-}
-
-function Get-LocalInstalledChannel([string]$gameDir) {
-    $versionPath = Join-Path $gameDir "VERSION.txt"
-    if (-not (Test-Path $versionPath)) {
-        return $null
-    }
-
-    $line = Get-Content -LiteralPath $versionPath | Where-Object { $_ -like "channel=*" } | Select-Object -First 1
-    if ([string]::IsNullOrWhiteSpace($line)) {
-        return $null
-    }
-
-    return ($line -replace '^channel=', '').Trim()
-}
-
-function Get-LatestRemotePackageName([string]$owner, [string]$repo, [string]$branch) {
-    $apiUrl = "https://api.github.com/repos/$owner/$repo/contents/release?ref=$branch"
-    $headers = Get-GitHubHeaders
-
-    $items = Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Get
-    $dirs = @($items | Where-Object { $_.type -eq "dir" -and $_.name -like "old-*" })
-    if (-not $dirs -or $dirs.Count -eq 0) {
-        throw "Nie znaleziono katalogow old-* przez GitHub API."
-    }
-
-    $latest = $dirs |
-        Sort-Object -Descending -Property @{
-            Expression = {
-                $versionPart = ($_.name -replace '^old-', '')
-                if ($versionPart -match '^\d+(\.\d+){1,3}$') {
-                    return [version]$versionPart
-                }
-                return [version]'0.0.0.0'
-            }
-        } |
-        Select-Object -First 1
-
-    return $latest.name
-}
-
-function Get-GitHubReleaseAssetUrl(
-    [string]$owner,
-    [string]$repo,
-    [string]$tag,
-    [string[]]$namePatterns
-) {
-    $headers = Get-GitHubHeaders
-    $releaseUrl = if ([string]::IsNullOrWhiteSpace($tag)) {
-        "https://api.github.com/repos/$owner/$repo/releases/latest"
-    } else {
-        "https://api.github.com/repos/$owner/$repo/releases/tags/$tag"
-    }
-
-    try {
-        $release = Invoke-RestMethod -Uri $releaseUrl -Headers $headers -Method Get
-    }
-    catch {
-        return $null
-    }
-
-    if (-not $release.assets) {
-        return $null
-    }
-
-    foreach ($pattern in $namePatterns) {
-        $asset = $release.assets | Where-Object { $_.name -like $pattern } | Select-Object -First 1
-        if ($asset -and -not [string]::IsNullOrWhiteSpace($asset.browser_download_url)) {
-            return $asset.browser_download_url
-        }
-    }
-
-    return $null
-}
-
 function Stop-IfRunning([string[]]$processNames) {
     foreach ($procName in $processNames) {
         $running = Get-Process -Name $procName -ErrorAction SilentlyContinue
@@ -278,23 +156,49 @@ function Stop-IfRunning([string[]]$processNames) {
     }
 }
 
-function Ensure-AsiLoader([string]$pkgDir, [string]$gameDir) {
+# ── Commit-based update check ──
+
+function Get-LocalCommitSha([string]$gameDir) {
+    $versionPath = Join-Path $gameDir "VERSION.txt"
+    if (-not (Test-Path $versionPath)) { return $null }
+    $line = Get-Content -LiteralPath $versionPath | Where-Object { $_ -like "commit=*" } | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($line)) { return $null }
+    return ($line -replace '^commit=', '').Trim()
+}
+
+function Get-RemoteCommitSha([string]$owner, [string]$repo, [string]$branch) {
+    $apiUrl = "https://api.github.com/repos/$owner/$repo/commits/$branch"
+    $headers = Get-GitHubHeaders
+    $response = Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Get
+    return $response.sha
+}
+
+# ── ASI Loader ──
+
+function Get-GitHubReleaseAssetUrl([string]$owner, [string]$repo, [string]$tag, [string[]]$namePatterns) {
+    $headers = Get-GitHubHeaders
+    $releaseUrl = if ([string]::IsNullOrWhiteSpace($tag)) {
+        "https://api.github.com/repos/$owner/$repo/releases/latest"
+    } else {
+        "https://api.github.com/repos/$owner/$repo/releases/tags/$tag"
+    }
+    try {
+        $release = Invoke-RestMethod -Uri $releaseUrl -Headers $headers -Method Get
+    } catch { return $null }
+    if (-not $release.assets) { return $null }
+    foreach ($pattern in $namePatterns) {
+        $asset = $release.assets | Where-Object { $_.name -like $pattern } | Select-Object -First 1
+        if ($asset -and -not [string]::IsNullOrWhiteSpace($asset.browser_download_url)) {
+            return $asset.browser_download_url
+        }
+    }
+    return $null
+}
+
+function Ensure-AsiLoader([string]$gameDir) {
     $loaderDst = Join-Path $gameDir "dinput8.dll"
     if (Test-Path $loaderDst) {
         Write-Ok "ASI Loader wykryty (dinput8.dll)."
-        return
-    }
-
-    $loaderCandidates = @(
-        (Join-Path $pkgDir "dinput8.dll"),
-        (Join-Path $pkgDir "asi\\dinput8.dll"),
-        (Join-Path $pkgDir "loader\\dinput8.dll")
-    )
-
-    $loaderSrc = $loaderCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if ($loaderSrc) {
-        Copy-Item -LiteralPath $loaderSrc -Destination $loaderDst -Force
-        Write-Ok "Zainstalowano ASI Loader (dinput8.dll)."
         return
     }
 
@@ -329,6 +233,8 @@ function Ensure-AsiLoader([string]$pkgDir, [string]$gameDir) {
     Write-Ok "Pobrano i zainstalowano ASI Loader (dinput8.dll)."
 }
 
+# ── Widescreen Fix ──
+
 function Ensure-WidescreenFix([string]$gameDir) {
     $scriptsDir = Join-Path $gameDir "scripts"
     if (-not (Test-Path $scriptsDir)) {
@@ -336,7 +242,6 @@ function Ensure-WidescreenFix([string]$gameDir) {
     }
 
     $asiDst = Join-Path $scriptsDir "GTASA.WidescreenFix.asi"
-    $iniDst = Join-Path $scriptsDir "GTASA.WidescreenFix.ini"
     if (Test-Path $asiDst) {
         Write-Ok "WidescreenFix juz zainstalowany."
         return
@@ -348,7 +253,7 @@ function Ensure-WidescreenFix([string]$gameDir) {
         $wsUrl = Get-GitHubReleaseAssetUrl -owner "ThirteenAG" -repo "WidescreenFixesPack" -tag "" -namePatterns @("GTASA.WidescreenFix*.zip", "*.zip")
     }
     if ([string]::IsNullOrWhiteSpace($wsUrl)) {
-        Write-Info "Nie udalo sie pobrac WidescreenFix automatycznie. Pomijam fix rozdzielczosci."
+        Write-Info "Nie udalo sie pobrac WidescreenFix automatycznie. Pomijam."
         return
     }
 
@@ -364,16 +269,195 @@ function Ensure-WidescreenFix([string]$gameDir) {
         Write-Info "Pobrano paczke WidescreenFix, ale brak GTASA.WidescreenFix.asi. Pomijam."
         return
     }
-
     Copy-Item -LiteralPath $asiSrc.FullName -Destination $asiDst -Force
-    Write-Ok "Zainstalowano scripts\\GTASA.WidescreenFix.asi"
+    Write-Ok "Zainstalowano scripts\GTASA.WidescreenFix.asi"
 
     $iniSrc = Get-ChildItem -Path $wsTemp -Recurse -File -Filter "GTASA.WidescreenFix.ini" | Select-Object -First 1
     if ($iniSrc) {
+        $iniDst = Join-Path $scriptsDir "GTASA.WidescreenFix.ini"
         Copy-Item -LiteralPath $iniSrc.FullName -Destination $iniDst -Force
-        Write-Ok "Zainstalowano scripts\\GTASA.WidescreenFix.ini"
+        Write-Ok "Zainstalowano scripts\GTASA.WidescreenFix.ini"
     }
 }
+
+# ── Proxy / EAX setup ──
+
+function Ensure-ProxySetup([string]$repoRoot, [string]$gameDir) {
+    $eaxOrig = Join-Path $gameDir "eax_orig.dll"
+    $eaxDll = Join-Path $gameDir "EAX.dll"
+
+    # Rename original eax.dll to eax_orig.dll if not done yet
+    if (-not (Test-Path $eaxOrig)) {
+        if (Test-Path $eaxDll) {
+            # Only rename if current EAX.dll is NOT our proxy (check size — proxy is ~85KB, original is ~188KB)
+            $eaxSize = (Get-Item $eaxDll).Length
+            if ($eaxSize -gt 100000) {
+                Move-Item -LiteralPath $eaxDll -Destination $eaxOrig -Force
+                Write-Ok "Zmieniono nazwe oryginalnego eax.dll -> eax_orig.dll"
+            }
+        }
+    }
+
+    # Copy proxy.dll as EAX.dll
+    $proxySrc = Join-Path $repoRoot "release"
+    $latestPkg = Get-ChildItem -Path $proxySrc -Directory | Where-Object { $_.Name -like "old-*" } |
+        Sort-Object -Descending -Property @{
+            Expression = {
+                $vp = ($_.Name -replace '^old-', '')
+                if ($vp -match '^\d+(\.\d+){1,3}$') { return [version]$vp }
+                return [version]'0.0.0.0'
+            }
+        } | Select-Object -First 1
+
+    if ($latestPkg) {
+        $proxyFile = Join-Path $latestPkg.FullName "proxy.dll"
+        if (Test-Path $proxyFile) {
+            Copy-Item -LiteralPath $proxyFile -Destination $eaxDll -Force
+            Write-Ok "Zainstalowano proxy.dll jako EAX.dll (loader DLL)"
+            # Also copy proxy.dll to root
+            Copy-Item -LiteralPath $proxyFile -Destination (Join-Path $gameDir "proxy.dll") -Force
+        }
+    }
+}
+
+# ── SilentPatch ──
+
+function Ensure-SilentPatch([string]$repoRoot, [string]$gameDir) {
+    $asiDst = Join-Path $gameDir "SilentPatchSA.asi"
+    $iniDst = Join-Path $gameDir "SilentPatchSA.ini"
+
+    # Already installed? Don't re-download
+    if (Test-Path $asiDst) {
+        Write-Ok "SilentPatchSA juz zainstalowany."
+        return
+    }
+
+    Write-Info "Brak SilentPatchSA - probuje pobrac z GitHub..."
+    $spUrl = Get-GitHubReleaseAssetUrl -owner "CookiePLMonster" -repo "SilentPatchSA" -tag "" -namePatterns @("SilentPatchSA*.zip", "*.zip")
+    if ([string]::IsNullOrWhiteSpace($spUrl)) {
+        Write-Info "Nie udalo sie pobrac SilentPatchSA. Pomijam."
+        return
+    }
+
+    $spTemp = Join-Path $tempRoot "silentpatch"
+    $spZip = Join-Path $spTemp "silentpatch.zip"
+    New-Item -ItemType Directory -Path $spTemp -Force | Out-Null
+    Invoke-WebRequest -Uri $spUrl -OutFile $spZip -UseBasicParsing
+    Expand-Archive -Path $spZip -DestinationPath $spTemp -Force
+
+    $foundAsi = Get-ChildItem -Path $spTemp -Recurse -File -Filter "SilentPatchSA.asi" | Select-Object -First 1
+    if ($foundAsi) {
+        Copy-Item -LiteralPath $foundAsi.FullName -Destination $asiDst -Force
+        Write-Ok "Pobrano i zainstalowano SilentPatchSA.asi"
+    }
+
+    $foundIni = Get-ChildItem -Path $spTemp -Recurse -File -Filter "SilentPatchSA.ini" | Select-Object -First 1
+    if ($foundIni) {
+        Copy-Item -LiteralPath $foundIni.FullName -Destination $iniDst -Force
+        Write-Ok "Pobrano i zainstalowano SilentPatchSA.ini"
+    }
+}
+
+# ── Full mod install ──
+
+function Install-FullMod([string]$repoRoot, [string]$gameDir) {
+    Write-Info "Instalacja pelnego moda CoopAndreas..."
+
+    # 1. Find latest release package
+    $releaseDir = Join-Path $repoRoot "release"
+    $latestPkg = Get-ChildItem -Path $releaseDir -Directory | Where-Object { $_.Name -like "old-*" } |
+        Sort-Object -Descending -Property @{
+            Expression = {
+                $vp = ($_.Name -replace '^old-', '')
+                if ($vp -match '^\d+(\.\d+){1,3}$') { return [version]$vp }
+                return [version]'0.0.0.0'
+            }
+        } | Select-Object -First 1
+
+    if (-not $latestPkg) {
+        throw "Nie znaleziono paczki release w repo."
+    }
+
+    $pkgDir = $latestPkg.FullName
+    $channelName = $latestPkg.Name
+    Write-Info "Paczka: $channelName"
+
+    # 2. Core DLL files from release package
+    $coreFiles = @("CoopAndreasSA.dll", "server.exe", "proxy.dll", "VERSION.txt")
+    foreach ($f in $coreFiles) {
+        $src = Join-Path $pkgDir $f
+        if (Test-Path $src) {
+            Copy-Item -LiteralPath $src -Destination (Join-Path $gameDir $f) -Force
+            Write-Ok "Zainstalowano: $f"
+        }
+    }
+
+    # 3. SCM / mission scripts -> CoopAndreas/
+    $coopDir = Join-Path $gameDir "CoopAndreas"
+    if (-not (Test-Path $coopDir)) {
+        New-Item -ItemType Directory -Path $coopDir -Force | Out-Null
+    }
+
+    $scmDir = Join-Path $repoRoot "scm"
+    if (Test-Path $scmDir) {
+        $scmFiles = @("main.scm", "main.txt", "script.img")
+        foreach ($f in $scmFiles) {
+            $src = Join-Path $scmDir $f
+            if (Test-Path $src) {
+                Copy-Item -LiteralPath $src -Destination (Join-Path $coopDir $f) -Force
+                Write-Ok "Zainstalowano: CoopAndreas\$f"
+            }
+        }
+    }
+
+    # 4. Proxy -> EAX.dll setup
+    Ensure-ProxySetup -repoRoot $repoRoot -gameDir $gameDir
+
+    # 5. SilentPatch
+    Ensure-SilentPatch -repoRoot $repoRoot -gameDir $gameDir
+
+    # 6. stream.ini (always update from repo)
+    $streamIniSrc = Join-Path $repoRoot "stream.ini"
+    $streamIniDst = Join-Path $gameDir "stream.ini"
+    if (Test-Path $streamIniSrc) {
+        Copy-Item -LiteralPath $streamIniSrc -Destination $streamIniDst -Force
+        Write-Ok "Zainstalowano: stream.ini"
+    }
+
+    # 7. server-config.ini (default config if not present)
+    $srvCfgDst = Join-Path $gameDir "server-config.ini"
+    if (-not (Test-Path $srvCfgDst)) {
+        $srvCfgSrc = Join-Path $repoRoot "server-config.ini"
+        if (Test-Path $srvCfgSrc) {
+            Copy-Item -LiteralPath $srvCfgSrc -Destination $srvCfgDst -Force
+            Write-Ok "Zainstalowano: server-config.ini"
+        }
+    }
+
+    # 8. Launcher files -> CoopAndreas/Launcher/
+    $launcherDir = Join-Path $coopDir "Launcher"
+    if (-not (Test-Path $launcherDir)) {
+        New-Item -ItemType Directory -Path $launcherDir -Force | Out-Null
+    }
+
+    # Self-update: copy the updater script from the downloaded repo
+    $updaterSrc = Join-Path $repoRoot "CoopAndreasUpdater.ps1"
+    if (Test-Path $updaterSrc) {
+        Copy-Item -LiteralPath $updaterSrc -Destination (Join-Path $launcherDir "CoopAndreasUpdater.ps1") -Force
+        Write-Ok "Zaktualizowano: CoopAndreas\Launcher\CoopAndreasUpdater.ps1"
+    }
+
+    # Copy cleaner script
+    $cleanerSrc = Join-Path $repoRoot "release\launcher\CoopAndreasCleaner.ps1"
+    if (Test-Path $cleanerSrc) {
+        Copy-Item -LiteralPath $cleanerSrc -Destination (Join-Path $launcherDir "CoopAndreasCleaner.ps1") -Force
+        Write-Ok "Zainstalowano: CoopAndreas\Launcher\CoopAndreasCleaner.ps1"
+    }
+
+    Write-Ok "Pelna instalacja moda zakonczona."
+}
+
+# ── BAT launchers ──
 
 function Write-LocalLaunchers([string]$gameDir) {
     $runServerBat = Join-Path $gameDir "Uruchom CoopAndreas Server.bat"
@@ -413,7 +497,7 @@ exit /b 0
     $runCoopContent = @"
 @echo off
 setlocal
-call "%~dp0Aktualizuj i Uruchom CoopAndreas.bat"
+call "%~dp0CoopAndreas\Launcher\Aktualizuj i Uruchom CoopAndreas.bat"
 exit /b %errorlevel%
 "@
 
@@ -421,7 +505,7 @@ exit /b %errorlevel%
 @echo off
 setlocal
 set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
-"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0CoopAndreasCleaner.ps1"
+"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0CoopAndreas\Launcher\CoopAndreasCleaner.ps1"
 if errorlevel 1 (
   echo.
   echo [BLAD] Odinstalowanie nieudane.
@@ -437,11 +521,107 @@ exit /b 0
     Set-Content -LiteralPath $runServerBat -Value $serverBatContent -Encoding ASCII
     Set-Content -LiteralPath $runCoopBat -Value $runCoopContent -Encoding ASCII
     Set-Content -LiteralPath $cleanBat -Value $cleanContent -Encoding ASCII
-    Write-Ok "Odswiezono launchery BAT w folderze GTA."
+
+    # Also write launcher BATs inside CoopAndreas/Launcher/
+    $launcherDir = Join-Path $gameDir "CoopAndreas\Launcher"
+    if (-not (Test-Path $launcherDir)) {
+        New-Item -ItemType Directory -Path $launcherDir -Force | Out-Null
+    }
+
+    $aktualizujBat = Join-Path $launcherDir "Aktualizuj CoopAndreas.bat"
+    $aktualizujContent = @"
+@echo off
+setlocal
+title CoopAndreas - Aktualizacja
+set "SCRIPT_DIR=%~dp0"
+set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+
+"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%CoopAndreasUpdater.ps1"
+if errorlevel 1 (
+  echo.
+  echo [BLAD] Aktualizacja nieudana.
+  echo Sprawdz komunikat wyzej.
+  pause
+  exit /b 1
+)
+
+echo.
+echo [OK] Aktualizacja zakonczona.
+pause
+exit /b 0
+"@
+    Set-Content -LiteralPath $aktualizujBat -Value $aktualizujContent -Encoding ASCII
+
+    $aktualizujUruchomBat = Join-Path $launcherDir "Aktualizuj i Uruchom CoopAndreas.bat"
+    $aktualizujUruchomContent = @"
+@echo off
+setlocal
+title CoopAndreas - Aktualizuj i uruchom
+set "SCRIPT_DIR=%~dp0"
+set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+
+"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%CoopAndreasUpdater.ps1" -RunAfterUpdate
+if errorlevel 1 (
+  echo.
+  echo [BLAD] Aktualizacja lub uruchomienie nieudane.
+  echo Sprawdz komunikat wyzej.
+  pause
+  exit /b 1
+)
+
+echo.
+echo [OK] Aktualizacja i uruchomienie wykonane.
+exit /b 0
+"@
+    Set-Content -LiteralPath $aktualizujUruchomBat -Value $aktualizujUruchomContent -Encoding ASCII
+
+    $odinstalujBat = Join-Path $launcherDir "Odinstaluj CoopAndreas.bat"
+    $odinstalujContent = @"
+@echo off
+setlocal
+set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+"%PS_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0CoopAndreasCleaner.ps1"
+if errorlevel 1 (
+  echo.
+  echo [BLAD] Odinstalowanie nieudane.
+  pause
+  exit /b 1
+)
+echo.
+echo [OK] Odinstalowanie zakonczone.
+pause
+exit /b 0
+"@
+    Set-Content -LiteralPath $odinstalujBat -Value $odinstalujContent -Encoding ASCII
+
+    Write-Ok "Odswiezono launchery BAT."
 }
 
+# ── Write VERSION.txt with commit SHA ──
+
+function Write-VersionFile([string]$gameDir, [string]$commitSha, [string]$channelName) {
+    $versionPath = Join-Path $gameDir "VERSION.txt"
+    $content = @"
+channel=$channelName
+commit=$commitSha
+source_branch=main
+"@
+    Set-Content -LiteralPath $versionPath -Value $content -Encoding UTF8
+}
+
+# ═══════════════════════════
+#           MAIN
+# ═══════════════════════════
+
 try {
+    Write-Host ""
+    Write-Host "  ╔══════════════════════════════════════╗" -ForegroundColor Yellow
+    Write-Host "  ║   CoopAndreas Installer / Updater    ║" -ForegroundColor Yellow
+    Write-Host "  ╚══════════════════════════════════════╝" -ForegroundColor Yellow
+    Write-Host ""
+
     $gtaDir = Resolve-GtaDir -startDir $scriptDir
+    Write-Info "Katalog GTA: $gtaDir"
     Test-GtaSanAndreasInstall -gameDir $gtaDir
 
     Write-SampSwitchScripts -gameDir $gtaDir
@@ -454,7 +634,7 @@ try {
         Write-Host ""
         Write-Host "Wybierz opcje:" -ForegroundColor Yellow
         Write-Host "1) Anuluj (bezpiecznie, domyslnie)"
-        Write-Host "2) Wylacz SA:MP i kontynuuj update (zalecane jesli 1 folder gry)"
+        Write-Host "2) Wylacz SA:MP i kontynuuj (zalecane jesli 1 folder gry)"
         Write-Host "3) Kontynuuj bez zmian (ryzykowne)"
         $choice = Read-Host "Twoj wybor [1/2/3]"
         if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
@@ -463,61 +643,61 @@ try {
             "2" {
                 $changed = Disable-SampFiles -gameDir $gtaDir
                 if ($changed) {
-                    Write-Ok "SA:MP tymczasowo wylaczony. Po grze przywroc przez 'Przelacz na SA-MP.bat'."
+                    Write-Ok "SA:MP tymczasowo wylaczony."
                 } else {
-                    Write-Info "Nie znaleziono plikow do wylaczenia (mogly byc juz wylaczone)."
+                    Write-Info "Pliki SA:MP juz wylaczone."
                 }
             }
-            "3" {
-                Write-Info "Kontynuacja bez wylaczania SA:MP na Twoja odpowiedzialnosc."
-            }
-            default {
-                throw "Aktualizacja przerwana przez uzytkownika po wykryciu SA:MP."
-            }
+            "3" { Write-Info "Kontynuacja bez wylaczania SA:MP." }
+            default { throw "Aktualizacja przerwana przez uzytkownika po wykryciu SA:MP." }
         }
     }
 
-    $localChannelRaw = Get-LocalInstalledChannel -gameDir $gtaDir
-    $localChannelDisplay = $localChannelRaw
-    if ([string]::IsNullOrWhiteSpace($localChannelDisplay)) {
-        $localChannelDisplay = "brak/nieznana"
-    }
+    # ── Check for updates using commit SHA ──
+    $localSha = Get-LocalCommitSha -gameDir $gtaDir
+    $remoteSha = $null
+    $needsUpdate = $true
 
-    $remotePackageName = $null
     try {
-        $remotePackageName = Get-LatestRemotePackageName -owner $RepoOwner -repo $RepoName -branch $Branch
-        Write-Info "Zainstalowana wersja: $localChannelDisplay"
-        Write-Info "Najnowsza wersja na GitHub: $remotePackageName"
+        $remoteSha = Get-RemoteCommitSha -owner $RepoOwner -repo $RepoName -branch $Branch
+        $shortLocal = if ($localSha) { $localSha.Substring(0, 7) } else { "brak" }
+        $shortRemote = $remoteSha.Substring(0, 7)
+        Write-Info "Zainstalowany commit: $shortLocal"
+        Write-Info "Najnowszy commit:    $shortRemote"
 
-        if (-not [string]::IsNullOrWhiteSpace($localChannelRaw) -and $localChannelRaw -eq $remotePackageName) {
-            Write-Ok "Masz juz najnowsza wersje: $remotePackageName"
-            Write-Info "Pomijam pobieranie paczki ZIP (brak zmian)."
-            Write-LocalLaunchers -gameDir $gtaDir
-
-            if ($RunAfterUpdate) {
-                $serverExe = Join-Path $gtaDir "server.exe"
-                $gtaExe = Join-Path $gtaDir "gta_sa.exe"
-
-                if (Test-Path $serverExe) {
-                    Start-Process -FilePath $serverExe -WorkingDirectory $gtaDir -WindowStyle Normal
-                    Start-Sleep -Seconds 1
-                }
-
-                if (Test-Path $gtaExe) {
-                    Start-Process -FilePath $gtaExe -WorkingDirectory $gtaDir -WindowStyle Normal
-                } else {
-                    Write-Err "Nie znaleziono gta_sa.exe w: $gtaDir"
-                }
-            }
-
-            Write-Ok "Brak aktualizacji - wersja juz najnowsza."
-            exit 0
-        } elseif (-not [string]::IsNullOrWhiteSpace($remotePackageName)) {
-            Write-Info "Wykryto nowa wersje: $remotePackageName (aktualna lokalna: $localChannelDisplay)"
+        if ($localSha -eq $remoteSha) {
+            $needsUpdate = $false
+            Write-Ok "Masz juz najnowsza wersje!"
+        } else {
+            Write-Info "Wykryto nowa wersje - aktualizacja..."
         }
+    } catch {
+        Write-Info "Nie udalo sie sprawdzic wersji przez GitHub API. Przechodze do aktualizacji."
+        $remoteSha = "unknown"
     }
-    catch {
-        Write-Info "Nie udalo sie sprawdzic wersji przez GitHub API. Przechodze do standardowej aktualizacji."
+
+    if (-not $needsUpdate) {
+        Write-LocalLaunchers -gameDir $gtaDir
+
+        if ($RunAfterUpdate) {
+            $serverExe = Join-Path $gtaDir "server.exe"
+            $gtaExe = Join-Path $gtaDir "gta_sa.exe"
+            if (Test-Path $serverExe) {
+                Start-Process -FilePath $serverExe -WorkingDirectory $gtaDir -WindowStyle Normal
+                Start-Sleep -Seconds 1
+            }
+            if (Test-Path $gtaExe) {
+                Start-Process -FilePath $gtaExe -WorkingDirectory $gtaDir -WindowStyle Normal
+            }
+        }
+
+        Write-Ok "Brak aktualizacji."
+        exit 0
+    }
+
+    # ── Download and install ──
+    if ($CloseRunningProcesses) {
+        Stop-IfRunning -processNames @("server", "gta_sa")
     }
 
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
@@ -526,80 +706,68 @@ try {
     Write-Info "Pobieram paczke: $zipUrl"
     Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
 
-    Write-Info "Rozpakowuje paczke..."
+    Write-Info "Rozpakowuje..."
     Expand-Archive -Path $zipPath -DestinationPath $tempRoot -Force
 
     $repoRoot = Get-ChildItem -Path $tempRoot -Directory | Where-Object { $_.Name -like "$RepoName-*" } | Select-Object -First 1
     if (-not $repoRoot) { throw "Nie znaleziono katalogu repo po rozpakowaniu." }
 
-    if ([string]::IsNullOrWhiteSpace($PackagePath)) {
-        if (-not [string]::IsNullOrWhiteSpace($remotePackageName)) {
-            $PackagePath = "release/$remotePackageName"
-        } else {
-            $PackagePath = Get-LatestPackagePath -repoRootPath $repoRoot.FullName
+    # ── Backup ──
+    $backupDir = Join-Path $gtaDir ("CoopAndreas_backup_" + (Get-Date -Format "yyyyMMdd_HHmmss"))
+    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+    $backupFiles = @("CoopAndreasSA.dll", "server.exe", "proxy.dll", "VERSION.txt", "EAX.dll")
+    foreach ($f in $backupFiles) {
+        $existing = Join-Path $gtaDir $f
+        if (Test-Path $existing) {
+            Copy-Item -LiteralPath $existing -Destination (Join-Path $backupDir $f) -Force
         }
-        Write-Info "Wybrano najnowsza paczke: $PackagePath"
     }
+    Write-Ok "Backup zapisany do: $(Split-Path -Leaf $backupDir)"
 
-    $pkg = Join-Path $repoRoot.FullName ($PackagePath -replace '/', '\')
-    if (-not (Test-Path $pkg)) {
-        throw "Brak folderu paczki '$PackagePath' w branchu '$Branch'."
-    }
+    # ── Full mod install ──
+    Install-FullMod -repoRoot $repoRoot.FullName -gameDir $gtaDir
 
-    $remoteChannel = Split-Path -Leaf ($PackagePath -replace '/', '\')
-    $needsUpdate = ($localChannelRaw -ne $remoteChannel)
-
-    $files = @("CoopAndreasSA.dll", "server.exe", "proxy.dll", "VERSION.txt")
-
-    if ($CloseRunningProcesses) {
-        Stop-IfRunning -processNames @("server", "gta_sa")
-    }
-
-    Ensure-AsiLoader -pkgDir $pkg -gameDir $gtaDir
+    # ── External dependencies ──
+    Ensure-AsiLoader -gameDir $gtaDir
     if (-not $NoResolutionFix) {
         Ensure-WidescreenFix -gameDir $gtaDir
-    } else {
-        Write-Info "Pominieto fix rozdzielczosci na prosbe uzytkownika (-NoResolutionFix)."
     }
 
-    if ($needsUpdate) {
-        $backupDir = Join-Path $gtaDir ("CoopAndreas_backup_" + (Get-Date -Format "yyyyMMdd_HHmmss"))
-        New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-
-        foreach ($f in $files) {
-            $src = Join-Path $pkg $f
-            if (-not (Test-Path $src)) { throw "Brak pliku w paczce: $f" }
-
-            $dst = Join-Path $gtaDir $f
-            if (Test-Path $dst) {
-                Copy-Item -LiteralPath $dst -Destination (Join-Path $backupDir $f) -Force
+    # ── Write VERSION.txt with commit SHA ──
+    $latestPkg = Get-ChildItem -Path (Join-Path $repoRoot.FullName "release") -Directory |
+        Where-Object { $_.Name -like "old-*" } |
+        Sort-Object -Descending -Property @{
+            Expression = {
+                $vp = ($_.Name -replace '^old-', '')
+                if ($vp -match '^\d+(\.\d+){1,3}$') { return [version]$vp }
+                return [version]'0.0.0.0'
             }
+        } | Select-Object -First 1
 
-            Copy-Item -LiteralPath $src -Destination $dst -Force
-            Write-Ok "Podmieniono: $f"
-        }
-    } else {
-        Write-Info "Pomijam podmiane plikow, bo wersja jest juz aktualna."
-    }
+    $channelName = if ($latestPkg) { $latestPkg.Name } else { "unknown" }
+    Write-VersionFile -gameDir $gtaDir -commitSha $remoteSha -channelName $channelName
 
+    # ── Launchers ──
     Write-LocalLaunchers -gameDir $gtaDir
 
-    if ($needsUpdate) {
-        Write-Ok "Aktualizacja zakonczona pomyslnie."
-    } else {
-        Write-Ok "Brak aktualizacji - wersja juz najnowsza."
-    }
+    Write-Host ""
+    Write-Ok "======================================"
+    Write-Ok "  Instalacja CoopAndreas zakonczona!"
+    Write-Ok "======================================"
+    Write-Host ""
 
     if ($RunAfterUpdate) {
         $serverExe = Join-Path $gtaDir "server.exe"
         $gtaExe = Join-Path $gtaDir "gta_sa.exe"
 
         if (Test-Path $serverExe) {
+            Write-Info "Uruchamiam serwer..."
             Start-Process -FilePath $serverExe -WorkingDirectory $gtaDir -WindowStyle Normal
             Start-Sleep -Seconds 1
         }
 
         if (Test-Path $gtaExe) {
+            Write-Info "Uruchamiam GTA San Andreas..."
             Start-Process -FilePath $gtaExe -WorkingDirectory $gtaDir -WindowStyle Normal
         } else {
             Write-Err "Nie znaleziono gta_sa.exe w: $gtaDir"

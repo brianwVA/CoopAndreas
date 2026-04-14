@@ -326,22 +326,6 @@ function Ensure-SilentPatch([string]$repoRoot, [string]$gameDir) {
     $asiDst = Join-Path $gameDir "SilentPatchSA.asi"
     $iniDst = Join-Path $gameDir "SilentPatchSA.ini"
 
-    # Check if already present from _downloads in repo
-    $dlDir = Join-Path $repoRoot "_downloads\SilentPatchSA"
-    if (Test-Path $dlDir) {
-        $asiSrc = Join-Path $dlDir "SilentPatchSA.asi"
-        $iniSrc = Join-Path $dlDir "SilentPatchSA.ini"
-        if (Test-Path $asiSrc) {
-            Copy-Item -LiteralPath $asiSrc -Destination $asiDst -Force
-            Write-Ok "Zainstalowano SilentPatchSA.asi"
-        }
-        if (Test-Path $iniSrc) {
-            Copy-Item -LiteralPath $iniSrc -Destination $iniDst -Force
-            Write-Ok "Zainstalowano SilentPatchSA.ini"
-        }
-        return
-    }
-
     # Already installed? Don't re-download
     if (Test-Path $asiDst) {
         Write-Ok "SilentPatchSA juz zainstalowany."
@@ -432,13 +416,10 @@ function Install-FullMod([string]$repoRoot, [string]$gameDir) {
     # 5. SilentPatch
     Ensure-SilentPatch -repoRoot $repoRoot -gameDir $gameDir
 
-    # 6. stream.ini (if exists in repo _downloads or root)
+    # 6. stream.ini (always update from repo)
     $streamIniSrc = Join-Path $repoRoot "stream.ini"
-    if (-not (Test-Path $streamIniSrc)) {
-        $streamIniSrc = Join-Path $repoRoot "_downloads\stream.ini"
-    }
     $streamIniDst = Join-Path $gameDir "stream.ini"
-    if ((Test-Path $streamIniSrc) -and -not (Test-Path $streamIniDst)) {
+    if (Test-Path $streamIniSrc) {
         Copy-Item -LiteralPath $streamIniSrc -Destination $streamIniDst -Force
         Write-Ok "Zainstalowano: stream.ini"
     }
@@ -466,10 +447,11 @@ function Install-FullMod([string]$repoRoot, [string]$gameDir) {
         Write-Ok "Zaktualizowano: CoopAndreas\Launcher\CoopAndreasUpdater.ps1"
     }
 
-    # Copy cleaner if exists
-    $cleanerSrc = Join-Path $repoRoot "CoopAndreasCleaner.ps1"
-    if (-not (Test-Path $cleanerSrc)) {
-        $cleanerSrc = Join-Path $launcherDir "CoopAndreasCleaner.ps1"
+    # Copy cleaner script
+    $cleanerSrc = Join-Path $repoRoot "release\launcher\CoopAndreasCleaner.ps1"
+    if (Test-Path $cleanerSrc) {
+        Copy-Item -LiteralPath $cleanerSrc -Destination (Join-Path $launcherDir "CoopAndreasCleaner.ps1") -Force
+        Write-Ok "Zainstalowano: CoopAndreas\Launcher\CoopAndreasCleaner.ps1"
     }
 
     Write-Ok "Pelna instalacja moda zakonczona."
