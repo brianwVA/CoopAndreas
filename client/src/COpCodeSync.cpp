@@ -837,34 +837,30 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
 }
 
 // Post-crash recovery: restore game state after VEH catches a crash in native handler.
-// If a cutscene handler crashed halfway, the cutscene/camera/fade/widescreen state
-// may be stuck. This function forces cleanup so the game doesn't stay on a black screen.
 static void __cdecl PostCrashRecovery()
 {
     g_bInNativeHandlerCall = false;
 
-    // Log the crashing opcode for diagnostics
-    char buf[256];
-    sprintf(buf, "VEH recovered from crash in opcode handler 0x%04X (script=%p)\n",
-        lastOpCodeProcessed, lastProcessedScript);
-    OutputDebugStringA(buf);
+    // Log the crashing opcode to a file for diagnostics.
+    __try {
+        FILE* f = fopen("CoopAndreas_crashes\\opcode_crash.log", "a");
+        if (f)
+        {
+            CRunningScript* script = (CRunningScript*)lastProcessedScript;
+            fprintf(f, "Crashed opcode=0x%04X script=%s CIP=%p BIP=%p\n",
+                lastOpCodeProcessed,
+                script ? script->m_szName : "null",
+                script ? (void*)script->m_pCurrentIP : nullptr,
+                script ? (void*)script->m_pBaseIP : nullptr);
+            fclose(f);
+        }
+    } __except(EXCEPTION_EXECUTE_HANDLER) {}
 
-    // The handler crashed mid-execution: it didn't advance the script's CIP
-    // past the opcode arguments. If we let the script continue, it will
-    // re-read the same opcode and crash in an infinite loop.
-    // Force the script to yield for this frame AND mark it to skip re-processing
-    // by setting m_bNotFlag (condition result) so the script flow changes.
-    // Actually: just set the script's m_pCurrentIP to skip past the opcode.
-    // We can't know argument count, so instead, make the script yield permanently
-    // by setting its wakeup time far in the future.
-    if (lastProcessedScript)
-    {
-        __try {
-            // Set the script to sleep for a very long time to prevent re-crash
-            ((CRunningScript*)lastProcessedScript)->m_nWakeTime = 0x7FFFFFFF;
-        } __except(EXCEPTION_EXECUTE_HANDLER) {}
-    }
+    // DON'T freeze the script. The handler likely already advanced CIP
+    // past its arguments before crashing. Let the script continue from
+    // wherever CIP ended up — the next opcode should be different.
 
+    // Only do cutscene/camera cleanup if a cutscene is actually stuck.
     __try {
         if (CCutsceneMgr::ms_running)
         {
@@ -884,7 +880,7 @@ static void __cdecl PostCrashRecovery()
     __try {
         TheCamera.RestoreWithJumpCut();
         TheCamera.SetWideScreenOff();
-        TheCamera.Fade(0.0f, 1); // instant fade-in
+        TheCamera.Fade(0.0f, 1);
     } __except(EXCEPTION_EXECUTE_HANDLER) {}
 }
 
@@ -1086,6 +1082,9 @@ void __fastcall CRunningScript__ShutdownThisScript_Hook(CRunningScript* This, SK
 
 void COpCodeSync::Init()
 {
+    // Ensure crash log directory exists
+    CreateDirectoryA("CoopAndreas_crashes", NULL);
+
     DWORD temp;
     injector::UnprotectMemory(0x464080, 5, temp);
     injector::UnprotectMemory(0x463D50, 6, temp);
