@@ -224,6 +224,30 @@ public:
 
 					CPassengerEnter::Process();
 
+					// All players downed → instant death (no point waiting for revive)
+					if (CNetwork::m_bConnected && PlayerHooks::IsLocalPlayerDowned())
+					{
+						bool anyoneAlive = false;
+						for (size_t i = 0; i < CNetworkPlayerManager::m_pPlayers.size(); i++)
+						{
+							auto* np = CNetworkPlayerManager::m_pPlayers[i];
+							if (np && np->m_iPlayerId != CNetworkPlayerManager::m_nMyId)
+							{
+								// Remote player is alive if health > downed threshold
+								if (np->m_playerOnFoot.health > 5)
+								{
+									anyoneAlive = true;
+									break;
+								}
+							}
+						}
+						if (!anyoneAlive)
+						{
+							CChat::AddMessage("~r~All players downed — no one to revive");
+							PlayerHooks::ForceDownedDeath();
+						}
+					}
+
 					CPlayerPed* localPlayer = FindPlayerPed(0);
 
 					CDriveBy::Process(localPlayer);
@@ -579,6 +603,32 @@ public:
 						sprintf(reviveBarText, "REVIVE %.1fs", remaining);
 						CDXFont::Draw((int)(x + barW * 0.5f - 45.0f), (int)(y - CUtil::SCREEN_SCALE_Y(18.0f)), reviveBarText, D3DCOLOR_ARGB(255, 230, 230, 230));
 						CDXFont::Draw((int)(x + barW * 0.5f - 85.0f), (int)(y + barH + CUtil::SCREEN_SCALE_Y(4.0f)), "DO NOT MOVE", D3DCOLOR_ARGB(255, 255, 210, 120));
+					}
+
+					// Downed countdown timer (visible to the downed player)
+					if (PlayerHooks::IsLocalPlayerDowned() && FrontEndMenuManager.m_bPrefsShowHud)
+					{
+						uint32_t downedElapsed = GetTickCount() - PlayerHooks::GetDownedStartTick();
+						uint32_t downedDuration = PlayerHooks::GetDownedDurationMs();
+						float downedRemaining = (downedDuration > downedElapsed) ? ((downedDuration - downedElapsed) / 1000.0f) : 0.0f;
+						float downedProgress = 1.0f - (std::max)(0.0f, (std::min)(1.0f, downedElapsed / (float)downedDuration));
+
+						float barW = CUtil::SCREEN_SCALE_X(240.0f);
+						float barH = CUtil::SCREEN_SCALE_Y(14.0f);
+						float x = (RsGlobal.maximumWidth - barW) * 0.5f;
+						float y = RsGlobal.maximumHeight * 0.5f + CUtil::SCREEN_SCALE_Y(60.0f);
+
+						CSprite2d::DrawRect({ x - 2.0f, y - 2.0f, x + barW + 2.0f, y + barH + 2.0f }, { 0, 0, 0, 170 });
+						CSprite2d::DrawRect({ x, y, x + barW, y + barH }, { 40, 40, 40, 220 });
+
+						// Red→yellow gradient based on remaining time
+						uint8_t r = 200, g = (uint8_t)(60 + 140 * downedProgress), b = 60;
+						CSprite2d::DrawRect({ x, y, x + barW * downedProgress, y + barH }, { r, g, b, 240 });
+
+						char downedText[64];
+						sprintf(downedText, "DOWNED  %.0fs", downedRemaining);
+						CDXFont::Draw((int)(x + barW * 0.5f - 50.0f), (int)(y - CUtil::SCREEN_SCALE_Y(20.0f)), downedText, D3DCOLOR_ARGB(255, 255, 80, 80));
+						CDXFont::Draw((int)(x + barW * 0.5f - 100.0f), (int)(y + barH + CUtil::SCREEN_SCALE_Y(4.0f)), "Teammate can revive (J)", D3DCOLOR_ARGB(255, 255, 200, 100));
 					}
 
 				if (CNetwork::m_bConnected && GetAsyncKeyState(VK_F10))

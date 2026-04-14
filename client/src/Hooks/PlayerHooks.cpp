@@ -718,3 +718,30 @@ bool PlayerHooks::IsLocalPlayerDowned()
 
     return (localPed->m_fHealth <= kDownedMinHealth) && !s_downedTimedOutPendingDeath;
 }
+
+uint32_t PlayerHooks::GetDownedStartTick()
+{
+    return s_downedStartTick;
+}
+
+uint32_t PlayerHooks::GetDownedDurationMs()
+{
+    return kDownedDurationMs;
+}
+
+void PlayerHooks::ForceDownedDeath()
+{
+    if (!s_downedActive) return;
+    s_downedActive = false;
+    s_downedAnnounced = false;
+    s_downedTimedOutPendingDeath = true;
+    ResetDownedInputLocks();
+    CPlayerPed* ped = FindPlayerPed(0);
+    if (ped)
+    {
+        ped->m_fHealth = 0.0f;
+        int pedRef = CPools::GetPedRef(ped);
+        if (pedRef >= 0)
+            plugin::Command<0x0223>(pedRef, 0);
+    }
+}
