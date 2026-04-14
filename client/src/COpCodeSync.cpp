@@ -243,6 +243,16 @@ void __fastcall CRunningScript__ReadTextLabelFromScript_Hook_SwitchParametersCon
 /// <param name="opcodeIdx">syncedOpcodes index</param>
 bool COpCodeSync::IsOpcodeSyncable(int opcode, int* opcodeIdx, bool ignoreOpCodeSync)
 {
+    // Auto-register mission scripts for sync (no script-side call needed)
+    if (CLocalPlayer::m_bIsHost && COpCodeSync::ms_bSyncingEnabled
+        && lastProcessedScript && lastProcessedScript->m_bIsMission)
+    {
+        if (std::find(COpCodeSync::ms_vSyncedScripts.begin(), COpCodeSync::ms_vSyncedScripts.end(), lastProcessedScript) == COpCodeSync::ms_vSyncedScripts.end())
+        {
+            COpCodeSync::ms_vSyncedScripts.push_back(lastProcessedScript);
+        }
+    }
+
     if (((CLocalPlayer::m_bIsHost && COpCodeSync::ms_bSyncingEnabled)
         && std::find(COpCodeSync::ms_vSyncedScripts.begin(), COpCodeSync::ms_vSyncedScripts.end(), lastProcessedScript) != COpCodeSync::ms_vSyncedScripts.end())
         || ignoreOpCodeSync || CTaskSequenceSync::IsOpCodeTaskSynced((eScriptCommands)opcode))

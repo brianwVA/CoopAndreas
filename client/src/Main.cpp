@@ -30,6 +30,67 @@ bool bBeenConnected;
 bool lastOnMissionFlag;
 uint32_t startTime;
 
+// Auto-teleport all remote players to host when a mission starts.
+static void AutoTeleportPlayersToHost()
+{
+    auto hostPed = FindPlayerPed(0);
+    if (!hostPed) return;
+
+    CVector hostPos = FindPlayerCoors(0);
+    float hostHeading = hostPed->m_fCurrentRotation;
+
+    // Gather connected remote players
+    constexpr int MAX_SLOTS = 3;
+    int playerCount = 0;
+    CNetworkPlayer* networkPlayers[MAX_SLOTS] = {};
+
+    for (size_t i = 0; i < CNetworkPlayerManager::m_pPlayers.size(); i++)
+    {
+        auto* np = CNetworkPlayerManager::m_pPlayers[i];
+        if (np && np->m_iPlayerId != CNetworkPlayerManager::m_nMyId && playerCount < MAX_SLOTS)
+        {
+            networkPlayers[playerCount++] = np;
+        }
+    }
+    if (playerCount == 0) return;
+
+    // Calculate safe positions around the host
+    CVector positions[MAX_SLOTS] = {};
+    for (int pedIndex = 0; pedIndex < playerCount; pedIndex++)
+    {
+        bool placed = false;
+        for (float dist = 1.0f; dist <= 5.0f && !placed; dist += 0.5f)
+        {
+            for (float angle = hostHeading + 2.35619f; angle < hostHeading + 6.28319f && !placed; angle += 0.7f)
+            {
+                float rad = CGeneral::LimitRadianAngle(angle);
+                CVector offset(-sinf(rad), cosf(rad), 0.0f);
+                CVector testPos = hostPos + offset * dist;
+
+                if (CPedPlacement::FindZCoorForPed(&testPos))
+                {
+                    if (!CWorld::TestSphereAgainstWorld(testPos, 0.35f, false, true, true, true, true, true, false)
+                        && CWorld::GetIsLineOfSightClear(hostPos, testPos, true, true, false, true, true, false, false))
+                    {
+                        positions[pedIndex] = testPos;
+                        placed = true;
+                    }
+                }
+            }
+        }
+        if (!placed) positions[pedIndex] = hostPos;
+    }
+
+    for (int i = 0; i < playerCount; i++)
+    {
+        CPackets::TeleportPlayerScripted packet{};
+        packet.playerid = networkPlayers[i]->m_iPlayerId;
+        packet.pos = positions[i];
+        packet.heading = hostHeading;
+        CNetwork::SendPacket(CPacketsID::TELEPORT_PLAYER_SCRIPTED, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
+    }
+}
+
 static bool g_reviveInProgress = false;
 static uint32_t g_reviveStartTick = 0;
 static int g_reviveTargetId = -1;
@@ -148,8 +209,15 @@ public:
 						&& CTheScripts::OnAMissionFlag
 						&& CTheScripts::ScriptSpace[CTheScripts::OnAMissionFlag] != lastOnMissionFlag)
 					{
+						bool wasMission = lastOnMissionFlag;
 						lastOnMissionFlag = CTheScripts::ScriptSpace[CTheScripts::OnAMissionFlag];
 						CPacketHandler::OnMissionFlagSync__Trigger();
+
+						// Auto-teleport remote players to host when a mission starts
+						if (!wasMission && lastOnMissionFlag)
+						{
+							AutoTeleportPlayersToHost();
+						}
 					}
 
 					unsigned int tickCount = GetTickCount();
