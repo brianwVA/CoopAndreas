@@ -836,12 +836,46 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     bProcessingNetworkOpcode = false;
 }
 
+// Post-crash recovery: restore game state after VEH catches a crash in native handler.
+// If a cutscene handler crashed halfway, the cutscene/camera/fade/widescreen state
+// may be stuck. This function forces cleanup so the game doesn't stay on a black screen.
+static void __cdecl PostCrashRecovery()
+{
+    g_bInNativeHandlerCall = false;
+
+    __try {
+        // If cutscene is still marked as running, force it to finish
+        if (CCutsceneMgr::ms_running)
+        {
+            CCutsceneMgr::ms_wasCutsceneSkipped = 1;
+            CCutsceneMgr::FinishCutscene();
+            CCutsceneMgr::DeleteCutsceneData();
+        }
+        else if (CCutsceneMgr::ms_cutsceneLoadStatus != 0)
+        {
+            CCutsceneMgr::DeleteCutsceneData();
+        }
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        // If cleanup itself crashes, just reset the flags directly
+        CCutsceneMgr::ms_running = false;
+        CCutsceneMgr::ms_cutsceneLoadStatus = 0;
+    }
+
+    __try {
+        TheCamera.RestoreWithJumpCut();
+        TheCamera.SetWideScreenOff();
+        TheCamera.Fade(0.0f, 1); // instant fade-in
+    } __except(EXCEPTION_EXECUTE_HANDLER) {}
+}
+
 // Standalone recovery stub for VEH to jump to when native handler crashes.
 // Replicates the after_call logic from OpcodeProcessingWellDone_Hook.
 static void __declspec(naked) NativeHandlerCrashRecovery()
 {
     __asm
     {
+        call PostCrashRecovery
+
         xor eax, eax
         push eax
         call BuildAndSendOpcode
