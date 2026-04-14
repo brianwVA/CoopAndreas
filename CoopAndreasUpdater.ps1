@@ -156,6 +156,63 @@ function Stop-IfRunning([string[]]$processNames) {
     }
 }
 
+# ── Integrity check ──
+
+function Test-CoreFilesPresent([string]$gameDir) {
+    $requiredFiles = @("CoopAndreasSA.dll", "server.exe", "EAX.dll", "stream.ini")
+    $missing = @()
+    foreach ($f in $requiredFiles) {
+        if (-not (Test-Path (Join-Path $gameDir $f))) {
+            $missing += $f
+        }
+    }
+    # Check CoopAndreas\main.scm
+    $scmPath = Join-Path $gameDir "CoopAndreas\main.scm"
+    if (-not (Test-Path $scmPath)) { $missing += "CoopAndreas\main.scm" }
+    return $missing
+}
+
+# ── MSVC Runtime check ──
+
+function Test-VCRedistInstalled() {
+    # Check for VC++ 2015-2022 x86 redistributable
+    $paths = @(
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\X86",
+        "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X86"
+    )
+    foreach ($p in $paths) {
+        if (Test-Path $p) {
+            $installed = (Get-ItemProperty -Path $p -ErrorAction SilentlyContinue).Installed
+            if ($installed -eq 1) { return $true }
+        }
+    }
+    # Fallback: check if vcruntime140.dll exists in System32 or SysWOW64
+    $sysDir = if ([Environment]::Is64BitOperatingSystem) { "$env:SystemRoot\SysWOW64" } else { "$env:SystemRoot\System32" }
+    return (Test-Path (Join-Path $sysDir "vcruntime140.dll"))
+}
+
+function Install-VCRedist() {
+    $vcUrl = "https://aka.ms/vs/17/release/vc_redist.x86.exe"
+    $vcTemp = Join-Path $env:TEMP "vc_redist_x86.exe"
+    Write-Info "Pobieram Visual C++ Redistributable x86..."
+    try {
+        Invoke-WebRequest -Uri $vcUrl -OutFile $vcTemp -UseBasicParsing
+        Write-Info "Instalowanie Visual C++ Redistributable (wymaga uprawnien administratora)..."
+        $proc = Start-Process -FilePath $vcTemp -ArgumentList "/install", "/passive", "/norestart" -Wait -PassThru
+        if ($proc.ExitCode -eq 0 -or $proc.ExitCode -eq 3010) {
+            Write-Ok "Visual C++ Redistributable zainstalowany."
+        } else {
+            Write-Err "Instalacja VC++ Redist zwrocila kod: $($proc.ExitCode)"
+            Write-Info "Pobierz recznie: https://aka.ms/vs/17/release/vc_redist.x86.exe"
+        }
+    } catch {
+        Write-Err "Nie udalo sie pobrac/zainstalowac VC++ Redistributable."
+        Write-Info "Pobierz recznie: https://aka.ms/vs/17/release/vc_redist.x86.exe"
+    } finally {
+        if (Test-Path $vcTemp) { Remove-Item $vcTemp -Force -ErrorAction SilentlyContinue }
+    }
+}
+
 # ── Commit-based update check ──
 
 function Get-LocalCommitSha([string]$gameDir) {
@@ -676,23 +733,31 @@ try {
         $remoteSha = "unknown"
     }
 
+    # ── Even if commit matches, check file integrity ──
     if (-not $needsUpdate) {
-        Write-LocalLaunchers -gameDir $gtaDir
+        $missingFiles = Test-CoreFilesPresent -gameDir $gtaDir
+        if ($missingFiles.Count -gt 0) {
+            Write-Err "Brakuje plikow mimo aktualnej wersji: $($missingFiles -join ', ')"
+            Write-Info "Wymuszam ponowna instalacje..."
+            $needsUpdate = $true
+        } else {
+            Write-LocalLaunchers -gameDir $gtaDir
 
-        if ($RunAfterUpdate) {
-            $serverExe = Join-Path $gtaDir "server.exe"
-            $gtaExe = Join-Path $gtaDir "gta_sa.exe"
-            if (Test-Path $serverExe) {
-                Start-Process -FilePath $serverExe -WorkingDirectory $gtaDir -WindowStyle Normal
-                Start-Sleep -Seconds 1
+            if ($RunAfterUpdate) {
+                $serverExe = Join-Path $gtaDir "server.exe"
+                $gtaExe = Join-Path $gtaDir "gta_sa.exe"
+                if (Test-Path $serverExe) {
+                    Start-Process -FilePath $serverExe -WorkingDirectory $gtaDir -WindowStyle Normal
+                    Start-Sleep -Seconds 1
+                }
+                if (Test-Path $gtaExe) {
+                    Start-Process -FilePath $gtaExe -WorkingDirectory $gtaDir -WindowStyle Normal
+                }
             }
-            if (Test-Path $gtaExe) {
-                Start-Process -FilePath $gtaExe -WorkingDirectory $gtaDir -WindowStyle Normal
-            }
+
+            Write-Ok "Brak aktualizacji."
+            exit 0
         }
-
-        Write-Ok "Brak aktualizacji."
-        exit 0
     }
 
     # ── Download and install ──
@@ -731,6 +796,14 @@ try {
     Ensure-AsiLoader -gameDir $gtaDir
     if (-not $NoResolutionFix) {
         Ensure-WidescreenFix -gameDir $gtaDir
+    }
+
+    # ── MSVC Runtime ──
+    if (-not (Test-VCRedistInstalled)) {
+        Write-Err "Brak Visual C++ Redistributable x86 — CoopAndreasSA.dll nie zaladuje sie bez tego!"
+        Install-VCRedist
+    } else {
+        Write-Ok "Visual C++ Redistributable x86 wykryty."
     }
 
     # ── Write VERSION.txt with commit SHA ──

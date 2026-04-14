@@ -21,17 +21,19 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         hCoopAndreas = LoadLibraryA("CoopAndreasSA.dll");
         if (!hCoopAndreas)
         {
-            MessageBoxA(
-                0,
-                "Failed to load CoopAndreasSA.dll.\n\n"
-                "To uninstall CoopAndreas properly:\n"
-                "1. Delete 'eax.dll'.\n"
-                "2. Rename 'eax_orig.dll' back to 'eax.dll'.\n\n"
-                "To play CoopAndreas again:\n"
-                "Reinstall the mod.",
-                "CoopAndreas Loader",
-                MB_OK | MB_ICONERROR
-            );
+            DWORD err = GetLastError();
+            char msg[512];
+            wsprintfA(msg,
+                "Failed to load CoopAndreasSA.dll (error %lu).\n\n"
+                "Najczesciej brakuje Visual C++ Redistributable x86.\n"
+                "Pobierz: https://aka.ms/vs/17/release/vc_redist.x86.exe\n\n"
+                "Lub uruchom ponownie: Uruchom CoopAndreas.bat\n"
+                "(updater zainstaluje brakujace pliki automatycznie)\n\n"
+                "Aby odinstalowac CoopAndreas:\n"
+                "1. Usun 'eax.dll'.\n"
+                "2. Zmien nazwe 'eax_orig.dll' na 'eax.dll'.",
+                err);
+            MessageBoxA(0, msg, "CoopAndreas Loader", MB_OK | MB_ICONERROR);
         }
         break;
     case DLL_PROCESS_DETACH:
