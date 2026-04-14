@@ -168,15 +168,18 @@ namespace CoopAndreasUninstaller
                     Ok("Usunieto: EAX.dll (proxy)");
                 }
 
-                // Remove CoopAndreas folder (but keep Launcher folder until last)
+                // Remove CoopAndreas folder (but keep installer/uninstaller EXEs)
                 string coopDir = Path.Combine(gtaDir, "CoopAndreas");
                 if (Directory.Exists(coopDir))
                 {
-                    // Delete everything except the uninstaller itself
-                    string selfPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                    // Keep these files — user needs them to reinstall
+                    string selfPath = Path.GetFullPath(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                    string installerPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(selfPath), "CoopAndreasInstaller.exe"));
+                    var keepFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { selfPath, installerPath };
+
                     foreach (var f in Directory.GetFiles(coopDir, "*", SearchOption.AllDirectories))
                     {
-                        if (string.Equals(Path.GetFullPath(f), Path.GetFullPath(selfPath), StringComparison.OrdinalIgnoreCase))
+                        if (keepFiles.Contains(Path.GetFullPath(f)))
                             continue;
                         try { File.Delete(f); deleted++; } catch { }
                     }
