@@ -169,6 +169,12 @@ static constexpr uintptr_t kMaxExecutableCodePtr = 0x02000000;
 static uint32_t lastOpCodeProcessed;
 static CRunningScript* lastProcessedScript;
 
+// Guard flag + ESP save for VEH-based crash recovery during native handler calls.
+// When OpcodeProcessingWellDone_Hook calls edx (the opcode handler), this flag is set.
+// If the handler crashes (e.g. EIP lands in data section), the VEH can recover.
+volatile bool g_bInNativeHandlerCall = false;
+volatile DWORD g_savedNativeHandlerEsp = 0;
+
 // SEH-protected wrapper for opcode handler calls during network replay.
 // Prevents crashes inside a handler from killing the process.
 static bool SafeCallOpcodeHandler(CRunningScript* script, uint16_t opcode)
@@ -849,6 +855,26 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     bProcessingNetworkOpcode = false;
 }
 
+// Standalone recovery stub for VEH to jump to when native handler crashes.
+// Replicates the after_call logic from OpcodeProcessingWellDone_Hook.
+static void __declspec(naked) NativeHandlerCrashRecovery()
+{
+    __asm
+    {
+        xor eax, eax
+        push eax
+        call BuildAndSendOpcode
+        pop eax
+
+        test al, al
+        push 0x469FF9
+        ret
+    }
+}
+
+// Address of the recovery stub, read by VEH in CrashfixHooks.cpp.
+volatile DWORD g_nativeHandlerRecoveryEip = 0;
+
 void __declspec(naked) OpcodeProcessingWellDone_Hook()
 {
     __asm
@@ -864,8 +890,14 @@ void __declspec(naked) OpcodeProcessingWellDone_Hook()
         cmp edx, 2000000h
         jae invalid_handler
 
+        // Set up VEH crash recovery before calling the handler.
+        mov g_savedNativeHandlerEsp, esp
+        mov byte ptr [g_bInNativeHandlerCall], 1
+
         mov ecx, esi
         call edx
+
+        mov byte ptr [g_bInNativeHandlerCall], 0
         jmp after_call
 
     invalid_handler:
@@ -1016,6 +1048,9 @@ void COpCodeSync::Init()
     DWORD temp;
     injector::UnprotectMemory(0x464080, 5, temp);
     injector::UnprotectMemory(0x463D50, 6, temp);
+
+    // Set up VEH recovery address for native handler crashes
+    g_nativeHandlerRecoveryEip = (DWORD)NativeHandlerCrashRecovery;
 
     patch::RedirectJump(0x469FF3, OpcodeProcessingWellDone_Hook);
 

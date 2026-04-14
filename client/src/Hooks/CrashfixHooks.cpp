@@ -1,36 +1,57 @@
 #include "stdafx.h"
 #include "CrashfixHooks.h"
 
-// Vectored Exception Handler: catch calls to invalid low-address function
-// pointers (e.g. EIP=0x1 from corrupted vtable/callback during cutscenes).
-// When detected, pop the return address and continue execution with EAX=0.
+// VEH crash recovery globals from COpCodeSync.cpp
+extern volatile bool g_bInNativeHandlerCall;
+extern volatile DWORD g_savedNativeHandlerEsp;
+extern volatile DWORD g_nativeHandlerRecoveryEip;
+
+// Vectored Exception Handler for crash recovery.
 //
-// NOTE: Do NOT handle crashes where EIP is in the data section (0x857000+).
-// Those are better caught by SEH (__try/__except) in HandlePacket, which
-// can properly restore game state. VEH stack-scan recovery was causing
-// silent game exits because it resumed at wrong points.
+// Priority 1: Native opcode handler crash recovery.
+//   During OpcodeProcessingWellDone_Hook's `call edx`, if the handler crashes
+//   (e.g. EIP lands in data section 0xA8E99E), we restore ESP and jump to a
+//   recovery stub that safely continues the game loop.
+//
+// Priority 2: Corrupted function pointer recovery.
+//   If EIP < 0x10000 (e.g. EIP=0x1 from corrupted vtable/callback), pop the
+//   return address from the stack and resume execution with EAX=0.
 static LONG CALLBACK InvalidCallGuard(PEXCEPTION_POINTERS ex)
 {
     if (ex->ExceptionRecord->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
         return EXCEPTION_CONTINUE_SEARCH;
 
+    // Priority 1: If we're inside the native handler call, recover via the
+    // pre-built recovery stub. This handles crashes at any EIP (data section,
+    // wild jumps, etc.) that happen during opcode processing.
+    if (g_bInNativeHandlerCall && g_nativeHandlerRecoveryEip != 0)
+    {
+        g_bInNativeHandlerCall = false;
+        ex->ContextRecord->Esp = g_savedNativeHandlerEsp;
+        ex->ContextRecord->Eip = g_nativeHandlerRecoveryEip;
+        ex->ContextRecord->Eax = 0;
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
+
     DWORD eip = ex->ContextRecord->Eip;
 
-    // Only handle bogus EIP values (call through NULL or small integer)
-    if (eip >= 0x10000)
-        return EXCEPTION_CONTINUE_SEARCH;
+    // Priority 2: Corrupted function pointer (EIP in first 64KB)
+    if (eip < 0x10000)
+    {
+        DWORD* esp = (DWORD*)ex->ContextRecord->Esp;
+        DWORD returnAddr = *esp;
 
-    DWORD* esp = (DWORD*)ex->ContextRecord->Esp;
-    DWORD returnAddr = *esp;
+        if (returnAddr < 0x10000)
+            return EXCEPTION_CONTINUE_SEARCH;
 
-    if (returnAddr < 0x10000)
-        return EXCEPTION_CONTINUE_SEARCH;
+        ex->ContextRecord->Eip = returnAddr;
+        ex->ContextRecord->Esp += 4;
+        ex->ContextRecord->Eax = 0;
 
-    ex->ContextRecord->Eip = returnAddr;
-    ex->ContextRecord->Esp += 4;
-    ex->ContextRecord->Eax = 0;
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
 
-    return EXCEPTION_CONTINUE_EXECUTION;
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 
 // i hope it will work
