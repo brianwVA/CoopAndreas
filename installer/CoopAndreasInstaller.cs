@@ -585,27 +585,23 @@ namespace CoopAndreasInstaller
             string launcherDir = Path.Combine(coopDir, "Launcher");
             Directory.CreateDirectory(launcherDir);
 
-            // Copy installer/uninstaller EXEs if present in repo
+            // Copy launcher files from repo, but skip self (running EXE can't be overwritten)
+            string selfPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            string selfName = Path.GetFileName(selfPath).ToLowerInvariant();
             string installerDir = Path.Combine(repoRoot, "release", "launcher");
             if (Directory.Exists(installerDir))
             {
                 foreach (var f in Directory.GetFiles(installerDir))
                 {
-                    string dst = Path.Combine(launcherDir, Path.GetFileName(f));
-                    File.Copy(f, dst, true);
+                    string fileName = Path.GetFileName(f);
+                    string dst = Path.Combine(launcherDir, fileName);
+                    // Skip if destination is the currently running EXE
+                    if (File.Exists(dst) && string.Equals(Path.GetFullPath(dst), Path.GetFullPath(selfPath), StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    try { File.Copy(f, dst, true); }
+                    catch (IOException) { /* file in use, skip */ }
                 }
                 Ok("Zaktualizowano pliki launchera.");
-            }
-
-            // Copy self to Launcher dir
-            string selfPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            if (!string.IsNullOrEmpty(selfPath) && File.Exists(selfPath))
-            {
-                string selfDst = Path.Combine(launcherDir, Path.GetFileName(selfPath));
-                if (!string.Equals(Path.GetFullPath(selfPath), Path.GetFullPath(selfDst), StringComparison.OrdinalIgnoreCase))
-                {
-                    File.Copy(selfPath, selfDst, true);
-                }
             }
 
             Ok(string.Format("Zainstalowano {0} plikow moda.", installed));
