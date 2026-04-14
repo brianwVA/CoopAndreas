@@ -90,7 +90,21 @@ xmake --build proxy
 
 TODO
 
-## Donate
+## Credits & History
+
+Original mod created by **Tornamic** — [github.com/Tornamic/CoopAndreas](https://github.com/Tornamic/CoopAndreas)
+
+This fork is maintained by **bewu** (brianwVA) starting from version 0.2.2. Changes introduced in this fork include:
+- Crash fixes (animation buffer guard, cutscene crash recovery, VEH/SEH protection)
+- Per-player stat separation (body, weapons, skills, money, properties)
+- Wanted level MAX sync, side mission shared progress
+- Weapon drop (G), money drop (H), teammate revive (J)
+- Full auto-installer/updater with commit-based updates and VC++ runtime detection
+- Numerous stability and compatibility improvements
+
+This project is **open source** — contributions and pull requests are welcome.
+
+## Donate (original author — Tornamic)
 https://send.monobank.ua/jar/8wPrs73MBa
 
 USDT TRC20: `TNdTwiy9JM2zUe8qgBoMJoAExKf4gs5vGA`
@@ -161,12 +175,12 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [ ] graffities, horseshoes, snapshots, oysters
   - [ ] static weapons, armours
   - [ ] static bribes
-  - [ ] drop
-    - [ ] money
-    - [X] weapons (drop on death)
+  - [X] drop weapons (G key — teammate can pick up)
+  - [X] drop money (H key)
 - [ ] jetpack sync
   - [X] flight 
   - [ ] pickup (related to task above) 
+- [X] revive teammate (J key — 1 minute window after death)
 - [ ] cutscenes
   - [X] cutscenes
   - [ ] vote to skip
