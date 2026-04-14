@@ -419,19 +419,6 @@ void BuildAndSendOpcode()
         return;
     }
 
-    // Block ALL opcode sync while a cutscene is loading or playing.
-    // During cutscenes, scripts reference temporary actors/objects that only
-    // exist on the host — replaying those opcodes on clients causes crashes
-    // (EIP in data section, corrupted function pointers, etc.)
-    if (CCutsceneMgr::ms_running || CCutsceneMgr::ms_cutsceneLoadStatus != 0)
-    {
-        memset(textParamBuffer, 0, sizeof textParamBuffer);
-        memset(textLengthBuffer, 0, sizeof textLengthBuffer);
-        scriptParamCount = 0;
-        textParamCount = 0;
-        return;
-    }
-
     // Some mission/cutscene opcodes are unstable in network replay during SWEET2/Nines and AKs.
     // Keep them local-only to prevent remote script-crash chains (EIP=0x00000001).
     if (lastOpCodeProcessed == 0x04BB   // set_area_visible
@@ -509,12 +496,6 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
     OpcodeSyncHeader header;
     memcpy(&header, current, sizeof(header));
     current += sizeof(header);
-
-    // Block incoming opcode sync while a cutscene is active on this client.
-    if (CCutsceneMgr::ms_running || CCutsceneMgr::ms_cutsceneLoadStatus != 0)
-    {
-        return;
-    }
 
     // Some mission/cutscene opcodes are unstable in network replay during SWEET2/Nines and AKs.
     // Keep them local-only to prevent remote script-crash chains (EIP=0x00000001).
