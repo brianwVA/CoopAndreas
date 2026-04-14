@@ -205,6 +205,38 @@ namespace CoopAndreasInstaller
                         missing.Add(f.RelativePath + " (pusty plik!)");
                 }
             }
+
+            // Version consistency check — verify EXE/DLL versions match VERSION.txt channel
+            string versionFile = Path.Combine(gameDir, "VERSION.txt");
+            if (File.Exists(versionFile))
+            {
+                string expectedVer = null;
+                foreach (var line in File.ReadAllLines(versionFile))
+                {
+                    if (line.StartsWith("channel=old-"))
+                        expectedVer = line.Substring("channel=old-".Length).Trim() + "-bewu";
+                }
+                if (expectedVer != null)
+                {
+                    string[] versionedFiles = { "CoopAndreasSA.dll", "server.exe" };
+                    foreach (var vf in versionedFiles)
+                    {
+                        string path = Path.Combine(gameDir, vf);
+                        if (File.Exists(path))
+                        {
+                            try
+                            {
+                                var fvi = FileVersionInfo.GetVersionInfo(path);
+                                string actual = fvi.FileVersion;
+                                if (!string.IsNullOrEmpty(actual) && actual != expectedVer)
+                                    missing.Add(string.Format("{0} (wersja {1}, oczekiwana {2})", vf, actual, expectedVer));
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+
             return missing;
         }
 
