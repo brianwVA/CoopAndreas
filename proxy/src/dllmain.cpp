@@ -2,8 +2,12 @@
 #include <windows.h>
 
 // ── Runtime forwarding to eax_orig.dll (graceful if missing) ──
+// When eax_orig.dll is absent, EAXDirectSoundCreate falls back to
+// regular DirectSoundCreate from dsound.dll so the game gets a valid
+// IDirectSound* and doesn't crash.  EAX effects simply won't work.
 
 static HMODULE hEaxOrig = NULL;
+static HMODULE hDSound  = NULL;
 static HMODULE hCoopAndreas = NULL;
 
 typedef HRESULT (__stdcall *fn_NoArgs)();
@@ -19,12 +23,16 @@ static fn_DSCreate    p_EAXDirectSoundCreate;
 static fn_DSCreate    p_EAXDirectSoundCreate8;
 static fn_GetVer      p_GetCurrentVersion;
 
+// dsound.dll fallbacks
+static fn_DSCreate    p_DirectSoundCreate;
+static fn_DSCreate    p_DirectSoundCreate8;
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-        // Load original EAX — not fatal if missing (EAX audio just won't work)
+        // Load original EAX — not fatal if missing (falls back to DirectSound)
         hEaxOrig = LoadLibraryA("eax_orig.dll");
         if (hEaxOrig)
         {
@@ -35,6 +43,16 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
             p_EAXDirectSoundCreate  = (fn_DSCreate)    GetProcAddress(hEaxOrig, "EAXDirectSoundCreate");
             p_EAXDirectSoundCreate8 = (fn_DSCreate)    GetProcAddress(hEaxOrig, "EAXDirectSoundCreate8");
             p_GetCurrentVersion     = (fn_GetVer)      GetProcAddress(hEaxOrig, "GetCurrentVersion");
+        }
+        else
+        {
+            // Fallback: resolve DirectSoundCreate from dsound.dll
+            hDSound = LoadLibraryA("dsound.dll");
+            if (hDSound)
+            {
+                p_DirectSoundCreate  = (fn_DSCreate) GetProcAddress(hDSound, "DirectSoundCreate");
+                p_DirectSoundCreate8 = (fn_DSCreate) GetProcAddress(hDSound, "DirectSoundCreate8");
+            }
         }
 
         hCoopAndreas = LoadLibraryA("CoopAndreasSA.dll");
@@ -59,6 +77,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     case DLL_PROCESS_DETACH:
         if (hCoopAndreas) FreeLibrary(hCoopAndreas);
         if (hEaxOrig) FreeLibrary(hEaxOrig);
+        if (hDSound) FreeLibrary(hDSound);
         break;
     }
     return TRUE;
@@ -83,10 +102,21 @@ extern "C" HRESULT __stdcall proxy_DllUnregisterServer()
 { return p_DllUnregisterServer ? p_DllUnregisterServer() : E_FAIL; }
 
 extern "C" HRESULT __stdcall proxy_EAXDirectSoundCreate(const void* g, void** pp, void* u)
-{ return p_EAXDirectSoundCreate ? p_EAXDirectSoundCreate(g, pp, u) : E_FAIL; }
+{
+    if (p_EAXDirectSoundCreate) return p_EAXDirectSoundCreate(g, pp, u);
+    // Fallback to regular DirectSoundCreate — game works, just no EAX effects
+    if (p_DirectSoundCreate) return p_DirectSoundCreate(g, pp, u);
+    if (pp) *pp = NULL;
+    return E_FAIL;
+}
 
 extern "C" HRESULT __stdcall proxy_EAXDirectSoundCreate8(const void* g, void** pp, void* u)
-{ return p_EAXDirectSoundCreate8 ? p_EAXDirectSoundCreate8(g, pp, u) : E_FAIL; }
+{
+    if (p_EAXDirectSoundCreate8) return p_EAXDirectSoundCreate8(g, pp, u);
+    if (p_DirectSoundCreate8) return p_DirectSoundCreate8(g, pp, u);
+    if (pp) *pp = NULL;
+    return E_FAIL;
+}
 
 extern "C" HRESULT __stdcall proxy_GetCurrentVersion(void* pv)
 { return p_GetCurrentVersion ? p_GetCurrentVersion(pv) : E_FAIL; }
