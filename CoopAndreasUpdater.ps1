@@ -213,6 +213,61 @@ function Install-VCRedist() {
     }
 }
 
+# ── DirectX 9 Runtime ──
+
+function Test-DirectX9Installed() {
+    # Check for d3dx9_43.dll (required by CoopAndreasSA.dll)
+    $sysDir = if ([Environment]::Is64BitOperatingSystem) { "$env:SystemRoot\SysWOW64" } else { "$env:SystemRoot\System32" }
+    return (Test-Path (Join-Path $sysDir "d3dx9_43.dll"))
+}
+
+function Install-DirectX9() {
+    $dxUrl = "https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe"
+    $dxTemp = Join-Path $env:TEMP "directx_redist.exe"
+    $dxExtract = Join-Path $env:TEMP "directx_extract"
+    Write-Info "Pobieram DirectX 9 End-User Runtime (~100MB)..."
+    try {
+        Invoke-WebRequest -Uri $dxUrl -OutFile $dxTemp -UseBasicParsing
+        Write-Info "Rozpakowuje DirectX Runtime..."
+        New-Item -ItemType Directory -Path $dxExtract -Force | Out-Null
+        $proc = Start-Process -FilePath $dxTemp -ArgumentList "/Q", "/T:$dxExtract" -Wait -PassThru
+        if ($proc.ExitCode -ne 0) {
+            Write-Err "Nie udalo sie rozpakowac DirectX Runtime."
+            Write-Info "Pobierz recznie: https://www.microsoft.com/en-us/download/details.aspx?id=8109"
+            return
+        }
+        $dxSetup = Join-Path $dxExtract "DXSETUP.exe"
+        if (Test-Path $dxSetup) {
+            Write-Info "Instalowanie DirectX Runtime (wymaga uprawnien administratora)..."
+            $proc2 = Start-Process -FilePath $dxSetup -ArgumentList "/silent" -Wait -PassThru
+            if ($proc2.ExitCode -eq 0) {
+                Write-Ok "DirectX 9 Runtime zainstalowany."
+            } else {
+                Write-Err "Instalacja DirectX Runtime zwrocila kod: $($proc2.ExitCode)"
+                Write-Info "Pobierz recznie: https://www.microsoft.com/en-us/download/details.aspx?id=8109"
+            }
+        }
+    } catch {
+        Write-Err "Nie udalo sie pobrac/zainstalowac DirectX 9 Runtime."
+        Write-Info "Pobierz recznie: https://www.microsoft.com/en-us/download/details.aspx?id=8109"
+    } finally {
+        if (Test-Path $dxTemp) { Remove-Item $dxTemp -Force -ErrorAction SilentlyContinue }
+        if (Test-Path $dxExtract) { Remove-Item $dxExtract -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+# ── Unblock downloaded files ──
+
+function Unblock-ModFiles([string]$gameDir) {
+    $filesToUnblock = @("CoopAndreasSA.dll", "EAX.dll", "proxy.dll", "dinput8.dll", "server.exe")
+    foreach ($f in $filesToUnblock) {
+        $path = Join-Path $gameDir $f
+        if (Test-Path $path) {
+            Unblock-File -LiteralPath $path -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 # ── Commit-based update check ──
 
 function Get-LocalCommitSha([string]$gameDir) {
@@ -821,6 +876,17 @@ try {
     } else {
         Write-Ok "Visual C++ Redistributable x86 wykryty."
     }
+
+    # ── DirectX 9 Runtime ──
+    if (-not (Test-DirectX9Installed)) {
+        Write-Err "Brak DirectX 9 Runtime (d3dx9_43.dll) — CoopAndreasSA.dll nie zaladuje sie bez tego!"
+        Install-DirectX9
+    } else {
+        Write-Ok "DirectX 9 Runtime (d3dx9_43.dll) wykryty."
+    }
+
+    # ── Unblock downloaded files (remove Windows 'downloaded from internet' flag) ──
+    Unblock-ModFiles -gameDir $gtaDir
 
     # ── Write VERSION.txt with commit SHA ──
     $latestPkg = Get-ChildItem -Path (Join-Path $repoRoot.FullName "release") -Directory |

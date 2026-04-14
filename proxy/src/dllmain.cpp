@@ -25,13 +25,14 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             char msg[512];
             wsprintfA(msg,
                 "Failed to load CoopAndreasSA.dll (error %lu).\n\n"
-                "Najczesciej brakuje Visual C++ Redistributable x86.\n"
-                "Pobierz: https://aka.ms/vs/17/release/vc_redist.x86.exe\n\n"
-                "Lub uruchom ponownie: Uruchom CoopAndreas.bat\n"
-                "(updater zainstaluje brakujace pliki automatycznie)\n\n"
-                "Aby odinstalowac CoopAndreas:\n"
-                "1. Usun 'eax.dll'.\n"
-                "2. Zmien nazwe 'eax_orig.dll' na 'eax.dll'.",
+                "Mozliwe przyczyny:\n"
+                "1) Brak DirectX 9 Runtime (d3dx9_43.dll)\n"
+                "   Pobierz: https://www.microsoft.com/en-us/download/details.aspx?id=8109\n"
+                "2) Brak Visual C++ Redistributable x86\n"
+                "   Pobierz: https://aka.ms/vs/17/release/vc_redist.x86.exe\n"
+                "3) Windows zablokował plik (PPM na DLL -> Wlasciwosci -> Odblokuj)\n\n"
+                "Lub uruchom: Uruchom CoopAndreas.bat\n"
+                "(updater zainstaluje brakujace automatycznie)",
                 err);
             MessageBoxA(0, msg, "CoopAndreas Loader", MB_OK | MB_ICONERROR);
         }
