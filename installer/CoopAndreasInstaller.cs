@@ -415,6 +415,12 @@ namespace CoopAndreasInstaller
                 }
             }
 
+            if (!File.Exists(eaxOrig))
+            {
+                Warn("Brak oryginalnego eax.dll — dzwiek EAX nie bedzie dostepny.");
+                Warn("(Gra bedzie dzialac normalnie, bez efektow EAX.)");
+            }
+
             // Copy proxy as EAX.dll
             if (File.Exists(proxyDllSource))
             {

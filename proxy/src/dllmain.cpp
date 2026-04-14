@@ -1,23 +1,42 @@
 ﻿#include "pch.h"
 #include <windows.h>
 
-#pragma comment(linker,"/export:DllCanUnloadNow=eax_orig.DllCanUnloadNow,@1")
-#pragma comment(linker,"/export:DllGetClassObject=eax_orig.DllGetClassObject,@2")
-#pragma comment(linker,"/export:DllRegisterServer=eax_orig.DllRegisterServer,@3")
-#pragma comment(linker,"/export:DllUnregisterServer=eax_orig.DllUnregisterServer,@4")
-#pragma comment(linker,"/export:EAXDirectSoundCreate=eax_orig.EAXDirectSoundCreate,@5")
-#pragma comment(linker,"/export:EAXDirectSoundCreate8=eax_orig.EAXDirectSoundCreate8,@6")
-#pragma comment(linker,"/export:GetCurrentVersion=eax_orig.GetCurrentVersion,@7")
+// ── Runtime forwarding to eax_orig.dll (graceful if missing) ──
 
-HMODULE hCoopAndreas = NULL;
+static HMODULE hEaxOrig = NULL;
+static HMODULE hCoopAndreas = NULL;
 
-BOOL APIENTRY DllMain(HMODULE hModule,
-    DWORD  ul_reason_for_call,
-    LPVOID lpReserved)
+typedef HRESULT (__stdcall *fn_NoArgs)();
+typedef HRESULT (__stdcall *fn_GetClassObj)(const void*, const void*, void**);
+typedef HRESULT (__stdcall *fn_DSCreate)(const void*, void**, void*);
+typedef HRESULT (__stdcall *fn_GetVer)(void*);
+
+static fn_NoArgs      p_DllCanUnloadNow;
+static fn_GetClassObj p_DllGetClassObject;
+static fn_NoArgs      p_DllRegisterServer;
+static fn_NoArgs      p_DllUnregisterServer;
+static fn_DSCreate    p_EAXDirectSoundCreate;
+static fn_DSCreate    p_EAXDirectSoundCreate8;
+static fn_GetVer      p_GetCurrentVersion;
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
+        // Load original EAX — not fatal if missing (EAX audio just won't work)
+        hEaxOrig = LoadLibraryA("eax_orig.dll");
+        if (hEaxOrig)
+        {
+            p_DllCanUnloadNow       = (fn_NoArgs)     GetProcAddress(hEaxOrig, "DllCanUnloadNow");
+            p_DllGetClassObject     = (fn_GetClassObj) GetProcAddress(hEaxOrig, "DllGetClassObject");
+            p_DllRegisterServer     = (fn_NoArgs)      GetProcAddress(hEaxOrig, "DllRegisterServer");
+            p_DllUnregisterServer   = (fn_NoArgs)      GetProcAddress(hEaxOrig, "DllUnregisterServer");
+            p_EAXDirectSoundCreate  = (fn_DSCreate)    GetProcAddress(hEaxOrig, "EAXDirectSoundCreate");
+            p_EAXDirectSoundCreate8 = (fn_DSCreate)    GetProcAddress(hEaxOrig, "EAXDirectSoundCreate8");
+            p_GetCurrentVersion     = (fn_GetVer)      GetProcAddress(hEaxOrig, "GetCurrentVersion");
+        }
+
         hCoopAndreas = LoadLibraryA("CoopAndreasSA.dll");
         if (!hCoopAndreas)
         {
@@ -38,11 +57,45 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         }
         break;
     case DLL_PROCESS_DETACH:
-        if (hCoopAndreas)
-        {
-            FreeLibrary(hCoopAndreas);
-        }
+        if (hCoopAndreas) FreeLibrary(hCoopAndreas);
+        if (hEaxOrig) FreeLibrary(hEaxOrig);
         break;
     }
     return TRUE;
 }
+
+// ── Forwarded EAX exports (return failure stubs if eax_orig.dll missing) ──
+
+extern "C" HRESULT __stdcall proxy_DllCanUnloadNow()
+{ return p_DllCanUnloadNow ? p_DllCanUnloadNow() : S_FALSE; }
+
+extern "C" HRESULT __stdcall proxy_DllGetClassObject(const void* rclsid, const void* riid, void** ppv)
+{
+    if (p_DllGetClassObject) return p_DllGetClassObject(rclsid, riid, ppv);
+    if (ppv) *ppv = NULL;
+    return (HRESULT)0x80040111L; // CLASS_E_CLASSNOTAVAILABLE
+}
+
+extern "C" HRESULT __stdcall proxy_DllRegisterServer()
+{ return p_DllRegisterServer ? p_DllRegisterServer() : E_FAIL; }
+
+extern "C" HRESULT __stdcall proxy_DllUnregisterServer()
+{ return p_DllUnregisterServer ? p_DllUnregisterServer() : E_FAIL; }
+
+extern "C" HRESULT __stdcall proxy_EAXDirectSoundCreate(const void* g, void** pp, void* u)
+{ return p_EAXDirectSoundCreate ? p_EAXDirectSoundCreate(g, pp, u) : E_FAIL; }
+
+extern "C" HRESULT __stdcall proxy_EAXDirectSoundCreate8(const void* g, void** pp, void* u)
+{ return p_EAXDirectSoundCreate8 ? p_EAXDirectSoundCreate8(g, pp, u) : E_FAIL; }
+
+extern "C" HRESULT __stdcall proxy_GetCurrentVersion(void* pv)
+{ return p_GetCurrentVersion ? p_GetCurrentVersion(pv) : E_FAIL; }
+
+// Export with undecorated names matching original eax.dll
+#pragma comment(linker, "/export:DllCanUnloadNow=_proxy_DllCanUnloadNow@0,@1")
+#pragma comment(linker, "/export:DllGetClassObject=_proxy_DllGetClassObject@12,@2")
+#pragma comment(linker, "/export:DllRegisterServer=_proxy_DllRegisterServer@0,@3")
+#pragma comment(linker, "/export:DllUnregisterServer=_proxy_DllUnregisterServer@0,@4")
+#pragma comment(linker, "/export:EAXDirectSoundCreate=_proxy_EAXDirectSoundCreate@12,@5")
+#pragma comment(linker, "/export:EAXDirectSoundCreate8=_proxy_EAXDirectSoundCreate8@12,@6")
+#pragma comment(linker, "/export:GetCurrentVersion=_proxy_GetCurrentVersion@4,@7")

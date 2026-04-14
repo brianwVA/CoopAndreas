@@ -163,9 +163,13 @@ namespace CoopAndreasUninstaller
                 }
                 else if (File.Exists(eaxDll))
                 {
-                    File.Delete(eaxDll);
-                    deleted++;
-                    Ok("Usunieto: EAX.dll (proxy)");
+                    var fi = new FileInfo(eaxDll);
+                    if (fi.Length < 100000) // Only delete if it's our proxy (~85KB), not the original (~188KB)
+                    {
+                        File.Delete(eaxDll);
+                        deleted++;
+                        Ok("Usunieto: EAX.dll (proxy)");
+                    }
                 }
 
                 // Remove CoopAndreas folder (but keep installer/uninstaller EXEs)
