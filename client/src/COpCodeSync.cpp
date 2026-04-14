@@ -39,6 +39,7 @@
 #include <CTaskSequenceSync.h>
 #include <CNetworkAnimQueue.h>
 #include <cstdint>
+#include <unordered_map>
 
 // Keep sorted!
 const SSyncedOpCode syncedOpcodes[] =
@@ -52,6 +53,15 @@ const SSyncedOpCode syncedOpcodes[] =
     {0x054C}, // load_mission_text {tableName} [string]
     {0x0998}, // award_player_mission_respect {value} [int]
     
+    // Blips (intercepted in BuildAndSendOpcode → sent as entity blip packets, NOT as OPCODE_SYNC)
+    {0x0164}, // disable_marker {blipHandle} [int]
+    {0x0165}, // change_blip_colour {blipHandle} [int] {colour} [int]
+    {0x0168}, // change_blip_scale {blipHandle} [int] {scale} [int]
+    {0x0186}, // add_blip_for_car {carHandle} [Car]
+    {0x0187}, // add_blip_for_char {charHandle} [Char]
+    {0x018B}, // change_blip_display {blipHandle} [int] {display} [int]
+    {0x07E0}, // set_blip_as_friendly {blipHandle} [int] {state} [bool]
+
     // Population managment
     {0x01EB}, // set_car_density_multiplier {multiplier} [float]
     {0x0395}, // clear_area {x} [float] {y} [float] {z} [float] {radius} [float] {clearParticles} [bool]
@@ -416,6 +426,165 @@ std::vector<uint8_t> COpCodeSync::SerializeOpcode(int idx, int& outSize)
     return buffer;
 }
 
+// ---------------------------------------------------------------------------
+// Blip opcode interception: convert script blip opcodes to entity blip packets
+// ---------------------------------------------------------------------------
+struct TrackedBlipInfo
+{
+    eNetworkEntityType entityType;
+    int entityNetId;
+    bool isFriendly;
+    uint8_t color;
+    uint8_t display;
+    uint8_t scale;
+};
+
+static std::unordered_map<int, TrackedBlipInfo> s_hostBlipMap;
+
+void COpCodeSync::ClearTrackedBlips()
+{
+    s_hostBlipMap.clear();
+}
+
+static void SendUpdateEntityBlip(const TrackedBlipInfo& info)
+{
+    CPackets::UpdateEntityBlip pkt{};
+    pkt.playerid = 0;
+    pkt.entityType = info.entityType;
+    pkt.entityId = info.entityNetId;
+    pkt.isFriendly = info.isFriendly;
+    pkt.color = info.color;
+    pkt.display = info.display;
+    pkt.scale = info.scale;
+    CNetwork::SendPacket(CPacketsID::UPDATE_ENTITY_BLIP, &pkt, sizeof pkt, ENET_PACKET_FLAG_RELIABLE);
+}
+
+static void SendRemoveEntityBlip(eNetworkEntityType entityType, int entityNetId)
+{
+    CPackets::RemoveEntityBlip pkt{};
+    pkt.playerid = 0;
+    pkt.entityType = entityType;
+    pkt.entityId = entityNetId;
+    CNetwork::SendPacket(CPacketsID::REMOVE_ENTITY_BLIP, &pkt, sizeof pkt, ENET_PACKET_FLAG_RELIABLE);
+}
+
+// Returns true if the current opcode was a blip opcode and was handled
+// via entity blip packets (should NOT be sent as OPCODE_SYNC).
+static bool HandleBlipOpcodeAsEntityPacket()
+{
+    if (!CLocalPlayer::m_bIsHost || !CNetwork::m_bConnected)
+        return false;
+
+    switch (lastOpCodeProcessed)
+    {
+    case 0x0187: // add_blip_for_char
+    {
+        int pedHandle = COpCodeSync::scriptParamsBuffer[0].value;
+        int blipHandle = ScriptParams[0]; // return value set by native handler
+
+        CPed* ped = CPools::GetPed(pedHandle);
+        if (!ped) return true;
+
+        CNetworkPed* netPed = CNetworkPedManager::GetPed(ped);
+        if (!netPed || !netPed->m_bSyncing) return true;
+
+        TrackedBlipInfo info;
+        info.entityType = eNetworkEntityType::NETWORK_ENTITY_TYPE_PED;
+        info.entityNetId = netPed->m_nPedId;
+        info.isFriendly = false;
+        info.color = 0;
+        info.display = 2; // BLIP_DISPLAY_BOTH
+        info.scale = 2;
+        s_hostBlipMap[blipHandle] = info;
+
+        SendUpdateEntityBlip(info);
+        return true;
+    }
+    case 0x0186: // add_blip_for_car
+    {
+        int vehHandle = COpCodeSync::scriptParamsBuffer[0].value;
+        int blipHandle = ScriptParams[0];
+
+        CVehicle* veh = CPools::GetVehicle(vehHandle);
+        if (!veh) return true;
+
+        CNetworkVehicle* netVeh = CNetworkVehicleManager::GetVehicle(veh);
+        if (!netVeh) return true;
+
+        TrackedBlipInfo info;
+        info.entityType = eNetworkEntityType::NETWORK_ENTITY_TYPE_VEHICLE;
+        info.entityNetId = netVeh->m_nVehicleId;
+        info.isFriendly = false;
+        info.color = 0;
+        info.display = 2;
+        info.scale = 2;
+        s_hostBlipMap[blipHandle] = info;
+
+        SendUpdateEntityBlip(info);
+        return true;
+    }
+    case 0x0164: // disable_marker / remove_blip
+    {
+        int blipHandle = COpCodeSync::scriptParamsBuffer[0].value;
+        auto it = s_hostBlipMap.find(blipHandle);
+        if (it != s_hostBlipMap.end())
+        {
+            SendRemoveEntityBlip(it->second.entityType, it->second.entityNetId);
+            s_hostBlipMap.erase(it);
+        }
+        return true;
+    }
+    case 0x07E0: // set_blip_as_friendly
+    {
+        int blipHandle = COpCodeSync::scriptParamsBuffer[0].value;
+        bool friendly = COpCodeSync::scriptParamsBuffer[1].value != 0;
+        auto it = s_hostBlipMap.find(blipHandle);
+        if (it != s_hostBlipMap.end())
+        {
+            it->second.isFriendly = friendly;
+            SendUpdateEntityBlip(it->second);
+        }
+        return true;
+    }
+    case 0x018B: // change_blip_display
+    {
+        int blipHandle = COpCodeSync::scriptParamsBuffer[0].value;
+        uint8_t display = (uint8_t)COpCodeSync::scriptParamsBuffer[1].value;
+        auto it = s_hostBlipMap.find(blipHandle);
+        if (it != s_hostBlipMap.end())
+        {
+            it->second.display = display;
+            SendUpdateEntityBlip(it->second);
+        }
+        return true;
+    }
+    case 0x0165: // change_blip_colour
+    {
+        int blipHandle = COpCodeSync::scriptParamsBuffer[0].value;
+        uint8_t colour = (uint8_t)COpCodeSync::scriptParamsBuffer[1].value;
+        auto it = s_hostBlipMap.find(blipHandle);
+        if (it != s_hostBlipMap.end())
+        {
+            it->second.color = colour;
+            SendUpdateEntityBlip(it->second);
+        }
+        return true;
+    }
+    case 0x0168: // change_blip_scale
+    {
+        int blipHandle = COpCodeSync::scriptParamsBuffer[0].value;
+        uint8_t scale = (uint8_t)COpCodeSync::scriptParamsBuffer[1].value;
+        auto it = s_hostBlipMap.find(blipHandle);
+        if (it != s_hostBlipMap.end())
+        {
+            it->second.scale = scale;
+            SendUpdateEntityBlip(it->second);
+        }
+        return true;
+    }
+    }
+    return false;
+}
 
 void BuildAndSendOpcode()
 {
@@ -467,6 +636,18 @@ void BuildAndSendOpcode()
         break;
     }
 
+    // Blip opcodes → convert to entity blip packets instead of OPCODE_SYNC.
+    // The remote uses CNetworkEntityBlip to create/update/remove blips.
+    if (HandleBlipOpcodeAsEntityPacket())
+    {
+        memset(textParamBuffer, 0, sizeof textParamBuffer);
+        memset(textLengthBuffer, 0, sizeof textLengthBuffer);
+        scriptParamCount = 0;
+        textParamCount = 0;
+        g_syncParamOverflow = false;
+        return;
+    }
+
     int idx = 0;
     if (!COpCodeSync::IsOpcodeSyncable(lastOpCodeProcessed, &idx))
         return;
@@ -514,6 +695,15 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
         || header.opcode == 0x02E7 // start_cutscene
         || header.opcode == 0x02EA // clear_cutscene
         || header.opcode == 0x0701 // end_scene_skip
+        // Blip opcodes are handled via entity blip packets, not OPCODE_SYNC.
+        // Reject them here to avoid StoreParameters crash on return-value opcodes.
+        || header.opcode == 0x0164 // disable_marker
+        || header.opcode == 0x0165 // change_blip_colour
+        || header.opcode == 0x0168 // change_blip_scale
+        || header.opcode == 0x0186 // add_blip_for_car
+        || header.opcode == 0x0187 // add_blip_for_char
+        || header.opcode == 0x018B // change_blip_display
+        || header.opcode == 0x07E0 // set_blip_as_friendly
         )
     {
         return;

@@ -218,6 +218,12 @@ public:
 						{
 							AutoTeleportPlayersToHost();
 						}
+
+						// Clear tracked blip handles when mission ends
+						if (wasMission && !lastOnMissionFlag)
+						{
+							COpCodeSync::ClearTrackedBlips();
+						}
 					}
 
 					unsigned int tickCount = GetTickCount();
