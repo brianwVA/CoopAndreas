@@ -1,6 +1,36 @@
 #include "stdafx.h"
 #include "CrashfixHooks.h"
 
+// Vectored Exception Handler: catch calls to invalid low-address function
+// pointers (e.g. EIP=0x1 from corrupted vtable/callback during cutscenes).
+// When detected, patch EIP to return 0 to the caller and continue execution.
+static LONG CALLBACK InvalidCallGuard(PEXCEPTION_POINTERS ex)
+{
+    if (ex->ExceptionRecord->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
+        return EXCEPTION_CONTINUE_SEARCH;
+
+    DWORD eip = ex->ContextRecord->Eip;
+
+    // Only handle bogus EIP values (e.g. call through NULL or small integer)
+    if (eip >= 0x10000)
+        return EXCEPTION_CONTINUE_SEARCH;
+
+    // EIP is in the first 64KB — a corrupted function pointer was called.
+    // The return address is at [ESP]; pop it and move EIP there.
+    DWORD* esp = (DWORD*)ex->ContextRecord->Esp;
+    DWORD returnAddr = *esp;
+
+    // Validate return address is in plausible code range
+    if (returnAddr < 0x10000)
+        return EXCEPTION_CONTINUE_SEARCH;
+
+    ex->ContextRecord->Eip = returnAddr;
+    ex->ContextRecord->Esp += 4;   // pop the return address
+    ex->ContextRecord->Eax = 0;    // return 0 (failure/false)
+
+    return EXCEPTION_CONTINUE_EXECUTION;
+}
+
 // i hope it will work
 void __declspec(naked) CVehicleAnimGroup__ComputeAnimDoorOffsets_Hook()
 {
@@ -90,4 +120,6 @@ void CrashfixHooks::InjectHooks()
     patch::RedirectJump(0x4D4610, CAnimManager__BlendAnimation_Hook);
     // Guard against NULL animation buffer at 0x5D12CD (covers crash at 0x5D12DD)
     patch::RedirectJump(0x5D12CD, AnimBuf_NullGuard_Hook);
+    // Catch calls through corrupted function pointers (EIP < 0x10000)
+    AddVectoredExceptionHandler(1, InvalidCallGuard);
 }
