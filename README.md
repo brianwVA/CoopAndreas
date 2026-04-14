@@ -163,7 +163,7 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [ ] static bribes
   - [ ] drop
     - [ ] money
-    - [ ] weapons
+    - [X] weapons (drop on death)
 - [ ] jetpack sync
   - [X] flight 
   - [ ] pickup (related to task above) 
@@ -176,16 +176,19 @@ PayPal `kirilltymoshchenko59@gmail.com`
   - [X] Player map pin
     - [ ] fix proportion
   - [X] Player mark (waypoint)
-- [ ] wanted level
-- [ ] stats sync
-  - [X] fat
-  - [X] muscle
-  - [X] weapon skills
+- [X] wanted level (v0.2.11 — MAX sync: if either player has stars, both do)
+- [X] stats sync (v0.2.11 — per-player separation)
+  - [X] fat (personal per player)
+  - [X] muscle (personal per player)
+  - [X] weapon skills (personal per player)
   - [X] fight styles
-  - [ ] sync money
-  - [ ] breath level bar
-  - [X] stamina sync
-  - [ ] max hp sync
+  - [X] money (v0.2.11 — separate per player)
+  - [X] breath/lung capacity (personal per player)
+  - [X] stamina sync (personal per player)
+  - [X] max hp sync (personal per player)
+  - [X] driving/flying/bike/cycling skills (personal per player)
+  - [X] sex appeal, gambling (personal per player)
+- [ ] revive teammate (receive teammate sync)
 - [ ] fire sync
 - [ ] cheat code sync
 - [ ] anim sync
@@ -252,13 +255,13 @@ PayPal `kirilltymoshchenko59@gmail.com`
 
 ## TODO Missions
 ### Already Done ✓
-### Current Tasks
 - [X] Big Smoke
 - [X] Ryder
 - [X] Tagging Up Turf
-- [ ] Cleaning The Hood
-- [ ] Drive-Thru
-- [ ] Nines And AK's
+- [X] Cleaning The Hood
+- [X] Drive-Thru
+- [X] Nines And AK's
+### Current Tasks
 - [ ] Drive-By
 - [ ] Sweet's Girl
 - [ ] Cesar Vialpando
@@ -351,15 +354,15 @@ PayPal `kirilltymoshchenko59@gmail.com`
 
 ## TODO Other Scripts
 ### Already done ✓
-### Current Tasks
-- [ ] Property purchase sync
-- [ ] Submissions
-  - [ ] Taxi driver
-  - [ ] Firefighter
-  - [ ] Vigilante
-  - [ ] Paramedic
+- [X] Property purchase (v0.2.11 — separate per player)
+- [X] Submissions progress sync (v0.2.11 — MAX-merged, both players share highest level)
+  - [X] Taxi driver
+  - [X] Firefighter
+  - [X] Vigilante
+  - [X] Paramedic
   - [ ] Pimp
   - [ ] Freight Train Missions
+### Current Tasks
 - [ ] Hiden races
   - [ ] BMX
   - [ ] NRG-500
