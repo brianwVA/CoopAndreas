@@ -169,6 +169,23 @@ static constexpr uintptr_t kMaxExecutableCodePtr = 0x02000000;
 static uint32_t lastOpCodeProcessed;
 static CRunningScript* lastProcessedScript;
 
+// SEH-protected wrapper for opcode handler calls during network replay.
+// Prevents crashes inside a handler from killing the process.
+static bool SafeCallOpcodeHandler(CRunningScript* script, uint16_t opcode)
+{
+    auto handler = CRunningScript::CommandHandlerTable[opcode / 100];
+    uintptr_t handlerPtr = (uintptr_t)handler;
+    if (handlerPtr < kMinExecutableCodePtr || handlerPtr >= kMaxExecutableCodePtr)
+        return false;
+
+    __try {
+        handler(script, opcode);
+        return true;
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        return false;
+    }
+}
+
 static uint8_t currentStringIdx = 0;
 
 static uint16_t argCount = 0;
@@ -801,12 +818,7 @@ void COpCodeSync::HandlePacket(const uint8_t* buffer, int bufferSize)
             return;
         }
 
-        auto handler = CRunningScript::CommandHandlerTable[opcode / 100];
-        uintptr_t handlerPtr = (uintptr_t)handler;
-        if (handlerPtr >= kMinExecutableCodePtr && handlerPtr < kMaxExecutableCodePtr)
-        {
-            handler(&script, opcode);
-        }
+        SafeCallOpcodeHandler(&script, opcode);
     }
     else
     {

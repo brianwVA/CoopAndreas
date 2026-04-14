@@ -1,9 +1,16 @@
 #include "stdafx.h"
 #include "CrashfixHooks.h"
 
-// Vectored Exception Handler: catch calls to invalid low-address function
-// pointers (e.g. EIP=0x1 from corrupted vtable/callback during cutscenes).
-// When detected, patch EIP to return 0 to the caller and continue execution.
+// GTA SA v1.0 US memory layout constants
+static const DWORD kGtaCodeStart = 0x401000;   // .text section start
+static const DWORD kGtaCodeEnd   = 0x857000;   // .text section end (approx)
+static const DWORD kGtaDataEnd   = 0xC00000;   // end of exe VA range (approx)
+
+// Vectored Exception Handler: catch execution at invalid addresses.
+// Case 1: EIP < 0x10000  — corrupted function pointer (e.g. EIP=0x1).
+// Case 2: EIP in GTA SA data section (0x857000-0xBFFFFF) — execution jumped
+//         into SCM script data / globals after a corrupted call/jmp.
+// In both cases, recover by finding a valid return address and continuing.
 static LONG CALLBACK InvalidCallGuard(PEXCEPTION_POINTERS ex)
 {
     if (ex->ExceptionRecord->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
@@ -11,24 +18,46 @@ static LONG CALLBACK InvalidCallGuard(PEXCEPTION_POINTERS ex)
 
     DWORD eip = ex->ContextRecord->Eip;
 
-    // Only handle bogus EIP values (e.g. call through NULL or small integer)
-    if (eip >= 0x10000)
+    // Case 1: Corrupted function pointer (EIP in first 64KB)
+    if (eip < 0x10000)
+    {
+        DWORD* esp = (DWORD*)ex->ContextRecord->Esp;
+        DWORD returnAddr = *esp;
+
+        if (returnAddr < 0x10000)
+            return EXCEPTION_CONTINUE_SEARCH;
+
+        ex->ContextRecord->Eip = returnAddr;
+        ex->ContextRecord->Esp += 4;
+        ex->ContextRecord->Eax = 0;
+
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
+
+    // Case 2: Execution landed in GTA SA data section (e.g. SCM script space).
+    // The code section ends ~0x857000; anything above that in the exe VA range
+    // is data being "executed" due to a corrupted jump/call target.
+    if (eip >= kGtaCodeEnd && eip < kGtaDataEnd)
+    {
+        DWORD* esp = (DWORD*)ex->ContextRecord->Esp;
+
+        // Scan stack for the first plausible code return address
+        for (int i = 0; i < 256; i++)
+        {
+            DWORD candidate = esp[i];
+            if (candidate >= kGtaCodeStart && candidate < kGtaCodeEnd)
+            {
+                ex->ContextRecord->Eip = candidate;
+                ex->ContextRecord->Esp = (DWORD)&esp[i + 1];
+                ex->ContextRecord->Eax = 0;
+                return EXCEPTION_CONTINUE_EXECUTION;
+            }
+        }
+
         return EXCEPTION_CONTINUE_SEARCH;
+    }
 
-    // EIP is in the first 64KB — a corrupted function pointer was called.
-    // The return address is at [ESP]; pop it and move EIP there.
-    DWORD* esp = (DWORD*)ex->ContextRecord->Esp;
-    DWORD returnAddr = *esp;
-
-    // Validate return address is in plausible code range
-    if (returnAddr < 0x10000)
-        return EXCEPTION_CONTINUE_SEARCH;
-
-    ex->ContextRecord->Eip = returnAddr;
-    ex->ContextRecord->Esp += 4;   // pop the return address
-    ex->ContextRecord->Eax = 0;    // return 0 (failure/false)
-
-    return EXCEPTION_CONTINUE_EXECUTION;
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 
 // i hope it will work
