@@ -843,8 +843,29 @@ static void __cdecl PostCrashRecovery()
 {
     g_bInNativeHandlerCall = false;
 
+    // Log the crashing opcode for diagnostics
+    char buf[256];
+    sprintf(buf, "VEH recovered from crash in opcode handler 0x%04X (script=%p)\n",
+        lastOpCodeProcessed, lastProcessedScript);
+    OutputDebugStringA(buf);
+
+    // The handler crashed mid-execution: it didn't advance the script's CIP
+    // past the opcode arguments. If we let the script continue, it will
+    // re-read the same opcode and crash in an infinite loop.
+    // Force the script to yield for this frame AND mark it to skip re-processing
+    // by setting m_bNotFlag (condition result) so the script flow changes.
+    // Actually: just set the script's m_pCurrentIP to skip past the opcode.
+    // We can't know argument count, so instead, make the script yield permanently
+    // by setting its wakeup time far in the future.
+    if (lastProcessedScript)
+    {
+        __try {
+            // Set the script to sleep for a very long time to prevent re-crash
+            ((CRunningScript*)lastProcessedScript)->m_nWakeTime = 0x7FFFFFFF;
+        } __except(EXCEPTION_EXECUTE_HANDLER) {}
+    }
+
     __try {
-        // If cutscene is still marked as running, force it to finish
         if (CCutsceneMgr::ms_running)
         {
             CCutsceneMgr::ms_wasCutsceneSkipped = 1;
@@ -856,7 +877,6 @@ static void __cdecl PostCrashRecovery()
             CCutsceneMgr::DeleteCutsceneData();
         }
     } __except(EXCEPTION_EXECUTE_HANDLER) {
-        // If cleanup itself crashes, just reset the flags directly
         CCutsceneMgr::ms_running = false;
         CCutsceneMgr::ms_cutsceneLoadStatus = 0;
     }
@@ -870,19 +890,25 @@ static void __cdecl PostCrashRecovery()
 
 // Standalone recovery stub for VEH to jump to when native handler crashes.
 // Replicates the after_call logic from OpcodeProcessingWellDone_Hook.
+// IMPORTANT: Must also pop the opcode argument pushed at 0x469FF2 (push ecx)
+// before the hook. The handler normally does this via `ret 4` (__thiscall),
+// but since it crashed, the argument is still on the stack.
 static void __declspec(naked) NativeHandlerCrashRecovery()
 {
     __asm
     {
+        // Pop the opcode argument that was pushed at 0x469FF2 (push ecx).
+        // VEH restored ESP to g_savedNativeHandlerEsp which is the state
+        // AFTER the push ecx, so the opcode value is at [ESP].
+        add esp, 4
+
         call PostCrashRecovery
 
-        xor eax, eax
-        push eax
-        call BuildAndSendOpcode
-        pop eax
-
-        test al, al
-        push 0x469FF9
+        // Stack is now: [saved_esi] [saved_ebx] [ret_addr]
+        // Jump directly to the function epilogue at 0x469FFB:
+        //   pop esi; xor al,al; pop ebx; ret
+        // This properly restores registers and exits ProcessOneCommand.
+        push 0x469FFB
         ret
     }
 }
