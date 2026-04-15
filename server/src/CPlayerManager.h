@@ -755,6 +755,7 @@ public:
 			int playerid;
 			CVector pos;
 			float heading;
+			uint8_t currArea;
 
 		static void Handle(ENetPeer* peer, void* data, int size)
 		{
@@ -1056,6 +1057,22 @@ public:
 				packet->enabled = packet->enabled ? 1 : 0;
 				ms_bCheatsEnabled = packet->enabled != 0;
 				CNetwork::SendPacketToAll(CPacketsID::CHEATS_TOGGLE, packet, sizeof(*packet), ENET_PACKET_FLAG_RELIABLE);
+			}
+		};
+
+		struct AreaSync
+		{
+			uint8_t currArea;
+
+			static void Handle(ENetPeer* peer, void* data, int size)
+			{
+				if (auto player = CPlayerManager::GetPlayer(peer))
+				{
+					if (player->m_bIsHost)
+					{
+						CNetwork::SendPacketToAll(CPacketsID::AREA_SYNC, data, sizeof(AreaSync), ENET_PACKET_FLAG_RELIABLE, peer);
+					}
+				}
 			}
 		};
 	};

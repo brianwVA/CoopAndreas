@@ -81,6 +81,7 @@ enum CPacketsID : unsigned short
 	PICKUP_REMOVE,
 	ITEM_DROP,
 	CHEATS_TOGGLE,
+	AREA_SYNC,
 	PACKET_ID_MAX
 };
 
@@ -163,6 +164,7 @@ public:
 					sizeof(PickupRemove), // PICKUP_REMOVE,
 					sizeof(ItemDrop), // ITEM_DROP,
 					sizeof(CheatsToggle), // CHEATS_TOGGLE,
+					sizeof(AreaSync), // AREA_SYNC,
 				};
 
 		return m_nPacketSize[id];
@@ -679,6 +681,12 @@ public:
 		int playerid;
 		CVector pos;
 		float heading;
+		uint8_t currArea;
+	};
+
+	struct AreaSync
+	{
+		uint8_t currArea;
 	};
 
 	struct WantedLevelSync

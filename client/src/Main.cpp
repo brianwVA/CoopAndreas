@@ -87,6 +87,7 @@ static void AutoTeleportPlayersToHost()
         packet.playerid = networkPlayers[i]->m_iPlayerId;
         packet.pos = positions[i];
         packet.heading = hostHeading;
+        packet.currArea = static_cast<uint8_t>(CGame::currArea);
         CNetwork::SendPacket(CPacketsID::TELEPORT_PLAYER_SCRIPTED, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
     }
 }
@@ -225,6 +226,9 @@ public:
 							COpCodeSync::ClearTrackedBlips();
 						}
 					}
+
+					// Periodic interior area sync (host → remotes)
+					CPacketHandler::AreaSync__Trigger();
 
 					unsigned int tickCount = GetTickCount();
 

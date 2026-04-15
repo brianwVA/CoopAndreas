@@ -1608,6 +1608,7 @@ void CPacketHandler::OnMissionFlagSync__Handle(void* data, int size)
 			CPad::GetPad(0)->bDisablePlayerJump = 0;
 			CPad::GetPad(0)->bDisablePlayerDisplayVitalStats = 0;
 			CDraw::FadeValue = 0;
+			CGame::currArea = 0; // Return to overworld when mission ends
 		}
 	}
 
@@ -1984,6 +1985,7 @@ void CPacketHandler::TeleportPlayerScripted__Handle(void* data, int size)
 	CPackets::TeleportPlayerScripted* packet = (CPackets::TeleportPlayerScripted*)data;
 
 	auto playerPed = FindPlayerPed(0);
+	CGame::currArea = packet->currArea;
 	playerPed->Teleport(packet->pos, false);
 	playerPed->m_fCurrentRotation = packet->heading;
 	playerPed->m_fAimingRotation = packet->heading;
@@ -2301,4 +2303,33 @@ void CPacketHandler::CheckDroppedPickups()
 			s_trackedPickupCount--;
 		}
 	}
+}
+
+// AreaSync — sync CGame::currArea from host to remotes
+
+static uint8_t s_nLastSentArea = 0;
+
+void CPacketHandler::AreaSync__Handle(void* data, int size)
+{
+	if (CLocalPlayer::m_bIsHost)
+		return;
+
+	CPackets::AreaSync* packet = (CPackets::AreaSync*)data;
+	CGame::currArea = packet->currArea;
+}
+
+void CPacketHandler::AreaSync__Trigger()
+{
+	if (!CLocalPlayer::m_bIsHost || !CNetwork::m_bConnected)
+		return;
+
+	uint8_t currentArea = static_cast<uint8_t>(CGame::currArea);
+	if (currentArea == s_nLastSentArea)
+		return;
+
+	s_nLastSentArea = currentArea;
+
+	CPackets::AreaSync packet{};
+	packet.currArea = currentArea;
+	CNetwork::SendPacket(CPacketsID::AREA_SYNC, &packet, sizeof packet, ENET_PACKET_FLAG_RELIABLE);
 }

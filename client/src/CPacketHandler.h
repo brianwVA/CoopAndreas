@@ -90,6 +90,8 @@ public:
 	static void PickupRemove__Handle(void* data, int size);
 	static void ItemDrop__Handle(void* data, int size);
 	static void CheatsToggle__Handle(void* data, int size);
+	static void AreaSync__Handle(void* data, int size);
+	static void AreaSync__Trigger();
 	static void TrackDroppedPickup(int16_t cx, int16_t cy, int16_t cz);
 	static void CheckDroppedPickups();
 };

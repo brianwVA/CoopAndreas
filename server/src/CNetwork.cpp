@@ -141,6 +141,7 @@ void CNetwork::InitListeners()
     CNetwork::AddListener(CPacketsID::PICKUP_REMOVE, CPlayerPackets::PickupRemove::Handle);
     CNetwork::AddListener(CPacketsID::ITEM_DROP, CPlayerPackets::ItemDrop::Handle);
     CNetwork::AddListener(CPacketsID::CHEATS_TOGGLE, CPlayerPackets::CheatsToggle::Handle);
+    CNetwork::AddListener(CPacketsID::AREA_SYNC, CPlayerPackets::AreaSync::Handle);
 }
 
 void CNetwork::SendPacket(ENetPeer* peer, unsigned short id, void* data, size_t dataSize, ENetPacketFlag flag)

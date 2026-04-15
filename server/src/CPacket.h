@@ -77,6 +77,7 @@ enum CPacketsID : unsigned short
 	PICKUP_REMOVE,
 	ITEM_DROP,
 	CHEATS_TOGGLE,
+	AREA_SYNC,
 	PACKET_ID_MAX
 };
 
